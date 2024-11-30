@@ -1,5 +1,6 @@
 services:
   argo-proxy:
-    image: argo-proxy
+    # image: argo-proxy
+    build: .
     ports:
       - 5000:5000
