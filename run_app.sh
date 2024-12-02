@@ -6,6 +6,7 @@ ARGO_URL="https://apps-dev.inside.anl.gov/argoapi/api/v1/resource/chat/"
 USER="cels"
 VERBOSE=false
 NUM_WORKERS=4
+TIMEOUT=120 # Default timeout value
 
 # Read configuration from YAML file if it exists
 if [ -f "config.yaml" ]; then
@@ -15,6 +16,7 @@ if [ -f "config.yaml" ]; then
     USER=$(echo "$CONFIG" | grep user | awk '{print $2}')
     VERBOSE=$(echo "$CONFIG" | grep verbose | awk '{print $2}')
     NUM_WORKERS=$(echo "$CONFIG" | grep num_workers | awk '{print $2}')
+    TIMEOUT=$(echo "$CONFIG" | grep timeout | awk '{print $2}') # Added line to capture timeout
 fi
 
 # Start the app in Docker or locally
@@ -31,6 +33,6 @@ if [ "$1" == "docker" ]; then
         argo-proxy
 else
     # Run the app locally with Gunicorn
-    echo "Starting app on port $PORT with ARGO_URL=$ARGO_URL, USER=$USER, VERBOSE=$VERBOSE, and NUM_WORKERS=$NUM_WORKERS"
-    gunicorn -b 0.0.0.0:$PORT -w $NUM_WORKERS app:app
+    echo "Starting app on port $PORT with ARGO_URL=$ARGO_URL, USER=$USER, VERBOSE=$VERBOSE, NUM_WORKERS=$NUM_WORKERS, and TIMEOUT=$TIMEOUT"
+    gunicorn -b 0.0.0.0:$PORT -w $NUM_WORKERS --timeout $TIMEOUT app:app
 fi

@@ -7,6 +7,8 @@ def main():
     # API endpoint URL (adjust the port if necessary)
     # url = "https://apps-dev.inside.anl.gov/argoapi/api/v1/resource/chat/"
     url = "http://localhost:5000/v1/chat"
+    url = "http://localhost:5000/v1/completions"
+    url = "http://localhost:5000/v1/chat/completions"
 
     # Headers
     headers = {"Content-Type": "application/json"}
@@ -22,7 +24,7 @@ def main():
     # Data payload template
     data_template = {
         "user": "cels",
-        "model": "gpto1preview",  # or gpt4o
+        "model": "gpto1preview",  # gpt4o, gpto1preview
         "system": system_prompt,
         "prompt": [],  # Will be updated with the user's message
         "stop": [],

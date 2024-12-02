@@ -2,4 +2,5 @@ port: 6000
 argo_url: "https://apps-dev.inside.anl.gov/argoapi/api/v1/resource/chat/"
 user: "cels"
 verbose: false
-num_workers: 4
+num_workers: 5
+timeout: 600 # in seconds
