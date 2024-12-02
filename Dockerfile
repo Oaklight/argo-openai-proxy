@@ -1,18 +1,22 @@
-FROM python:3.11-slim
+# Use an official Python runtime as a parent image
+FROM python:3.8-slim
 
-ENV PYTHONDONTWRITEBYTECODE=1
-ENV PYTHONUNBUFFERED=1
-
-# Set work directory
+# Set the working directory in the container
 WORKDIR /usr/src/app
 
-# Install dependencies
-COPY requirements.txt ./
-RUN pip install --no-cache-dir -r requirements.txt
-
-# Copy application code
+# Copy the current directory contents into the container at /usr/src/app
 COPY . .
 
-EXPOSE 5000
+# Install any needed packages specified in requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
 
-CMD ["gunicorn", "-w", "4", "-k", "gevent", "-b", "0.0.0.0:5000", "app:app"]
+# Make port 6000 available to the world outside this container
+EXPOSE 6000
+
+# Define environment variable
+ENV PORT=6000
+ENV ARGO_URL="https://apps-dev.inside.anl.gov/argoapi/api/v1/resource/chat/"
+ENV USER="cels"
+
+# Run app.py when the container launches
+CMD ["python3", "app.py"]

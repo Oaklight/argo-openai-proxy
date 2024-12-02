@@ -1,3 +1,4 @@
+import yaml
 import json
 import time
 import uuid
@@ -7,8 +8,12 @@ from http import HTTPStatus
 
 app = Flask(__name__)
 
-# Replace this with OpenAI-compatible API URL
-ARGO_API_URL = "https://apps-dev.inside.anl.gov/argoapi/api/v1/resource/chat/"
+# Read configuration from YAML file
+with open("config.yaml", "r") as file:
+    config = yaml.safe_load(file)
+
+# Replace this with the URL from the configuration
+ARGO_API_URL = config["argo_url"]
 
 
 @app.route("/v1/chat", methods=["POST"])
@@ -33,7 +38,7 @@ def proxy_request(convert_to_openai=False):
         print("-" * 50)
 
         # Automatically replace or insert the user
-        data["user"] = "cels"
+        data["user"] = config["user"]
 
         headers = {
             "Content-Type": "application/json"
@@ -152,4 +157,4 @@ def convert_custom_to_openai_response(
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=6000)
+    app.run(host="0.0.0.0", port=config["port"])

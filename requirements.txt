@@ -2,3 +2,4 @@ Flask
 requests
 gunicorn
 gevent
+PyYAML
