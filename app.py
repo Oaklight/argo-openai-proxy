@@ -2,7 +2,7 @@ import json
 import time
 import uuid
 import requests
-from flask import Flask, jsonify, request
+from flask import Flask, request, Response
 from http import HTTPStatus
 
 app = Flask(__name__)
@@ -50,35 +50,61 @@ def proxy_request(convert_to_openai=False):
         print("-" * 50)
 
         if convert_to_openai:
-            return jsonify(
-                convert_custom_to_openai_response(
-                    response.text, data.get("model", "gpt4o"), int(time.time())
-                )
+            openai_response = convert_custom_to_openai_response(
+                response.text,
+                data.get("model", "gpt4o"),
+                int(time.time()),
+                data.get("prompt", ""),
+            )
+            return Response(
+                json.dumps(openai_response),
+                status=response.status_code,
+                content_type="application/json",
             )
         else:
-            return jsonify(response.json())
+            return Response(
+                response.text,
+                status=response.status_code,
+                content_type="application/json",
+            )
 
     except ValueError as err:
-        return jsonify({"error": str(err)}), HTTPStatus.BAD_REQUEST
+        return Response(
+            json.dumps({"error": str(err)}),
+            status=HTTPStatus.BAD_REQUEST,
+            content_type="application/json",
+        )
     except requests.HTTPError as err:
         error_message = f"HTTP error occurred: {err}"
-        return (
-            jsonify({"error": error_message, "details": response.text}),
-            response.status_code,
+        return Response(
+            json.dumps({"error": error_message, "details": response.text}),
+            status=response.status_code,
+            content_type="application/json",
         )
     except requests.RequestException as err:
         error_message = f"Request error occurred: {err}"
-        return jsonify({"error": error_message}), HTTPStatus.SERVICE_UNAVAILABLE
+        return Response(
+            json.dumps({"error": error_message}),
+            status=HTTPStatus.SERVICE_UNAVAILABLE,
+            content_type="application/json",
+        )
     except Exception as err:
         error_message = f"An unexpected error occurred: {err}"
-        return jsonify({"error": error_message}), HTTPStatus.INTERNAL_SERVER_ERROR
+        return Response(
+            json.dumps({"error": error_message}),
+            status=HTTPStatus.INTERNAL_SERVER_ERROR,
+            content_type="application/json",
+        )
 
 
-def convert_custom_to_openai_response(custom_response, model_name, create_timestamp):
+def convert_custom_to_openai_response(
+    custom_response, model_name, create_timestamp, prompt
+):
     """
     Converts the custom API response to an OpenAI compatible API response.
 
     :param custom_response: JSON response from the custom API.
+    :param prompt: The input prompt used in the request.
     :return: OpenAI compatible JSON response.
     """
     try:
@@ -88,30 +114,33 @@ def convert_custom_to_openai_response(custom_response, model_name, create_timest
         # Extract the response text
         response_text = custom_response_dict.get("response", "")
 
+        # Calculate token counts (simplified example, actual tokenization may differ)
+        prompt_tokens = len(prompt.split())
+        completion_tokens = len(response_text.split())
+        total_tokens = prompt_tokens + completion_tokens
+
         # Construct the OpenAI compatible response
         openai_response = {
-            "id": uuid.uuid4(),  # Placeholder ID
-            "object": "chat.completion",
+            "id": str(uuid.uuid4()),  # Unique ID
+            "object": "chat.completion",  # Object type
             "created": create_timestamp,  # Current timestamp
             "model": model_name,  # Model name
             "choices": [
                 {
-                    "text": response_text,
                     "index": 0,
-                    "finish_reason": "stop",
-                    "logprobs": {
-                        "tokens": None,
-                        "token_logprobs": None,
-                        "top_logprobs": None,
-                        "text_offset": None,
+                    "message": {
+                        "role": "assistant",
+                        "content": response_text,
                     },
+                    "finish_reason": "stop",
                 }
             ],
             "usage": {
-                "prompt_tokens": 0,  # Placeholder
-                "completion_tokens": len(response_text.split()),  # Rough estimate
-                "total_tokens": 0,  # Placeholder
+                "prompt_tokens": prompt_tokens,  # Actual value based on prompt
+                "completion_tokens": completion_tokens,  # Actual value based on response
+                "total_tokens": total_tokens,  # Sum of prompt and completion tokens
             },
+            "system_fingerprint": "",  # Include system fingerprint as an empty string
         }
 
         return openai_response

@@ -65,7 +65,7 @@ curl -X POST http://localhost:5000/v1/chat/completions \
     ]
 }'
 
-{"choices":[{"finish_reason":"stop","index":0,"logprobs":{"text_offset":null,"token_logprobs":null,"tokens":null,"top_logprobs":null},"text":"Hello! How can I assist you today?"}],"created":1733116962,"id":"87f363a1-397a-4889-bff8-3203cebb5084","model":"gpt4o","object":"text_completion","usage":{"completion_tokens":7,"prompt_tokens":0,"total_tokens":0}}
+{"choices":[{"finish_reason":"stop","index":0,"message":{"content":"Hello! How can I assist you today?","role":"assistant"}}],"created":1733117619,"id":"9cc7ead5-52a1-4ec6-8f6b-a2e8707c2d1d","model":"gpt4o","object":"chat.completion","usage":{"completion_tokens":7,"prompt_tokens":0,"total_tokens":0}}
 
 curl -X POST https://api.siliconflow.cn/v1/chat/completions \
   -H "Content-Type: application/json" \
