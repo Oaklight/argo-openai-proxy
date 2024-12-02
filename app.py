@@ -7,12 +7,14 @@ app = Flask(__name__)
 ARGO_API_URL = "https://apps-dev.inside.anl.gov/argoapi/api/v1/resource/chat/"
 
 
+@app.route("/v1/chat/completions", methods=["POST"])
 @app.route("/v1/chat", methods=["POST"])
 def proxy_request():
     # Retrieve the incoming JSON data
-    data = request.get_json()
+    data = request.get_json()  # convert to utf8
     if not data:
         return jsonify({"error": "Invalid input. Expected JSON data."}), 400
+    # print(data)
 
     # Automatically replace or insert the user
     data["user"] = "cels"
@@ -26,11 +28,11 @@ def proxy_request():
     # Forward the modified request to the actual API
     response = requests.post(ARGO_API_URL, headers=headers, json=data)
 
-    print(response.json())
+    # print(response.json())
 
     # Return the response from the external API to the local client
     return jsonify(response.json())
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
+    app.run(host="0.0.0.0", port=6000)
