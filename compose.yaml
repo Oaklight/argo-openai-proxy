@@ -1,6 +1,9 @@
 services:
   argo-proxy:
-    # image: argo-proxy
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile
     ports:
-      - 5000:5000
+      - "6000:6000"
+    volumes:
+      - ./config.yaml:/app/config.yaml:ro   # Map the config.yaml file into the container

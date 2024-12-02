@@ -1,22 +1,19 @@
-# Use an official Python runtime as a parent image
+# Use a lightweight base image
 FROM python:3.8-slim
 
-# Set the working directory in the container
-WORKDIR /usr/src/app
+# Set the working directory inside the Docker container
+WORKDIR /app
 
-# Copy the current directory contents into the container at /usr/src/app
-COPY . .
+# Copy the necessary files into the container (except for config.yaml)
+COPY requirements.txt .
+COPY app.py .
+COPY run_app.sh .
 
-# Install any needed packages specified in requirements.txt
+# Install the required Python packages
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Make port 6000 available to the world outside this container
-EXPOSE 6000
+# Ensure the run script is executable
+RUN chmod +x run_app.sh
 
-# Define environment variable
-ENV PORT=6000
-ENV ARGO_URL="https://apps-dev.inside.anl.gov/argoapi/api/v1/resource/chat/"
-ENV USER="cels"
-
-# Run app.py when the container launches
-CMD ["python3", "app.py"]
+# Set the entry point to the run_app.sh script
+ENTRYPOINT ["./run_app.sh"]

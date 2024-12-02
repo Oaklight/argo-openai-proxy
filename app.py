@@ -1,10 +1,12 @@
-import yaml
 import json
 import time
 import uuid
-import requests
-from flask import Flask, request, Response
+import logging
 from http import HTTPStatus
+
+import requests
+import yaml
+from flask import Flask, Response, request
 
 app = Flask(__name__)
 
@@ -12,8 +14,14 @@ app = Flask(__name__)
 with open("config.yaml", "r") as file:
     config = yaml.safe_load(file)
 
-# Replace this with the URL from the configuration
+# Configuration variables
 ARGO_API_URL = config["argo_url"]
+VERBOSE = config["verbose"]
+
+# Setup logging
+logging.basicConfig(
+    level=logging.DEBUG if VERBOSE else logging.INFO, format="%(levelname)s:%(message)s"
+)
 
 
 @app.route("/v1/chat", methods=["POST"])
@@ -33,9 +41,10 @@ def proxy_request(convert_to_openai=False):
         data = request.get_json(force=True)
         if not data:
             raise ValueError("Invalid input. Expected JSON data.")
-        print("-" * 25, "input", "-" * 25)
-        print(json.dumps(data, indent=4))
-        print("-" * 50)
+        if VERBOSE:
+            logging.debug("-" * 25 + " input " + "-" * 25)
+            logging.debug(json.dumps(data, indent=4))
+            logging.debug("-" * 50)
 
         # Automatically replace or insert the user
         data["user"] = config["user"]
@@ -50,9 +59,10 @@ def proxy_request(convert_to_openai=False):
         response = requests.post(ARGO_API_URL, headers=headers, json=data)
         response.raise_for_status()
 
-        print("-" * 25, "forwarded response", "-" * 25)
-        print(json.dumps(response.json(), indent=4))
-        print("-" * 50)
+        if VERBOSE:
+            logging.debug("-" * 25 + " forwarded response " + "-" * 25)
+            logging.debug(json.dumps(response.json(), indent=4))
+            logging.debug("-" * 50)
 
         if convert_to_openai:
             openai_response = convert_custom_to_openai_response(
