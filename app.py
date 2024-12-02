@@ -130,6 +130,9 @@ def convert_custom_to_openai_response(
         response_text = custom_response_dict.get("response", "")
 
         # Calculate token counts (simplified example, actual tokenization may differ)
+        if isinstance(prompt, list):
+            # concatenate the list elements
+            prompt = " ".join(prompt)
         prompt_tokens = len(prompt.split())
         completion_tokens = len(response_text.split())
         total_tokens = prompt_tokens + completion_tokens
