@@ -42,6 +42,11 @@ def proxy_request(convert_to_openai=False):
         # Automatically replace or insert the user
         data["user"] = config["user"]
 
+        if "prompt" in data.keys():
+            if not isinstance(data["prompt"], list):
+                tmp = data["prompt"]
+                data["prompt"] = [tmp]
+
         headers = {
             "Content-Type": "application/json"
             # Uncomment and customize if needed
