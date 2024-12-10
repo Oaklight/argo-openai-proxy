@@ -1,6 +1,7 @@
-port: 6000
+port: 44497
 argo_url: "https://apps-dev.inside.anl.gov/argoapi/api/v1/resource/chat/"
+argo_embedding_url: "https://apps-dev.inside.anl.gov/argoapi/api/v1/resource/embed/"
 user: "cels"
-verbose: false
+verbose: true
 num_workers: 5
 timeout: 600 # in seconds
