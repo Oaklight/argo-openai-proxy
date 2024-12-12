@@ -10,6 +10,7 @@ sys.path.append(current_dir)
 
 import chat
 import embed
+import completions
 
 app = Flask(__name__)
 
@@ -19,14 +20,18 @@ with open("config.yaml", "r") as file:
 
 
 @app.route("/v1/chat", methods=["POST"])
-def proxy_chat_request():
+def proxy_argo_chat_directly():
     return chat.proxy_request(convert_to_openai=False)
 
 
 @app.route("/v1/chat/completions", methods=["POST"])
-@app.route("/v1/completions", methods=["POST"])
-def proxy_openai_compatible_request():
+def proxy_openai_chat_compatible():
     return chat.proxy_request(convert_to_openai=True)
+
+
+@app.route("/v1/completions", methods=["POST"])
+def proxy_openai_legacy_completions_compatible():
+    return completions.proxy_request(convert_to_openai=True)
 
 
 @app.route("/v1/embed", methods=["POST"])
