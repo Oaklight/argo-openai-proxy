@@ -28,13 +28,13 @@ logging.basicConfig(
 )
 
 MODEL_AVAIL = {
-    "gpt-3.5-turbo": "gpt35",
-    "gpt-3.5-turbo-16k": "gpt35large",
-    "gpt-4": "gpt4",
-    "gpt-4-32k": "gpt4large",
-    "gpt-4-turbo-preview": "gpt4turbo",
-    "gpt-4o": "gpt4o",
-    "gpt-o1-preview": "gpto1preview",
+    "argo:gpt-3.5-turbo": "gpt35",
+    "argo:gpt-3.5-turbo-16k": "gpt35large",
+    "argo:gpt-4": "gpt4",
+    "argo:gpt-4-32k": "gpt4large",
+    "argo:gpt-4-turbo-preview": "gpt4turbo",
+    "argo:gpt-4o": "gpt4o",
+    "argo:gpt-o1-preview": "gpto1preview",
 }
 
 

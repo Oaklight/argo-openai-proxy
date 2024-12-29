@@ -16,12 +16,13 @@ MODELS_DATA = {"object": "list", "data": []}
 for model_id, model_name in ALL_MODELS.items():
     MODELS_DATA["data"].append(
         {
-            "id": model_id,
+            "id": model_id,  # Include the key (e.g., "argo:gpt-4o")
             "object": "model",
             "created": int(
                 datetime.now().timestamp()
             ),  # Use current timestamp for simplicity
             "owned_by": "system",  # Default ownership
+            "internal_name": model_name,  # Include the value (e.g., "gpt4o")
         }
     )
 

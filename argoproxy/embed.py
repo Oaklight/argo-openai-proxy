@@ -28,9 +28,9 @@ logging.basicConfig(
 )
 
 MODEL_AVAIL = {
-    "text-embedding-ada-002": "ada002",
-    "text-embedding-3-small": "v3small",
-    "text-embedding-3-large": "v3large",
+    "argo:text-embedding-ada-002": "ada002",
+    "argo:text-embedding-3-small": "v3small",
+    "argo:text-embedding-3-large": "v3large",
 }
 
 
