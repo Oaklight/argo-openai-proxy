@@ -4,6 +4,10 @@ services:
       context: .
       dockerfile: Dockerfile
     ports:
-      - "6000:6000"
+      - "6000:6000"  # Map port 6000 on the host to port 6000 in the container
     volumes:
-      - ./config.yaml:/app/config.yaml:ro   # Map the config.yaml file into the container
+      - ./config.yaml:/app/config.yaml:ro  # Mount the config.yaml file as read-only
+    environment:
+      - PORT=6000  # Set the port as an environment variable
+      - VERBOSE=true  # Enable verbose logging
+    restart: unless-stopped  # Automatically restart the container unless it is explicitly stopped

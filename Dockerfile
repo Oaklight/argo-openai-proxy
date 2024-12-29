@@ -1,12 +1,17 @@
 # Use a lightweight base image
 FROM python:3.8-slim
 
+# Set environment variables for Python
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1
+
 # Set the working directory inside the Docker container
 WORKDIR /app
 
-# Copy the necessary files into the container (except for config.yaml)
+# Copy the necessary files into the container
 COPY requirements.txt .
 COPY app.py .
+COPY argoproxy .
 COPY run_app.sh .
 
 # Install the required Python packages
