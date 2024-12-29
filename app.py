@@ -8,9 +8,9 @@ from flask import Flask
 current_dir = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(current_dir)
 
-import src.chat as chat
-import src.embed as embed
-import src.completions as completions
+import argoproxy.chat as chat
+import argoproxy.embed as embed
+import argoproxy.completions as completions
 
 app = Flask(__name__)
 
