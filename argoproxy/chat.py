@@ -38,10 +38,14 @@ MODEL_AVAIL = {
 }
 
 
-def proxy_request(convert_to_openai=False):
+def proxy_request(convert_to_openai=False, input_data=None):
     try:
-        # Retrieve the incoming JSON data
-        data = request.get_json(force=True)
+        # Retrieve the incoming JSON data from Flask request if input_data is not provided
+        if input_data is None:
+            data = request.get_json(force=True)
+        else:
+            data = input_data
+
         if not data:
             raise ValueError("Invalid input. Expected JSON data.")
         if VERBOSE:
@@ -67,6 +71,7 @@ def proxy_request(convert_to_openai=False):
         # If the model argument is missing, set the default model to GPT-4o
         else:
             data["model"] = "gpt4o"
+
         if "prompt" in data.keys():
             if not isinstance(data["prompt"], list):
                 tmp = data["prompt"]

@@ -14,6 +14,7 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(current_dir)
 
 from argoproxy.utils import make_bar
+from argoproxy.chat import MODEL_AVAIL as CHAT_MODEL_AVAIL
 
 with open("config.yaml", "r") as file:
     config = yaml.safe_load(file)
@@ -27,11 +28,18 @@ logging.basicConfig(
     level=logging.DEBUG if VERBOSE else logging.INFO, format="%(levelname)s:%(message)s"
 )
 
+# Mirror the MODEL_AVAIL from chat.py
+MODEL_AVAIL = CHAT_MODEL_AVAIL
 
-def proxy_request(convert_to_openai=False):
+
+def proxy_request(convert_to_openai=False, input_data=None):
     try:
-        # Retrieve the incoming JSON data
-        data = request.get_json(force=True)
+        # Retrieve the incoming JSON data from Flask request if input_data is not provided
+        if input_data is None:
+            data = request.get_json(force=True)
+        else:
+            data = input_data
+
         if not data:
             raise ValueError("Invalid input. Expected JSON data.")
         if VERBOSE:
@@ -41,6 +49,22 @@ def proxy_request(convert_to_openai=False):
 
         # Automatically replace or insert the user
         data["user"] = config["user"]
+
+        # Remap the model using MODEL_AVAIL
+        if "model" in data:
+            user_model = data["model"]
+            # Check if the user_model is a key in MODEL_AVAIL
+            if user_model in MODEL_AVAIL:
+                data["model"] = MODEL_AVAIL[user_model]
+            # Check if the user_model is a value in MODEL_AVAIL
+            elif user_model in MODEL_AVAIL.values():
+                data["model"] = user_model
+            # If the user_model is not found, set the default model to GPT-4o
+            else:
+                data["model"] = "gpt4o"
+        # If the model argument is missing, set the default model to GPT-4o
+        else:
+            data["model"] = "gpt4o"
 
         if "prompt" in data.keys():
             if not isinstance(data["prompt"], list):
@@ -65,7 +89,7 @@ def proxy_request(convert_to_openai=False):
         if convert_to_openai:
             openai_response = convert_custom_to_openai_response(
                 response.text,
-                data.get("model", "gpto1preview"),
+                data.get("model", "gpt4o"),
                 int(time.time()),
                 data.get("prompt", ""),
             )
@@ -114,7 +138,7 @@ def convert_custom_to_openai_response(
     custom_response, model_name, create_timestamp, prompt
 ):
     """
-    Converts the custom API response to an OpenAI compatible completion API response.
+    Converts the custom API response to an OpenAI compatible API response.
 
     :param custom_response: JSON response from the custom API.
     :param prompt: The input prompt used in the request.

@@ -11,6 +11,7 @@ sys.path.append(current_dir)
 import argoproxy.chat as chat
 import argoproxy.embed as embed
 import argoproxy.completions as completions
+import argoproxy.extras as extras  # Import the new extras module
 
 app = Flask(__name__)
 
@@ -37,6 +38,17 @@ def proxy_openai_legacy_completions_compatible():
 @app.route("/v1/embed", methods=["POST"])
 def proxy_embedding_request():
     return embed.proxy_request(convert_to_openai=False)
+
+
+# Add new endpoints for /models and /status
+@app.route("/v1/models", methods=["GET"])
+def get_models():
+    return extras.get_models()
+
+
+@app.route("/v1/status", methods=["GET"])
+def get_status():
+    return extras.get_status()
 
 
 if __name__ == "__main__":
