@@ -4,10 +4,11 @@ import json
 # API endpoint to POST
 # url = "https://apps-dev.inside.anl.gov/argoapi/api/v1/resource/embed/"
 url = "http://localhost:5000/v1/embed"
+MODEL = "argo:text-embedding-3-large"
 
 # Data to be sent as a POST in JSON format
 data = {
-    "model": "text-embedding-3-large",
+    "model": MODEL,
     "input": ["What is your name", "What is your favorite color?"],
 }
 

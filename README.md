@@ -9,7 +9,9 @@ This project is a proxy application that forwards requests to an ARGO API and op
 * [Running the Application](#running-the-application)
   + [Natively](#natively)
   + [Using Docker](#using-docker)
-* [Configuration File](#configuration-file)
+* [Folder Structure](#folder-structure)
+* [Endpoints](#endpoints)
+* [Examples](#examples)
 
 ## Prerequisites
 
@@ -18,22 +20,28 @@ This project is a proxy application that forwards requests to an ARGO API and op
 
 ## Configuration
 
-The application uses a `config.yaml` file to manage its settings. This file includes the following fields:
+The application is configured using a `config.yaml` file. This file contains settings such as the ARGO API URLs, port number, and logging behavior. Below is a breakdown of the configuration options:
 
-* `port`: The port number for the application to listen on.
-* `argo_url`: The URL of the ARGO API.
-* `user`: The user name to be used in the requests.
-* `verbose`: A boolean flag to control whether to print input and output (default: `false`).
-* `num_workers`: The number of worker processes for Gunicorn (default: `4`).
+### Configuration Options
+
+* **`port`**: The port number on which the application will listen. Default is `44497`.
+* **`argo_url`**: The URL of the ARGO API for chat and completions. Default is `"https://apps-dev.inside.anl.gov/argoapi/api/v1/resource/chat/"`.
+* **`argo_embedding_url`**: The URL of the ARGO API for embeddings. Default is `"https://apps-dev.inside.anl.gov/argoapi/api/v1/resource/embed/"`.
+* **`user`**: The user name to be used in the requests. Default is `"cels"`.
+* **`verbose`**: A boolean flag to control whether to print input and output for debugging. Default is `true`.
+* **`num_workers`**: The number of worker processes for Gunicorn. Default is `5`.
+* **`timeout`**: The timeout for requests in seconds. Default is `600`.
 
 ### Example `config.yaml`
 
 ```yaml
-port: 6000
+port: 44497
 argo_url: "https://apps-dev.inside.anl.gov/argoapi/api/v1/resource/chat/"
+argo_embedding_url: "https://apps-dev.inside.anl.gov/argoapi/api/v1/resource/embed/"
 user: "cels"
-verbose: false
-num_workers: 4
+verbose: true
+num_workers: 5
+timeout: 600
 ```
 
 ## Running the Application
@@ -78,21 +86,62 @@ num_workers: 4
    ./run_app.sh docker
    ```
 
-## Configuration File
+## Folder Structure
 
-The `config.yaml` file allows you to customize the application's behavior. Here are the available settings:
+```
+$ tree .
+.
+├── app.py
+├── argoproxy
+│   ├── chat.py
+│   ├── completions.py
+│   ├── embed.py
+│   ├── extras.py
+│   └── utils.py
+├── compose.yaml
+├── config.yaml
+├── Dockerfile
+├── Dockerfile.txt
+├── README.md
+├── requirements.txt
+├── run_app.sh
+└── test
+    ├── chat_example.py
+    ├── embedding_example.py
+    └── o1-example.py
 
-* **port**: The port number on which the application will listen. Default is `6000`.
-* **argo_url**: The URL of the ARGO API. Default is `"https://apps-dev.inside.anl.gov/argoapi/api/v1/resource/chat/"`.
-* **user**: The user name to be used in the requests. Default is `"cels"`.
-* **verbose**: A boolean flag to control whether to print input and output. Default is `false`.
-* **num_workers**: The number of worker processes for Gunicorn. Default is `4`.
+2 directories, 16 files
+```
 
-### Example `config.yaml`
+## Endpoints
 
-```yaml
-port: 6000
-argo_url: "https://apps-dev.inside.anl.gov/argoapi/api/v1/resource/chat/"
-user: "cels"
-verbose: false
-num_workers: 4
+The application provides the following endpoints:
+
+* **`/v1/chat`**: Directly proxies requests to the ARGO API.
+* **`/v1/chat/completions`**: Proxies requests to the ARGO API and converts the response to OpenAI-compatible format.
+* **`/v1/completions`**: Proxies requests to the ARGO API and converts the response to OpenAI-compatible format (legacy).
+* **`/v1/embed`**: Proxies requests to the ARGO Embedding API.
+* **`/v1/models`**: Returns a list of available models in OpenAI-compatible format.
+* **`/v1/status`**: Returns a simple "hello" response from GPT-4o.
+
+## Examples
+
+### Chat Example
+
+For an example of how to use the `/v1/chat/completions` endpoint, see the [ `chat_example.py` ](test/chat_example.py) file.
+
+### Embedding Example
+
+For an example of how to use the `/v1/embed` endpoint, see the [ `embedding_example.py` ](test/embedding_example.py) file.
+
+### O1 Example
+
+For an example of how to use the `/v1/chat` endpoint with the `argo:gpt-o1-preview` model, see the [ `o1-example.py` ](test/o1-example.py) file.
+
+---
+
+### **Changes Made**
+
+1. Added the **Configuration** section with a detailed explanation of the `config.yaml` file and its options.
+2. Included an example `config.yaml` file for reference.
+3. Ensured the **Configuration** section is properly linked in the Table of Contents.

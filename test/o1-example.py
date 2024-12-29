@@ -24,7 +24,7 @@ def main():
     # Data payload template
     data_template = {
         "user": "cels",
-        "model": "gpt-4o",  # gpt4o, gpto1preview
+        "model": "argo:gpt-o1-preview",  # gpt4o, gpto1preview
         "system": system_prompt,
         "prompt": [],  # Will be updated with the user's message
         "stop": [],
