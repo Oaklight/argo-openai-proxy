@@ -12,7 +12,7 @@ from flask import Response, request
 current_dir = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(current_dir)
 
-from utils import make_bar
+from src.utils import make_bar
 
 # Assuming similar config loading and logging setup
 with open("config.yaml", "r") as file:

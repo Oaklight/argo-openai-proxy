@@ -8,9 +8,9 @@ from flask import Flask
 current_dir = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(current_dir)
 
-import chat
-import embed
-import completions
+import src.chat as chat
+import src.embed as embed
+import src.completions as completions
 
 app = Flask(__name__)
 
