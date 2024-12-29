@@ -24,7 +24,7 @@ def main():
     # Data payload template
     data_template = {
         "user": "cels",
-        "model": "gpto1preview",  # gpt4o, gpto1preview
+        "model": "gpt4o",  # gpt4o, gpto1preview
         "system": system_prompt,
         "prompt": [],  # Will be updated with the user's message
         "stop": [],
@@ -40,6 +40,7 @@ def main():
         "that would be needed and the experimental protocols that would need to be automated to "
         "test the hypotheses."
     )
+    user_message = "hi"
 
     # Update the data payload with the user's message
     data = data_template.copy()
