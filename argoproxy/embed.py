@@ -27,6 +27,12 @@ logging.basicConfig(
     level=logging.DEBUG if VERBOSE else logging.INFO, format="%(levelname)s:%(message)s"
 )
 
+MODEL_AVAIL = {
+    "text-embedding-ada-002": "ada002",
+    "text-embedding-3-small": "v3small",
+    "text-embedding-3-large": "v3large",
+}
+
 
 def proxy_request(convert_to_openai=False):
     try:
@@ -38,6 +44,22 @@ def proxy_request(convert_to_openai=False):
             logging.debug(make_bar("[embed] input"))
             logging.debug(json.dumps(data, indent=4))
             logging.debug(make_bar())
+
+            # Remap the model using MODEL_AVAIL
+        if "model" in data:
+            user_model = data["model"]
+            # Check if the user_model is a key in MODEL_AVAIL
+            if user_model in MODEL_AVAIL:
+                data["model"] = MODEL_AVAIL[user_model]
+            # Check if the user_model is a value in MODEL_AVAIL
+            elif user_model in MODEL_AVAIL.values():
+                data["model"] = user_model
+            # If the user_model is not found, set the default model
+            else:
+                data["model"] = "v3small"
+        # If "model" is not provided, set the default model
+        else:
+            data["model"] = "v3small"
 
         # Transform the incoming payload to match the destination API format
         data["user"] = config["user"]

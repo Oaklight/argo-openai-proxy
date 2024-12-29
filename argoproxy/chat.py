@@ -27,6 +27,16 @@ logging.basicConfig(
     level=logging.DEBUG if VERBOSE else logging.INFO, format="%(levelname)s:%(message)s"
 )
 
+MODEL_AVAIL = {
+    "gpt-3.5-turbo": "gpt35",
+    "gpt-3.5-turbo-16k": "gpt35large",
+    "gpt-4": "gpt4",
+    "gpt-4-32k": "gpt4large",
+    "gpt-4-turbo-preview": "gpt4turbo",
+    "gpt-4o": "gpt4o",
+    "gpt-o1-preview": "gpto1preview",
+}
+
 
 def proxy_request(convert_to_openai=False):
     try:
@@ -42,6 +52,21 @@ def proxy_request(convert_to_openai=False):
         # Automatically replace or insert the user
         data["user"] = config["user"]
 
+        # Remap the model using MODEL_AVAIL
+        if "model" in data:
+            user_model = data["model"]
+            # Check if the user_model is a key in MODEL_AVAIL
+            if user_model in MODEL_AVAIL:
+                data["model"] = MODEL_AVAIL[user_model]
+            # Check if the user_model is a value in MODEL_AVAIL
+            elif user_model in MODEL_AVAIL.values():
+                data["model"] = user_model
+            # If the user_model is not found, set the default model to GPT-4o
+            else:
+                data["model"] = "gpt4o"
+        # If the model argument is missing, set the default model to GPT-4o
+        else:
+            data["model"] = "gpt4o"
         if "prompt" in data.keys():
             if not isinstance(data["prompt"], list):
                 tmp = data["prompt"]
