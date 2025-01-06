@@ -33,7 +33,7 @@ export default function BookList() {
 response = client.chat.completions.create(
     model="argo:gpt-o1-preview",
     messages=[
-        {"role": "user", "content": "You are a helpful assistant."},
+        {"role": "system", "content": "You are a helpful assistant."},
         {
             "role": "user",
             "content": [
