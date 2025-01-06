@@ -72,6 +72,13 @@ def proxy_request(convert_to_openai=False, input_data=None):
         else:
             data["model"] = "gpt4o"
 
+        # Convert system message to user message for specific models
+        if data["model"] in ["gpto1preview", "argo:gpt-o1-preview"]:
+            if "messages" in data:
+                for message in data["messages"]:
+                    if message["role"] == "system":
+                        message["role"] = "user"
+
         if "prompt" in data.keys():
             if not isinstance(data["prompt"], list):
                 tmp = data["prompt"]
