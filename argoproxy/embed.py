@@ -7,7 +7,7 @@ from http import HTTPStatus
 
 import requests
 import yaml
-from flask import Response, request
+from flask import request, Response
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(current_dir)
@@ -34,7 +34,7 @@ MODEL_AVAIL = {
 }
 
 
-def proxy_request(convert_to_openai=False):
+def proxy_request():
     try:
         # Retrieve the incoming JSON data
         data = request.get_json(force=True)
