@@ -36,6 +36,8 @@ MODEL_AVAIL = {
     "argo:gpt-4-turbo-preview": "gpt4turbo",
     "argo:gpt-4o": "gpt4o",
     "argo:gpt-o1-preview": "gpto1preview",
+    "argo:gpt-o1-mini": "gpto1mini",
+}
 
 DEFAULT_MODEL = "gpt4o"
 
