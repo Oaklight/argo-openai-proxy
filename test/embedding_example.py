@@ -5,29 +5,32 @@ import requests
 # API endpoint to POST
 # url = "https://apps-dev.inside.anl.gov/argoapi/api/v1/resource/embed/"
 
-url = "http://localhost:5000/v1/embeddings"
-MODEL = "argo:text-embedding-3-large"
 
-# Data to be sent as a POST in JSON format
+BASE_URL = "http://localhost:44498"  # Update if your server is running on a different host/port
+EMBED_ENDPOINT = f"{BASE_URL}/v1/embeddings"
+MODEL = "argo:text-embedding-3-small"
 
-data = {
-    "model": MODEL,
-    "input": ["What is your name", "What is your favorite color?"],
-}
 
-# Convert the dict to JSON
+def embed_test():
+    print("Running Embed Test with Messages")
 
-payload = json.dumps(data)
+    payload = {
+        "model": MODEL,
+        "input": ["What is your name", "What is your favorite color?"],
+    }
+    headers = {"Content-Type": "application/json"}
 
-# Adding a header stating that the content type is JSON
+    response = requests.post(EMBED_ENDPOINT, headers=headers, json=payload)
 
-headers = {"Content-Type": "application/json"}
+    try:
+        response.raise_for_status()
+        print("Response Status Code:", response.status_code)
+        print("Response Body:", json.dumps(response.json(), indent=4))
+    except requests.exceptions.HTTPError as err:
+        print("HTTP Error:", err)
+        print("Response Body:", response.text)
+        exit(1)
 
-# Send POST request
 
-response = requests.post(url, data=payload, headers=headers)
-
-# Receive the response data
-
-print("Status Code:", response.status_code)
-print("JSON Response ", response.json())
+if __name__ == "__main__":
+    embed_test()

@@ -4,7 +4,7 @@ import requests
 
 # Configuration
 BASE_URL = "http://localhost:44498"  # Update if your server is running on a different host/port
-CHAT_ENDPOINT = f"{BASE_URL}/v1/chat"
+CHAT_ENDPOINT = f"{BASE_URL}/v1/chat/completions"
 MODEL = "argo:gpt-4o"
 
 
@@ -15,7 +15,7 @@ def chat_test():
     # Define the request payload using the "messages" field
     payload = {
         "model": MODEL,
-        "prompt": "Hello, how are you?",
+        "messages": [{"role": "user", "content": "Hello, how are you?"}],
         "user": "test_user",  # This will be overridden by the proxy_request function
     }
     headers = {"Content-Type": "application/json"}
