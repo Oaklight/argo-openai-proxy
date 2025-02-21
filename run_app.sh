@@ -1,38 +1,46 @@
 #!/bin/bash
 
-# Default configuration
-PORT=6000
-ARGO_URL="https://apps-dev.inside.anl.gov/argoapi/api/v1/resource/chat/"
-USER="cels"
-VERBOSE=false
-NUM_WORKERS=4
-TIMEOUT=120 # Default timeout value
+# Function to extract value from YAML for a given key
+get_yaml_value() {
+    local key="$1"
+    local config="$2"
+    echo "$config" | grep "$key" | awk '{print $2}'
+}
 
 # Read configuration from YAML file if it exists
+yaml_port=""
+yaml_argo_url=""
+yaml_user=""
+yaml_verbose=""
+yaml_num_workers=""
+yaml_timeout=""
+
 if [ -f "config.yaml" ]; then
-    CONFIG=$(cat config.yaml)
-    PORT=$(echo "$CONFIG" | grep port | awk '{print $2}')
-    ARGO_URL=$(echo "$CONFIG" | grep argo_url | awk '{print $2}')
-    USER=$(echo "$CONFIG" | grep user | awk '{print $2}')
-    VERBOSE=$(echo "$CONFIG" | grep verbose | awk '{print $2}')
-    NUM_WORKERS=$(echo "$CONFIG" | grep num_workers | awk '{print $2}')
-    TIMEOUT=$(echo "$CONFIG" | grep timeout | awk '{print $2}') # Added line to capture timeout
+    config=$(cat config.yaml)
+    yaml_port=$(get_yaml_value "port" "$config")
+    yaml_argo_url=$(get_yaml_value "argo_url" "$config")
+    yaml_user=$(get_yaml_value "user" "$config")
+    yaml_verbose=$(get_yaml_value "verbose" "$config")
+    yaml_num_workers=$(get_yaml_value "num_workers" "$config")
+    yaml_timeout=$(get_yaml_value "timeout" "$config")
 fi
 
-# Start the app in Docker or locally
-if [ "$1" == "docker" ]; then
-    # Build the Docker image
-    docker build -t argo-proxy .
+# Determine final values, using environment variables if set
+final_port=${PORT:-$yaml_port}
+final_argo_url=${ARGO_URL:-$yaml_argo_url}
+final_user=$yaml_user # don't read from system for final_user
+final_verbose=${VERBOSE:-$yaml_verbose}
+final_num_workers=${NUM_WORKERS:-$yaml_num_workers}
+final_timeout=${TIMEOUT:-$yaml_timeout}
 
-    # Run the Docker container
-    docker run -d -p $PORT:$PORT --name argo-proxy-container \
-        -e PORT=$PORT \
-        -e ARGO_URL=$ARGO_URL \
-        -e USER=$USER \
-        -e VERBOSE=$VERBOSE \
-        argo-proxy
-else
-    # Run the app locally with Gunicorn
-    echo "Starting app on port $PORT with ARGO_URL=$ARGO_URL, USER=$USER, VERBOSE=$VERBOSE, NUM_WORKERS=$NUM_WORKERS, and TIMEOUT=$TIMEOUT"
-    gunicorn -b 0.0.0.0:$PORT -w $NUM_WORKERS --timeout $TIMEOUT app:app
-fi
+# Set default values if variables are still empty
+final_port=${final_port:-8000}
+final_argo_url=${final_argo_url:-"default_argo_url"}
+final_user=${final_user:-"cels"}
+final_verbose=${final_verbose:-"false"}
+final_num_workers=${final_num_workers:-4}
+final_timeout=${final_timeout:-30}
+
+# Run the app locally with Gunicorn
+echo "Starting app on port $final_port with ARGO_URL=$final_argo_url, USER=$final_user, VERBOSE=$final_verbose, NUM_WORKERS=$final_num_workers, and TIMEOUT=$final_timeout"
+gunicorn -b 0.0.0.0:$final_port -w $final_num_workers --timeout $final_timeout app:app
