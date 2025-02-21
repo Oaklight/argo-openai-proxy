@@ -11,6 +11,7 @@ This project is a proxy application that forwards requests to an ARGO API and op
   - [Using Docker](#using-docker)
 - [Folder Structure](#folder-structure)
 - [Endpoints](#endpoints)
+- [Models](#models)
 - [Examples](#examples)
 
 ## Prerequisites
@@ -115,6 +116,48 @@ The application provides the following endpoints:
 - **`/v1/embeddings`**: Proxies requests to the ARGO Embedding API.
 - **`/v1/models`**: Returns a list of available models in OpenAI-compatible format.
 - **`/v1/status`**: Returns a simple "hello" response from GPT-4o.
+
+## Models
+
+This application provides proxy to the following models. You can call the models via either the argo original name or argo-proxy name.
+
+<!-- MODEL_AVAIL = {
+    "argo:gpt-3.5-turbo": "gpt35",
+    "argo:gpt-3.5-turbo-16k": "gpt35large",
+    "argo:gpt-4": "gpt4",
+    "argo:gpt-4-32k": "gpt4large",
+    "argo:gpt-4-turbo-preview": "gpt4turbo",
+    "argo:gpt-4o": "gpt4o",
+    "argo:gpt-o1-preview": "gpto1preview",
+    "argo:gpt-o1-mini": "gpto1mini",
+}
+MODEL_AVAIL = {
+    "argo:text-embedding-ada-002": "ada002",
+    "argo:text-embedding-3-small": "v3small",
+    "argo:text-embedding-3-large": "v3large",
+} -->
+<!-- make a table of argo proxy name and original name -->
+
+### chat models
+
+| Original ARGO Model Name | Argo Proxy Name            |
+| ------------------------ | -------------------------- |
+| `gpt35`                  | `argo:gpt-3.5-turbo`       |
+| `gpt35large`             | `argo:gpt-3.5-turbo-16k`   |
+| `gpt4`                   | `argo:gpt-4`               |
+| `gpt4large`              | `argo:gpt-4-32k`           |
+| `gpt4turbo`              | `argo:gpt-4-turbo-preview` |
+| `gpt4o`                  | `argo:gpt-4o`              |
+| `gpto1preview`           | `argo:gpt-o1-preview`      |
+| `gpto1mini`              | `argo:gpt-o1-mini`         |
+
+### embedding models
+
+| Original ARGO Model Name | Argo Proxy Name               |
+| ------------------------ | ----------------------------- |
+| `ada002`                 | `argo:text-embedding-ada-002` |
+| `v3small`                | `argo:text-embedding-3-small` |
+| `v3large`                | `argo:text-embedding-3-large` |
 
 ## Examples
 
