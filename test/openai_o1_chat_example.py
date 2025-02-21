@@ -1,6 +1,6 @@
 from openai import OpenAI
 
-client = OpenAI(api_key="random+whatever", base_url="http://localhost:5000/v1")
+client = OpenAI(api_key="random+whatever", base_url="http://localhost:44498/v1")
 
 user_prompt = """
 Instructions:
@@ -31,7 +31,7 @@ export default function BookList() {
 """
 
 response = client.chat.completions.create(
-    model="argo:gpt-o1-preview",
+    model="argo:gpt-o1-mini",
     messages=[
         {"role": "system", "content": "You are a helpful assistant."},
         {
@@ -55,7 +55,7 @@ prompt = f"{system_prompt}\n\nUser: {user_prompt}"
 
 # Make the API call
 response = client.completions.create(
-    model="argo:gpt-o1-preview",
+    model="argo:gpt-o1-mini",
     prompt=prompt,
     max_tokens=200,
     temperature=0.7,
