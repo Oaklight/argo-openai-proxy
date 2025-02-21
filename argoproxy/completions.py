@@ -8,13 +8,13 @@ from http import HTTPStatus
 
 import requests
 import yaml
-from flask import Response, request
+from flask import request, Response
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(current_dir)
 
+from argoproxy.chat import DEFAULT_MODEL, MODEL_AVAIL as MODEL_AVAIL, NO_SYS_MSG
 from argoproxy.utils import make_bar
-from argoproxy.chat import MODEL_AVAIL as CHAT_MODEL_AVAIL
 
 with open("config.yaml", "r") as file:
     config = yaml.safe_load(file)
@@ -27,9 +27,6 @@ VERBOSE = config["verbose"]
 logging.basicConfig(
     level=logging.DEBUG if VERBOSE else logging.INFO, format="%(levelname)s:%(message)s"
 )
-
-# Mirror the MODEL_AVAIL from chat.py
-MODEL_AVAIL = CHAT_MODEL_AVAIL
 
 
 def proxy_request(convert_to_openai=False, input_data=None):
@@ -61,15 +58,26 @@ def proxy_request(convert_to_openai=False, input_data=None):
                 data["model"] = user_model
             # If the user_model is not found, set the default model to GPT-4o
             else:
-                data["model"] = "gpt4o"
+                data["model"] = DEFAULT_MODEL
         # If the model argument is missing, set the default model to GPT-4o
         else:
-            data["model"] = "gpt4o"
+            data["model"] = DEFAULT_MODEL
 
-        if "prompt" in data.keys():
+        if "prompt" in data:
             if not isinstance(data["prompt"], list):
                 tmp = data["prompt"]
                 data["prompt"] = [tmp]
+
+        if data["model"] in NO_SYS_MSG:
+            if "system" in data:
+                # check if system is str or list, make it list
+                if isinstance(data["system"], str):
+                    data["system"] = [data["system"]]
+                elif not isinstance(data["system"], list):
+                    raise ValueError("System prompt must be a string or list")
+                # convert system prompt to prompt
+                data["prompt"] = data["system"] + data["prompt"]
+                del data["system"]
 
         headers = {
             "Content-Type": "application/json"
@@ -89,7 +97,7 @@ def proxy_request(convert_to_openai=False, input_data=None):
         if convert_to_openai:
             openai_response = convert_custom_to_openai_response(
                 response.text,
-                data.get("model", "gpt4o"),
+                data.get("model"),
                 int(time.time()),
                 data.get("prompt", ""),
             )
