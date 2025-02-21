@@ -1,19 +1,18 @@
-import requests
-import json
 import argparse
+import json
+
+import requests
 
 
 def main():
     # API endpoint URL (adjust the port if necessary)
     # url = "https://apps-dev.inside.anl.gov/argoapi/api/v1/resource/chat/"
-    url = "http://localhost:5000/v1/chat"
-    url = "http://localhost:5000/v1/completions"
-    url = "http://localhost:5000/v1/chat/completions"
+    url = "http://localhost:44498/v1/chat"
 
     # Headers
     headers = {"Content-Type": "application/json"}
 
-    # System prompt
+    # System prompt, will be converted to user message for gpt-o1 series
     system_prompt = (
         "You are a super smart and helpful AI. You always answer truthfully and provide "
         "the answer directly if you can. If you can't answer because you don't know the "
@@ -24,7 +23,7 @@ def main():
     # Data payload template
     data_template = {
         "user": "cels",
-        "model": "argo:gpt-o1-preview",  # gpt4o, gpto1preview
+        "model": "argo:gpt-o1-mini",
         "system": system_prompt,
         "prompt": [],  # Will be updated with the user's message
         "stop": [],
@@ -40,17 +39,13 @@ def main():
         "that would be needed and the experimental protocols that would need to be automated to "
         "test the hypotheses."
     )
-    user_message = "hi"
 
     # Update the data payload with the user's message
     data = data_template.copy()
     data["prompt"] = [user_message]
 
-    # Convert the data to a JSON string
-    json_data = json.dumps(data)
-
     # Send the POST request to the API
-    response = requests.post(url, headers=headers, data=json_data)
+    response = requests.post(url, headers=headers, json=data)
 
     try:
         response.raise_for_status()

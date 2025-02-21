@@ -4,18 +4,45 @@ This project is a proxy application that forwards requests to an ARGO API and op
 
 ## Table of Contents
 
+- [Folder Structure](#folder-structure)
 - [Prerequisites](#prerequisites)
 - [Configuration](#configuration)
 - [Running the Application](#running-the-application)
-- [Folder Structure](#folder-structure)
 - [Endpoints](#endpoints)
 - [Models](#models)
 - [Examples](#examples)
 
+## Folder Structure
+
+```
+$ tree .
+.
+├── app.py
+├── argoproxy
+│   ├── chat.py
+│   ├── completions.py
+│   ├── config.py
+│   ├── embed.py
+│   ├── extras.py
+│   └── utils.py
+├── compose.yaml
+├── config.yaml
+├── examples
+│   ├── chat_completions_example.py
+│   ├── chat_example.py
+│   ├── embedding_example.py
+│   ├── o1-example.py
+│   └── openai_o1_chat_example.py
+├── README.md
+├── requirements.txt
+└── run_app.sh
+
+2 directories, 17 files
+```
+
 ## Prerequisites
 
 - Python 3.8 or higher
-- Docker (optional, for Docker usage)
 
 ## Configuration
 
@@ -65,33 +92,6 @@ timeout: 600
    ./run_app.sh
    ```
 
-## Folder Structure
-
-```
-$ tree .
-.
-├── app.py
-├── argoproxy
-│   ├── chat.py
-│   ├── completions.py
-│   ├── embed.py
-│   ├── extras.py
-│   └── utils.py
-├── compose.yaml
-├── config.yaml
-├── Dockerfile
-├── Dockerfile.txt
-├── README.md
-├── requirements.txt
-├── run_app.sh
-└── test
-    ├── chat_example.py
-    ├── embedding_example.py
-    └── o1-example.py
-
-2 directories, 16 files
-```
-
 ## Endpoints
 
 The application provides the following endpoints:
@@ -130,19 +130,21 @@ This application provides proxy to the following models. You can call the models
 
 ## Examples
 
-### Chat Example
+### Chat Completion Example
 
-For an example of how to use the `/v1/chat/completions` endpoint, see the [ `chat_example.py` ](test/chat_example.py) file.
+For an example of how to use the `/v1/chat/completions` endpoint, see the [ `chat_example.py` ](examples/chat_completions_example.py) file.
 
 ### Embedding Example
 
-For an example of how to use the `/v1/embeddings` endpoint, see the [ `embedding_example.py` ](test/embedding_example.py) file.
+For an example of how to use the `/v1/embeddings` endpoint, see the [ `embedding_example.py` ](examples/embedding_example.py) file.
 
-### O1 Example
+### o1 chat Example
 
-For an example of how to use the `/v1/chat` endpoint with the `argo:gpt-o1-preview` model, see the [ `o1-example.py` ](test/o1-example.py) file.
+For an example of how to use the `/v1/chat` endpoint with the `argo:gpt-o1-mini` model, see the [ `o1-example.py` ](examples/o1-example.py) file.
 
----
+### OpenAI Client Example
+
+## For an example of how to use the `/v1/chat/completions` endpoint with the OpenAI client, see the [ `openai_o1_chat_example.py` ](examples/openai_o1_chat_example.py) file.
 
 ### **Changes Made**
 
