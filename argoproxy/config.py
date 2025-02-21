@@ -1,20 +1,28 @@
+import os
+
 import yaml
 
+# Get the config path from the environment variable, default to 'config.yaml' if not set
+config_path = os.getenv("CONFIG_PATH", "config.yaml")
+
 # Read configuration from YAML file
-with open("config.yaml", "r") as file:
+with open(config_path, "r") as file:
     config = yaml.safe_load(file)
 
-assert "port" in config, "config.yaml is missing the 'port' variable."
-assert "argo_url" in config, "config.yaml is missing the 'argo_url' variable."
-assert (
-    "argo_embedding_url" in config
-), "config.yaml is missing the 'argo_embedding_url' variable."
-assert "user" in config, "config.yaml is missing the 'user' variable."
-assert "verbose" in config, "config.yaml is missing the 'verbose' variable."
-assert "num_workers" in config, "config.yaml is missing the 'num_workers' variable."
-assert "timeout" in config, "config.yaml is missing the 'timeout' variable."
+# Ensure all required keys are present in the config
+required_keys = [
+    "port",
+    "argo_url",
+    "argo_embedding_url",
+    "user",
+    "verbose",
+    "num_workers",
+    "timeout",
+]
 
+for key in required_keys:
+    assert key in config, f"{config_path} is missing the '{key}' variable."
 
-# echo config to console
+# Echo config to console
 print("Configuration loaded successfully:")
 print(config)

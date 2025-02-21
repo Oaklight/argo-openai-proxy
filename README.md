@@ -7,8 +7,6 @@ This project is a proxy application that forwards requests to an ARGO API and op
 - [Prerequisites](#prerequisites)
 - [Configuration](#configuration)
 - [Running the Application](#running-the-application)
-  - [Natively](#natively)
-  - [Using Docker](#using-docker)
 - [Folder Structure](#folder-structure)
 - [Endpoints](#endpoints)
 - [Models](#models)
@@ -47,37 +45,25 @@ timeout: 600
 
 ## Running the Application
 
-### Natively
-
 1. **Install Dependencies**:
    Ensure you have Python 3.8 or higher installed. Install the required packages using pip:
 
-```bash
+   ```bash
    pip install -r requirements.txt
-```
+   ```
 
 2. **Run the Application**:
-   Use the provided `run_app.sh` script to start the application:
+   Use the provided `run_app.sh` script to start the application. By default, the script looks for a `config.yaml` file in the current directory. You can optionally specify a custom path to the configuration file as an argument:
 
-```bash
+   ```bash
+   ./run_app.sh /path/to/config.yaml
+   ```
+
+   If no path is provided, the script will use the default `config.yaml` file in the current directory:
+
+   ```bash
    ./run_app.sh
-```
-
-### Using Docker
-
-1. **Build the Docker Image**:
-   Ensure you have Docker installed. Build the Docker image using the provided Dockerfile:
-
-```bash
-   docker build -t argo-proxy .
-```
-
-2. **Run the Docker Container**:
-   Use the provided `run_app.sh` script with the `docker` argument to start the container:
-
-```bash
-   ./run_app.sh docker
-```
+   ```
 
 ## Folder Structure
 
@@ -120,23 +106,6 @@ The application provides the following endpoints:
 ## Models
 
 This application provides proxy to the following models. You can call the models via either the argo original name or argo-proxy name.
-
-<!-- MODEL_AVAIL = {
-    "argo:gpt-3.5-turbo": "gpt35",
-    "argo:gpt-3.5-turbo-16k": "gpt35large",
-    "argo:gpt-4": "gpt4",
-    "argo:gpt-4-32k": "gpt4large",
-    "argo:gpt-4-turbo-preview": "gpt4turbo",
-    "argo:gpt-4o": "gpt4o",
-    "argo:gpt-o1-preview": "gpto1preview",
-    "argo:gpt-o1-mini": "gpto1mini",
-}
-MODEL_AVAIL = {
-    "argo:text-embedding-ada-002": "ada002",
-    "argo:text-embedding-3-small": "v3small",
-    "argo:text-embedding-3-large": "v3large",
-} -->
-<!-- make a table of argo proxy name and original name -->
 
 ### chat models
 
