@@ -8,16 +8,13 @@ import uuid
 from http import HTTPStatus
 
 import requests
-import yaml
 from flask import request, Response
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(current_dir)
 
+from argoproxy.config import config
 from argoproxy.utils import make_bar
-
-with open("config.yaml", "r") as file:
-    config = yaml.safe_load(file)
 
 # Configuration variables
 ARGO_API_URL = config["argo_url"]

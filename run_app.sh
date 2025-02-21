@@ -7,40 +7,29 @@ get_yaml_value() {
     echo "$config" | grep "$key" | awk '{print $2}'
 }
 
-# Read configuration from YAML file if it exists
-yaml_port=""
-yaml_argo_url=""
-yaml_user=""
-yaml_verbose=""
-yaml_num_workers=""
-yaml_timeout=""
+# 定义需要检查的配置项
+required_vars=("port" "argo_url" "argo_embedding_url" "user" "verbose" "num_workers" "timeout")
 
-if [ -f "config.yaml" ]; then
-    config=$(cat config.yaml)
-    yaml_port=$(get_yaml_value "port" "$config")
-    yaml_argo_url=$(get_yaml_value "argo_url" "$config")
-    yaml_user=$(get_yaml_value "user" "$config")
-    yaml_verbose=$(get_yaml_value "verbose" "$config")
-    yaml_num_workers=$(get_yaml_value "num_workers" "$config")
-    yaml_timeout=$(get_yaml_value "timeout" "$config")
+# 检查 config.yaml 文件是否存在
+if [! -f "config.yaml" ]; then
+    echo "Error: config.yaml file not found."
+    exit 1
 fi
 
-# Determine final values, using environment variables if set
-final_port=${PORT:-$yaml_port}
-final_argo_url=${ARGO_URL:-$yaml_argo_url}
-final_user=$yaml_user # don't read from system for final_user
-final_verbose=${VERBOSE:-$yaml_verbose}
-final_num_workers=${NUM_WORKERS:-$yaml_num_workers}
-final_timeout=${TIMEOUT:-$yaml_timeout}
+# 检查文件中是否包含所有必需的变量
+for var in "${required_vars[@]}"; do
+    if ! grep -q "^$var:" "config.yaml"; then
+        echo "Error: config.yaml is missing the '$var' variable."
+        exit 1
+    fi
+done
 
-# Set default values if variables are still empty
-final_port=${final_port:-8000}
-final_argo_url=${final_argo_url:-"default_argo_url"}
-final_user=${final_user:-"cels"}
-final_verbose=${final_verbose:-"false"}
-final_num_workers=${final_num_workers:-4}
-final_timeout=${final_timeout:-30}
+# 输出检查通过的信息
+echo "config.yaml exists and contains all required variables."
 
-# Run the app locally with Gunicorn
-echo "Starting app on port $final_port with ARGO_URL=$final_argo_url, USER=$final_user, VERBOSE=$final_verbose, NUM_WORKERS=$final_num_workers, and TIMEOUT=$final_timeout"
-gunicorn -b 0.0.0.0:$final_port -w $final_num_workers --timeout $final_timeout app:app
+# 运行应用
+timeout=$(get_yaml_value "timeout" "$config")
+port=$(get_yaml_value "port" "$config")
+num_workers=$(get_yaml_value "num_workers" "$config")
+
+gunicorn -b 0.0.0.0:$port -w $num_workers --timeout $timeout app:app

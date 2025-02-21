@@ -13,11 +13,9 @@ from flask import request, Response
 current_dir = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(current_dir)
 
-from argoproxy.chat import DEFAULT_MODEL, MODEL_AVAIL as MODEL_AVAIL, NO_SYS_MSG
+from argoproxy.chat import DEFAULT_MODEL, MODEL_AVAIL, NO_SYS_MSG
+from argoproxy.config import config
 from argoproxy.utils import make_bar
-
-with open("config.yaml", "r") as file:
-    config = yaml.safe_load(file)
 
 # Configuration variables
 ARGO_API_URL = config["argo_url"]

@@ -12,11 +12,9 @@ from flask import request, Response
 current_dir = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(current_dir)
 
+from argoproxy.config import config
 from argoproxy.utils import make_bar
 
-# Assuming similar config loading and logging setup
-with open("config.yaml", "r") as file:
-    config = yaml.safe_load(file)
 
 ARGO_EMBEDDING_API_URL = config["argo_embedding_url"]
 VERBOSE = config["verbose"]
