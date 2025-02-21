@@ -13,3 +13,8 @@ assert "user" in config, "config.yaml is missing the 'user' variable."
 assert "verbose" in config, "config.yaml is missing the 'verbose' variable."
 assert "num_workers" in config, "config.yaml is missing the 'num_workers' variable."
 assert "timeout" in config, "config.yaml is missing the 'timeout' variable."
+
+
+# echo config to console
+print("Configuration loaded successfully:")
+print(config)
