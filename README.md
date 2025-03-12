@@ -25,19 +25,37 @@ $ tree .
 │   ├── embed.py
 │   ├── extras.py
 │   └── utils.py
-├── compose.yaml
 ├── config.yaml
 ├── examples
 │   ├── chat_completions_example.py
+│   ├── chat_completions_example_stream.py
 │   ├── chat_example.py
+│   ├── chat_example_stream.py
+│   ├── completions_example.py
+│   ├── completions_example_stream.py
 │   ├── embedding_example.py
-│   ├── o1-example.py
-│   └── openai_o1_chat_example.py
+│   ├── openai_chat_completions_example_stream.py
+│   ├── openai_completions_example_stream.py
+│   ├── problematic_prompt_for_o1.py
+│   ├── pyclient_o1_chat_example.py
+│   └── results_compare
+│       ├── argo_chunk
+│       ├── chat_completions
+│       │   ├── my_chunk
+│       │   ├── openai_chunk
+│       │   └── siliconflow_chunk
+│       ├── completions
+│       │   ├── my_chunk
+│       │   ├── openai_chunk
+│       │   └── siliconflow_chunk
+│       └── my_chunk
+├── __pycache__
+│   └── app.cpython-310.pyc
 ├── README.md
 ├── requirements.txt
 └── run_app.sh
 
-2 directories, 17 files
+6 directories, 31 files
 ```
 
 ## Prerequisites
@@ -52,6 +70,7 @@ The application is configured using a `config.yaml` file. This file contains set
 
 - **`port`**: The port number on which the application will listen. Default is `44497`.
 - **`argo_url`**: The URL of the ARGO API for chat and completions. Default is `"https://apps-dev.inside.anl.gov/argoapi/api/v1/resource/chat/"`.
+- **`argo_stream_url`**: The URL of the ARGO API for stream chat and completions. Default is `"https://apps-dev.inside.anl.gov/argoapi/api/v1/resource/steamchat/"`.
 - **`argo_embedding_url`**: The URL of the ARGO API for embeddings. Default is `"https://apps-dev.inside.anl.gov/argoapi/api/v1/resource/embed/"`.
 - **`user`**: The user name to be used in the requests. Default is `"cels"`.
 - **`verbose`**: A boolean flag to control whether to print input and output for debugging. Default is `true`.
@@ -63,6 +82,7 @@ The application is configured using a `config.yaml` file. This file contains set
 ```yaml
 port: 44497
 argo_url: "https://apps-dev.inside.anl.gov/argoapi/api/v1/resource/chat/"
+argo_stream_url: "https://apps-dev.inside.anl.gov/argoapi/api/v1/resource/streamchat/"
 argo_embedding_url: "https://apps-dev.inside.anl.gov/argoapi/api/v1/resource/embed/"
 user: "cels"
 verbose: true
@@ -73,7 +93,7 @@ timeout: 600
 ## Running the Application
 
 1. **Install Dependencies**:
-   Ensure you have Python 3.8 or higher installed. Install the required packages using pip:
+   Ensure you have Python 3.10 or higher installed. Install the required packages using pip:
 
    ```bash
    pip install -r requirements.txt
@@ -86,7 +106,7 @@ timeout: 600
    ./run_app.sh /path/to/config.yaml
    ```
 
-   If no path is provided, the script will use the default `config.yaml` file in the current directory:
+   If no path is provided, the script will use the default [`config.yaml`](./config.yaml) file in the project root directory:
 
    ```bash
    ./run_app.sh
@@ -132,7 +152,13 @@ This application provides proxy to the following models. You can call the models
 
 ### Chat Completion Example
 
-For an example of how to use the `/v1/chat/completions` endpoint, see the [ `chat_example.py` ](examples/chat_completions_example.py) file.
+For an example of how to use the `/v1/chat/completions`, /v1/completions`, /v1/chat` endpoint, see the followings:
+- [ `chat_completions_example.py` ](examples/chat_completions_example.py)
+- [ `chat_completions_example_stream.py` ](examples/chat_completions_example_stream.py)
+- [ `completions_example.py` ](examples/completions_example.py)
+- [ `completions_example_stream.py` ](examples/completions_example_stream.py)
+- [ `chat_example.py` ](examples/chat_example.py)
+- [ `chat_example_stream.py` ](examples/chat_example_stream.py) 
 
 ### Embedding Example
 
@@ -140,11 +166,11 @@ For an example of how to use the `/v1/embeddings` endpoint, see the [ `embedding
 
 ### o1 chat Example
 
-For an example of how to use the `/v1/chat` endpoint with the `argo:gpt-o1-mini` model, see the [ `o1-example.py` ](examples/o1-example.py) file.
+For an example of how to use the `/v1/chat` endpoint with the `argo:gpt-o1-mini` model, see the [ `o1_chat_example.py` ](examples/o1_chat_example.py) file.
 
 ### OpenAI Client Example
 
-## For an example of how to use the `/v1/chat/completions` endpoint with the OpenAI client, see the [ `openai_o1_chat_example.py` ](examples/openai_o1_chat_example.py) file.
+## For an example of how to use the `/v1/chat/completions` endpoint with the OpenAI client, see the [ `openai_o1_chat_example.py` ](examples/o1_chat_example_pyclient.py) file.
 
 ### **Changes Made**
 
