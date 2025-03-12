@@ -84,14 +84,15 @@ The application is configured using a `config.yaml` file. This file contains set
 ### Example `config.yaml`
 
 ```yaml
+# use production url as much as you can.
 port: 44497
-argo_url: "https://apps-dev.inside.anl.gov/argoapi/api/v1/resource/chat/"
+argo_url: "https://apps.inside.anl.gov/argoapi/api/v1/resource/chat/"
 argo_stream_url: "https://apps-dev.inside.anl.gov/argoapi/api/v1/resource/streamchat/"
-argo_embedding_url: "https://apps-dev.inside.anl.gov/argoapi/api/v1/resource/embed/"
-user: "cels"
+argo_embedding_url: "https://apps.inside.anl.gov/argoapi/api/v1/resource/embed/"
+user: "cels" # you should replace it with your username
 verbose: true
 num_workers: 5
-timeout: 600
+timeout: 600 # in seconds
 ```
 
 ## Running the Application
