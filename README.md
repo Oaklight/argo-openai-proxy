@@ -101,6 +101,8 @@ timeout: 600 # in seconds
    Ensure you have Python 3.10 or higher installed. Install the required packages using pip:
 
    ```bash
+   # recommend to use `conda/mamba/venv` to manage argo specific environment
+   # you can use `screen` to run it in background
    pip install -r requirements.txt
    ```
 
