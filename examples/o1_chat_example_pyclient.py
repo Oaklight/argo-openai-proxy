@@ -43,9 +43,12 @@ response = client.chat.completions.create(
             ],
         },
     ],
+    stream=True,
 )
 
-print(response.choices[0].message.content)
+for chunk in response:
+    print(chunk.choices[0].delta.content or "", end="", flush=True)
+
 
 # Define the system prompt
 system_prompt = (
