@@ -1,6 +1,4 @@
-import json
-
-import requests
+import httpx
 
 # Configuration
 BASE_URL = "http://localhost:44498"  # Update if your server is running on a different host/port
@@ -11,6 +9,7 @@ MODEL = "argo:gpt-4o"
 print("Running Chat Test with Messages")
 
 # Define the request payload using the "messages" field
+# Define the request payload using the "messages" field
 payload = {
     "model": MODEL,
     "messages": [
@@ -20,20 +19,22 @@ payload = {
         },
     ],
     "user": "test_user",  # This will be overridden by the proxy_request function
+    "stream": True,
     "max_tokens": 5,
 }
 headers = {
     "Content-Type": "application/json",
 }
 
-# Send the POST request
-response = requests.post(CHAT_ENDPOINT, headers=headers, json=payload)
 
-try:
-    response.raise_for_status()
-    print("Response Status Code:", response.status_code)
-    print(response.text)
-    print("Response Body:", json.dumps(response.json(), indent=4))
-except requests.exceptions.HTTPError as err:
-    print("HTTP Error:", err)
-    print("Response Body:", response.text)
+with httpx.stream(
+    "POST", CHAT_ENDPOINT, json=payload, headers=headers, timeout=60.0
+) as response:
+    print("Status Code: ", response.status_code)
+    print("Headers: ", response.headers)
+    print("Streaming Response: ")
+
+    # Read the resonse chunks as they arrive
+    for chunk in response.iter_bytes():
+        if chunk:
+            print(chunk.decode(errors="replace"), end="", flush=True)
