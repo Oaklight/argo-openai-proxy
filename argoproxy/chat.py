@@ -148,7 +148,10 @@ async def send_streaming_request(
     else:
         response_headers = {"Content-Type": "text/plain; charset=utf-8"}
 
-    async with session.post(api_url, headers=headers, json=data) as resp:
+    timeout = aiohttp.ClientTimeout(total=600)  # 10 minutes
+    async with session.post(
+        api_url, headers=headers, json=data, timeout=timeout
+    ) as resp:
         # Initialize the streaming response
         streaming_response = await request.respond(headers=response_headers)
 
@@ -158,6 +161,7 @@ async def send_streaming_request(
         # Stream the response chunk by chunk
         async for chunk in resp.content.iter_chunked(1024):
             chunk_text = chunk.decode("utf-8")
+            # logger.debug(f"Received chunk: {chunk_text}")
 
             if convert_to_openai:
                 # Convert the chunk to OpenAI-compatible JSON
@@ -182,6 +186,8 @@ async def send_streaming_request(
             # Send the [DONE] marker
             sse_done_chunk = "data: [DONE]\n\n"
             await streaming_response.send(sse_done_chunk)
+
+    return None
 
 
 async def proxy_request(
@@ -210,7 +216,9 @@ async def proxy_request(
         # Forward the modified request to the actual API using aiohttp
         async with aiohttp.ClientSession() as session:
             if stream:
-                return await send_streaming_request(session, api_url, data, request)
+                return await send_streaming_request(
+                    session, api_url, data, request, convert_to_openai
+                )
             else:
                 return await send_non_streaming_request(
                     session, api_url, data, convert_to_openai
@@ -259,53 +267,48 @@ def convert_custom_to_openai_response(
     """
     try:
         # Parse the custom response
-        custom_response_dict = json.loads(custom_response)
+        if isinstance(custom_response, str):
+            custom_response_dict = json.loads(custom_response)
+        else:
+            custom_response_dict = custom_response
 
         # Extract the response text
         response_text = custom_response_dict.get("response", "")
 
-        # Calculate token counts (simplified example, actual tokenization may differ)
-        if isinstance(prompt, list):
-            # concatenate the list elements
-            prompt = " ".join(prompt)
-        prompt_tokens = len(prompt.split())
-        completion_tokens = len(response_text.split())
-        total_tokens = prompt_tokens + completion_tokens
+        if not is_streaming:
+            # only count usage if not stream
+            # Calculate token counts (simplified example, actual tokenization may differ)
+            if isinstance(prompt, list):
+                # concatenate the list elements
+                prompt = " ".join(prompt)
+            prompt_tokens = len(prompt.split())
+            completion_tokens = len(response_text.split())
+            total_tokens = prompt_tokens + completion_tokens
 
         # Construct the base OpenAI compatible response
         openai_response = {
-            "id": str(uuid.uuid4()),  # Unique ID
-            "object": (
-                "chat.completion.chunk" if is_streaming else "chat.completion"
-            ),  # Object type
-            "created": create_timestamp,  # Current timestamp
-            "model": model_name,  # Model name
+            "id": str(uuid.uuid4()),
+            "object": "chat.completion.chunk" if is_streaming else "chat.completion",
+            "created": create_timestamp,
+            "model": model_name,
             "choices": [
                 {
                     "index": 0,
                     "finish_reason": finish_reason,
+                    "delta" if is_streaming else "message": {
+                        "role": "assistant",
+                        "content": response_text,
+                    },
                 }
             ],
-            "system_fingerprint": "",  # Include system fingerprint as an empty string
+            "system_fingerprint": "",
         }
-
-        # Add fields based on streaming mode
-        if is_streaming:
-            openai_response["choices"][0]["delta"] = {
-                "role": "assistant",
-                "content": response_text,
-            }
-        else:
-            openai_response["choices"][0]["message"] = {
-                "role": "assistant",
-                "content": response_text,
-            }
+        if not is_streaming:
             openai_response["usage"] = {
                 "prompt_tokens": prompt_tokens,
                 "completion_tokens": completion_tokens,
                 "total_tokens": total_tokens,
             }
-
         return openai_response
 
     except json.JSONDecodeError as err:
