@@ -15,6 +15,7 @@ The software is provided as is, without any warranties or guarantees of any kind
 - [Endpoints](#endpoints)
 - [Models](#models)
 - [Examples](#examples)
+- [Bug reports and Contributions](#bug-reports-and-contributions)
 
 ## Folder Structure
 
