@@ -177,10 +177,10 @@ For an example of how to use the `/v1/chat` endpoint with the `argo:gpt-o1-mini`
 
 ### OpenAI Client Example
 
-## For an example of how to use the `/v1/chat/completions` endpoint with the OpenAI client, see the [ `openai_o1_chat_example.py` ](examples/o1_chat_example_pyclient.py) file.
+For an example of how to use the `/v1/chat/completions` endpoint with the OpenAI client, see the [ `openai_o1_chat_example.py` ](examples/o1_chat_example_pyclient.py) file.
 
-### **Changes Made**
+## Bug reports and Contributions
 
-1. Added the **Configuration** section with a detailed explanation of the `config.yaml` file and its options.
-2. Included an example `config.yaml` file for reference.
-3. Ensured the **Configuration** section is properly linked in the Table of Contents.
+This project is made during my spare time, so there for sure are bugs and issues. <br>
+If you encounter any or have suggestions for improvements, please [open an issue](https://github.com/Oaklight/argo-proxy/issues/new) or [submit a pull request](https://github.com/Oaklight/argo-proxy/compare). <br>
+Your contributions are highly appreciated!
