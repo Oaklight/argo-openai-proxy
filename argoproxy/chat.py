@@ -142,20 +142,20 @@ def prepare_request_data(data):
     if "prompt" in data and not isinstance(data["prompt"], list):
         data["prompt"] = [data["prompt"]]
 
-    # Convert system message to user message for specific models
-    if data["model"] in NO_SYS_MSG:
-        if "messages" in data:
-            for message in data["messages"]:
-                if message["role"] == "system":
-                    message["role"] = "user"
-        if "system" in data:
-            if isinstance(data["system"], str):
-                data["system"] = [data["system"]]
-            elif not isinstance(data["system"], list):
-                raise ValueError("System prompt must be a string or list")
-            data["prompt"] = data["system"] + data["prompt"]
-            del data["system"]
-            logger.debug(f"New data is {data}")
+    # # Convert system message to user message for specific models
+    # if data["model"] in NO_SYS_MSG:
+    #     if "messages" in data:
+    #         for message in data["messages"]:
+    #             if message["role"] == "system":
+    #                 message["role"] = "user"
+    #     if "system" in data:
+    #         if isinstance(data["system"], str):
+    #             data["system"] = [data["system"]]
+    #         elif not isinstance(data["system"], list):
+    #             raise ValueError("System prompt must be a string or list")
+    #         data["prompt"] = data["system"] + data["prompt"]
+    #         del data["system"]
+    #         logger.debug(f"New data is {data}")
 
     return data
 
