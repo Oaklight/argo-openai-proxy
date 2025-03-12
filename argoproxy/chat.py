@@ -17,7 +17,6 @@ from argoproxy.config import config
 from argoproxy.utils import make_bar
 
 # Configuration variables
-ARGO_API_URL = config["argo_url"]
 VERBOSE = config["verbose"]
 
 MODEL_AVAIL = {
@@ -47,6 +46,77 @@ NO_SYS_MSG = [
     for model in MODEL_AVAIL.values()
     if any(fnmatch.fnmatch(model, pattern) for pattern in NO_SYS_MSG_PATTERNS)
 ]
+
+
+def make_it_openai_chat_completions_compat(
+    custom_response,
+    model_name,
+    create_timestamp,
+    prompt,
+    is_streaming=False,
+    finish_reason=None,
+):
+    """
+    Converts the custom API response to an OpenAI compatible API response.
+
+    :param custom_response: JSON response from the custom API.
+    :param model_name: The model used for the completion.
+    :param create_timestamp: Timestamp for the completion.
+    :param prompt: The input prompt used in the request.
+    :param is_streaming: Whether the response is for streaming mode.
+    :param finish_reason: Reason for completion (e.g., "stop" or None).
+    :return: OpenAI compatible JSON response.
+    """
+    try:
+        # Parse the custom response
+        if isinstance(custom_response, str):
+            custom_response_dict = json.loads(custom_response)
+        else:
+            custom_response_dict = custom_response
+
+        # Extract the response text
+        response_text = custom_response_dict.get("response", "")
+
+        if not is_streaming:
+            # only count usage if not stream
+            # Calculate token counts (simplified example, actual tokenization may differ)
+            if isinstance(prompt, list):
+                # concatenate the list elements
+                prompt = " ".join(prompt)
+            prompt_tokens = len(prompt.split())
+            completion_tokens = len(response_text.split())
+            total_tokens = prompt_tokens + completion_tokens
+
+        # Construct the base OpenAI compatible response
+        openai_response = {
+            "id": str(uuid.uuid4().hex),
+            "object": "chat.completion.chunk" if is_streaming else "chat.completion",
+            "created": create_timestamp,
+            "model": model_name,
+            "choices": [
+                {
+                    "index": 0,
+                    "finish_reason": finish_reason,
+                    "delta" if is_streaming else "message": {
+                        "role": "assistant",
+                        "content": response_text,
+                    },
+                }
+            ],
+            "system_fingerprint": "",
+        }
+        if not is_streaming:
+            openai_response["usage"] = {
+                "prompt_tokens": prompt_tokens,
+                "completion_tokens": completion_tokens,
+                "total_tokens": total_tokens,
+            }
+        return openai_response
+
+    except json.JSONDecodeError as err:
+        return {"error": f"Error decoding JSON: {err}"}
+    except Exception as err:
+        return {"error": f"An error occurred: {err}"}
 
 
 def prepare_request_data(data):
@@ -90,7 +160,13 @@ def prepare_request_data(data):
     return data
 
 
-async def send_non_streaming_request(session, api_url, data, convert_to_openai):
+async def send_non_streaming_request(
+    session,
+    api_url,
+    data,
+    convert_to_openai=False,
+    openai_compat_fn=make_it_openai_chat_completions_compat,
+):
     """
     Sends a non-streaming request and processes the response.
     """
@@ -99,13 +175,8 @@ async def send_non_streaming_request(session, api_url, data, convert_to_openai):
         response_data = await resp.json()
         resp.raise_for_status()
 
-        if VERBOSE:
-            logger.debug(make_bar("[chat] fwd. response"))
-            logger.debug(json.dumps(response_data, indent=4))
-            logger.debug(make_bar())
-
         if convert_to_openai:
-            openai_response = convert_custom_to_openai_response(
+            openai_response = openai_compat_fn(
                 json.dumps(response_data),
                 data.get("model"),
                 int(time.time()),
@@ -125,7 +196,12 @@ async def send_non_streaming_request(session, api_url, data, convert_to_openai):
 
 
 async def send_streaming_request(
-    session, api_url, data, request, convert_to_openai=False
+    session,
+    api_url,
+    data,
+    request,
+    convert_to_openai=False,
+    openai_compat_fn=make_it_openai_chat_completions_compat,
 ):
     """
     Sends a streaming request and streams the response.
@@ -165,7 +241,7 @@ async def send_streaming_request(
 
             if convert_to_openai:
                 # Convert the chunk to OpenAI-compatible JSON
-                chunk_json = convert_custom_to_openai_response(
+                chunk_json = openai_compat_fn(
                     json.dumps({"response": chunk_text}),
                     model_name=data["model"],
                     create_timestamp=created_timestamp,
@@ -179,6 +255,7 @@ async def send_streaming_request(
                 # Return the chunk as-is (raw text)
                 sse_chunk = chunk_text
 
+            # logger.debug(f"sse_chunk is {sse_chunk}")
             await streaming_response.send(sse_chunk)
 
         # Handle the final chunk for OpenAI-compatible mode
@@ -193,6 +270,15 @@ async def send_streaming_request(
 async def proxy_request(
     convert_to_openai=False, request=None, input_data=None, stream=False
 ):
+    """
+    Proxies the request to the upstream API, handling both streaming and non-streaming modes.
+
+    :param convert_to_openai: Whether to convert the response to OpenAI-compatible format.
+    :param request: The Sanic request object.
+    :param input_data: Optional input data (used for testing).
+    :param stream: Whether to enable streaming mode.
+    :return: The response from the upstream API.
+    """
     try:
         # Retrieve the incoming JSON data from Sanic request if input_data is not provided
         if input_data is None:
@@ -217,11 +303,18 @@ async def proxy_request(
         async with aiohttp.ClientSession() as session:
             if stream:
                 return await send_streaming_request(
-                    session, api_url, data, request, convert_to_openai
+                    session,
+                    api_url,
+                    data,
+                    request,
+                    convert_to_openai,
                 )
             else:
                 return await send_non_streaming_request(
-                    session, api_url, data, convert_to_openai
+                    session,
+                    api_url,
+                    data,
+                    convert_to_openai,
                 )
 
     except ValueError as err:
@@ -244,74 +337,3 @@ async def proxy_request(
             status=HTTPStatus.INTERNAL_SERVER_ERROR,
             content_type="application/json",
         )
-
-
-def convert_custom_to_openai_response(
-    custom_response,
-    model_name,
-    create_timestamp,
-    prompt,
-    is_streaming=False,
-    finish_reason=None,
-):
-    """
-    Converts the custom API response to an OpenAI compatible API response.
-
-    :param custom_response: JSON response from the custom API.
-    :param model_name: The model used for the completion.
-    :param create_timestamp: Timestamp for the completion.
-    :param prompt: The input prompt used in the request.
-    :param is_streaming: Whether the response is for streaming mode.
-    :param finish_reason: Reason for completion (e.g., "stop" or None).
-    :return: OpenAI compatible JSON response.
-    """
-    try:
-        # Parse the custom response
-        if isinstance(custom_response, str):
-            custom_response_dict = json.loads(custom_response)
-        else:
-            custom_response_dict = custom_response
-
-        # Extract the response text
-        response_text = custom_response_dict.get("response", "")
-
-        if not is_streaming:
-            # only count usage if not stream
-            # Calculate token counts (simplified example, actual tokenization may differ)
-            if isinstance(prompt, list):
-                # concatenate the list elements
-                prompt = " ".join(prompt)
-            prompt_tokens = len(prompt.split())
-            completion_tokens = len(response_text.split())
-            total_tokens = prompt_tokens + completion_tokens
-
-        # Construct the base OpenAI compatible response
-        openai_response = {
-            "id": str(uuid.uuid4()),
-            "object": "chat.completion.chunk" if is_streaming else "chat.completion",
-            "created": create_timestamp,
-            "model": model_name,
-            "choices": [
-                {
-                    "index": 0,
-                    "finish_reason": finish_reason,
-                    "delta" if is_streaming else "message": {
-                        "role": "assistant",
-                        "content": response_text,
-                    },
-                }
-            ],
-            "system_fingerprint": "",
-        }
-        if not is_streaming:
-            openai_response["usage"] = {
-                "prompt_tokens": prompt_tokens,
-                "completion_tokens": completion_tokens,
-                "total_tokens": total_tokens,
-            }
-        return openai_response
-
-    except json.JSONDecodeError as err:
-        return {"error": f"Error decoding JSON: {err}"}
-    except Exception as err:
-        return {"error": f"An error occurred: {err}"}
