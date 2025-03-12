@@ -1,0 +1,20 @@
+$ python openai_chat_completions_example_stream.py 
+Running Chat Test with Messages
+Status Code:  200
+Headers:  Headers({'date': 'Wed, 12 Mar 2025 09:49:47 GMT', 'content-type': 'text/event-stream', 'transfer-encoding': 'chunked', 'connection': 'keep-alive', 'vary': 'Accept-Encoding', 'cache-control': 'no-cache'})
+Streaming Response: 
+data: {"id":"019589c29a8816a57a826aac4b2a16ae","object":"chat.completion.chunk","created":1741772987,"model":"Qwen/Qwen2-1.5B-Instruct","choices":[{"index":0,"delta":{"content":"","reasoning_content":null,"role":"assistant"},"finish_reason":null,"content_filter_results":{"hate":{"filtered":false},"self_harm":{"filtered":false},"sexual":{"filtered":false},"violence":{"filtered":false}}}],"system_fingerprint":"","usage":{"prompt_tokens":27,"completion_tokens":0,"total_tokens":27}}
+
+data: {"id":"019589c29a8816a57a826aac4b2a16ae","object":"chat.completion.chunk","created":1741772987,"model":"Qwen/Qwen2-1.5B-Instruct","choices":[{"index":0,"delta":{"content":"One","reasoning_content":null},"finish_reason":null,"content_filter_results":{"hate":{"filtered":false},"self_harm":{"filtered":false},"sexual":{"filtered":false},"violence":{"filtered":false}}}],"system_fingerprint":"","usage":{"prompt_tokens":27,"completion_tokens":1,"total_tokens":28}}
+
+data: {"id":"019589c29a8816a57a826aac4b2a16ae","object":"chat.completion.chunk","created":1741772987,"model":"Qwen/Qwen2-1.5B-Instruct","choices":[{"index":0,"delta":{"content":" interesting","reasoning_content":null},"finish_reason":null,"content_filter_results":{"hate":{"filtered":false},"self_harm":{"filtered":false},"sexual":{"filtered":false},"violence":{"filtered":false}}}],"system_fingerprint":"","usage":{"prompt_tokens":27,"completion_tokens":2,"total_tokens":29}}
+
+data: {"id":"019589c29a8816a57a826aac4b2a16ae","object":"chat.completion.chunk","created":1741772987,"model":"Qwen/Qwen2-1.5B-Instruct","choices":[{"index":0,"delta":{"content":" thing","reasoning_content":null},"finish_reason":null,"content_filter_results":{"hate":{"filtered":false},"self_harm":{"filtered":false},"sexual":{"filtered":false},"violence":{"filtered":false}}}],"system_fingerprint":"","usage":{"prompt_tokens":27,"completion_tokens":3,"total_tokens":30}}
+
+data: {"id":"019589c29a8816a57a826aac4b2a16ae","object":"chat.completion.chunk","created":1741772987,"model":"Qwen/Qwen2-1.5B-Instruct","choices":[{"index":0,"delta":{"content":" about","reasoning_content":null},"finish_reason":null,"content_filter_results":{"hate":{"filtered":false},"self_harm":{"filtered":false},"sexual":{"filtered":false},"violence":{"filtered":false}}}],"system_fingerprint":"","usage":{"prompt_tokens":27,"completion_tokens":4,"total_tokens":31}}
+
+data: {"id":"019589c29a8816a57a826aac4b2a16ae","object":"chat.completion.chunk","created":1741772987,"model":"Qwen/Qwen2-1.5B-Instruct","choices":[{"index":0,"delta":{"content":" quantum","reasoning_content":null},"finish_reason":null,"content_filter_results":{"hate":{"filtered":false},"self_harm":{"filtered":false},"sexual":{"filtered":false},"violence":{"filtered":false}}}],"system_fingerprint":"","usage":{"prompt_tokens":27,"completion_tokens":5,"total_tokens":32}}
+
+data: {"id":"019589c29a8816a57a826aac4b2a16ae","object":"chat.completion.chunk","created":1741772987,"model":"Qwen/Qwen2-1.5B-Instruct","choices":[{"index":0,"delta":{"content":"","reasoning_content":null},"finish_reason":"length","content_filter_results":{"hate":{"filtered":false},"self_harm":{"filtered":false},"sexual":{"filtered":false},"violence":{"filtered":false}}}],"system_fingerprint":"","usage":{"prompt_tokens":27,"completion_tokens":5,"total_tokens":32}}
+
+data: [DONE]

@@ -1,0 +1,9 @@
+$ python argoapi_streamchat_test.py 
+Status Code:  200
+Headers:  Headers({'date': 'Wed, 12 Mar 2025 07:38:30 GMT', 'content-type': 'text/plain; charset=utf-8', 'connection': 'keep-alive', 'strict-transport-security': 'max-age=31536000; includeSubDomains', 'vary': 'Accept-Encoding', 'content-encoding': 'gzip', 'transfer-encoding': 'chunked'})
+Streaming Response: 
+Quantum mechanics is a fascinating field that challenges our classical intuitions about how the universe operates. One particularly intriguing aspect is the concept of quantum entanglement. This phenomenon occurs when particles become interconnected in such a way that the state of one particle instantaneously influences the state of another, no matter how far apart they are. This "spooky action at a distance," as Albert Einstein famously called it, has been experimentally confirmed and is a cornerstone of quantum theory.
+
+Entanglement has profound implications for our understanding of reality and has practical applications in emerging technologies like quantum computing and quantum cryptography. In quantum computing, entangled particles can be used to perform complex calculations much faster than classical computers. In quantum cryptography, entanglement ensures secure communication, as any attempt to eavesdrop on the entangled particles would immediately alter their states, alerting the communicating parties to the intrusion.
+
+The non-local nature of entanglement challenges classical notions of causality and locality, prompting ongoing debates and research into the fundamental nature of reality.

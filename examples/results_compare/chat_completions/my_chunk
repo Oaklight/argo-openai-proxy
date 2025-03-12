@@ -1,0 +1,9 @@
+$ python chat_completions_example_stream.py 
+Running Chat Test with Messages
+Status Code:  200
+Headers:  Headers({'content-type': 'text/event-stream', 'transfer-encoding': 'chunked', 'connection': 'keep-alive'})
+Streaming Response: 
+data: {"id": "adeeddef-d75d-4150-b01e-b27cc0afa158", "object": "chat.completion.chunk", "created": 1741773051, "model": "gpt4o", "choices": [{"index": 0, "finish_reason": null, "delta": {"role": "assistant", "content": "Quantum mechanics is a fascinating"}}], "system_fingerprint": ""}
+
+data: [DONE]
+

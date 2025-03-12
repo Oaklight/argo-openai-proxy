@@ -1,0 +1,19 @@
+$ python openai_completions_example_stream.py 
+Running Chat Test with Messages
+Status Code:  200
+Headers:  Headers({'date': 'Wed, 12 Mar 2025 09:49:08 GMT', 'content-type': 'text/event-stream', 'transfer-encoding': 'chunked', 'connection': 'keep-alive', 'vary': 'Accept-Encoding', 'cache-control': 'no-cache'})
+Streaming Response: 
+data: {"id":"019589c203661ba0a8d29003cdfd18f3","object":"text_completion","created":1741772948,"model":"Qwen/Qwen2-1.5B-Instruct","choices":[{"text":" ","index":0,"finish_reason":"","logprobs":{"tokens":null,"token_logprobs":null,"top_logprobs":null,"text_offset":null}}],"usage":{"prompt_tokens":8,"completion_tokens":1,"total_tokens":9}}
+
+data: {"id":"019589c203661ba0a8d29003cdfd18f3","object":"text_completion","created":1741772948,"model":"Qwen/Qwen2-1.5B-Instruct","choices":[{"text":" Quantum","index":0,"finish_reason":"","logprobs":{"tokens":null,"token_logprobs":null,"top_logprobs":null,"text_offset":null}}],"usage":{"prompt_tokens":8,"completion_tokens":2,"total_tokens":10}}
+
+data: {"id":"019589c203661ba0a8d29003cdfd18f3","object":"text_completion","created":1741772948,"model":"Qwen/Qwen2-1.5B-Instruct","choices":[{"text":" mechanics","index":0,"finish_reason":"","logprobs":{"tokens":null,"token_logprobs":null,"top_logprobs":null,"text_offset":null}}],"usage":{"prompt_tokens":8,"completion_tokens":3,"total_tokens":11}}
+
+data: {"id":"019589c203661ba0a8d29003cdfd18f3","object":"text_completion","created":1741772948,"model":"Qwen/Qwen2-1.5B-Instruct","choices":[{"text":" is","index":0,"finish_reason":"","logprobs":{"tokens":null,"token_logprobs":null,"top_logprobs":null,"text_offset":null}}],"usage":{"prompt_tokens":8,"completion_tokens":4,"total_tokens":12}}
+
+data: {"id":"019589c203661ba0a8d29003cdfd18f3","object":"text_completion","created":1741772948,"model":"Qwen/Qwen2-1.5B-Instruct","choices":[{"text":" an","index":0,"finish_reason":"","logprobs":{"tokens":null,"token_logprobs":null,"top_logprobs":null,"text_offset":null}}],"usage":{"prompt_tokens":8,"completion_tokens":5,"total_tokens":13}}
+
+data: {"id":"019589c203661ba0a8d29003cdfd18f3","object":"text_completion","created":1741772948,"model":"Qwen/Qwen2-1.5B-Instruct","choices":[{"text":"","index":0,"finish_reason":"length","logprobs":{"tokens":null,"token_logprobs":null,"top_logprobs":null,"text_offset":null}}],"usage":{"prompt_tokens":8,"completion_tokens":5,"total_tokens":13}}
+
+data: [DONE]
+

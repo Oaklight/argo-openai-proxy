@@ -1,0 +1,11 @@
+$ python completions_example_stream.py 
+Running Chat Test with Messages
+Status Code:  200
+Headers:  Headers({'content-type': 'text/event-stream', 'transfer-encoding': 'chunked', 'connection': 'keep-alive'})
+Streaming Response: 
+data: {"id": "cmpl-d301d7d2db844bcdadb3669a03868f80", "object": "text_completion", "created": 1741775137, "model": "gpt4o", "choices": [{"text": "Quantum mechanics is", "index": 0, "logprobs": null, "finish_reason": "stop"}]}
+
+data: {"id": "cmpl-55a29cf050c34045982f15093b3a469d", "object": "text_completion", "created": 1741775137, "model": "gpt4o", "choices": [{"text": " a fascinating", "index": 0, "logprobs": null, "finish_reason": "stop"}]}
+
+data: [DONE]
+

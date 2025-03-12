@@ -1,0 +1,20 @@
+$ python openai_chat_completions_example_stream.py 
+Running Chat Test with Messages
+Status Code:  200
+Headers:  Headers([('date', 'Wed, 12 Mar 2025 09:47:10 GMT'), ('content-type', 'text/event-stream; charset=utf-8'), ('transfer-encoding', 'chunked'), ('connection', 'keep-alive'), ('access-control-expose-headers', 'X-Request-ID'), ('openai-organization', 'user-nqcxw9v72m83hiwykqpev21v'), ('openai-processing-ms', '103'), ('openai-version', '2020-10-01'), ('x-ratelimit-limit-requests', '10000'), ('x-ratelimit-limit-tokens', '200000'), ('x-ratelimit-remaining-requests', '9999'), ('x-ratelimit-remaining-tokens', '199980'), ('x-ratelimit-reset-requests', '8.64s'), ('x-ratelimit-reset-tokens', '6ms'), ('x-request-id', 'req_2c3e3ac14e8513649ab17e19c65ee504'), ('strict-transport-security', 'max-age=31536000; includeSubDomains; preload'), ('cf-cache-status', 'DYNAMIC'), ('set-cookie', '__cf_bm=o_U.OznVDMA7fJSuSB0GSaGp0ldWvIsk61ozgoLtqwk-1741772830-1.0.1.1-EbxTkfyD_wn5RkJO2eOVoiN5BZleqMn7nbI9xtpAFlMa3rcuqSir0YyWWkoVTq4JdXksMUgbRPGodjU2NixIuLZEFnYOnGQ7Va6rA_AcuM8; path=/; expires=Wed, 12-Mar-25 10:17:10 GMT; domain=.api.openai.com; HttpOnly; Secure; SameSite=None'), ('x-content-type-options', 'nosniff'), ('set-cookie', '_cfuvid=r0.ZG_vaU1CcQL1yKZ_4hbCwMpemfWiIWNykmLbnjl8-1741772830987-0.0.1.1-604800000; path=/; domain=.api.openai.com; HttpOnly; Secure; SameSite=None'), ('server', 'cloudflare'), ('cf-ray', '91f25e607a8ce100-ORD'), ('alt-svc', 'h3=":443"; ma=86400')])
+Streaming Response: 
+data: {"id":"chatcmpl-BACy6SeKA1pUtQleihVc4K5pKie55","object":"chat.completion.chunk","created":1741772830,"model":"gpt-4o-mini-2024-07-18","service_tier":"default","system_fingerprint":"fp_06737a9306","choices":[{"index":0,"delta":{"role":"assistant","content":"","refusal":null},"logprobs":null,"finish_reason":null}]}
+
+data: {"id":"chatcmpl-BACy6SeKA1pUtQleihVc4K5pKie55","object":"chat.completion.chunk","created":1741772830,"model":"gpt-4o-mini-2024-07-18","service_tier":"default","system_fingerprint":"fp_06737a9306","choices":[{"index":0,"delta":{"content":"One"},"logprobs":null,"finish_reason":null}]}
+
+data: {"id":"chatcmpl-BACy6SeKA1pUtQleihVc4K5pKie55","object":"chat.completion.chunk","created":1741772830,"model":"gpt-4o-mini-2024-07-18","service_tier":"default","system_fingerprint":"fp_06737a9306","choices":[{"index":0,"delta":{"content":" of"},"logprobs":null,"finish_reason":null}]}
+
+data: {"id":"chatcmpl-BACy6SeKA1pUtQleihVc4K5pKie55","object":"chat.completion.chunk","created":1741772830,"model":"gpt-4o-mini-2024-07-18","service_tier":"default","system_fingerprint":"fp_06737a9306","choices":[{"index":0,"delta":{"content":" the"},"logprobs":null,"finish_reason":null}]}
+
+data: {"id":"chatcmpl-BACy6SeKA1pUtQleihVc4K5pKie55","object":"chat.completion.chunk","created":1741772830,"model":"gpt-4o-mini-2024-07-18","service_tier":"default","system_fingerprint":"fp_06737a9306","choices":[{"index":0,"delta":{"content":" most"},"logprobs":null,"finish_reason":null}]}
+
+data: {"id":"chatcmpl-BACy6SeKA1pUtQleihVc4K5pKie55","object":"chat.completion.chunk","created":1741772830,"model":"gpt-4o-mini-2024-07-18","service_tier":"default","system_fingerprint":"fp_06737a9306","choices":[{"index":0,"delta":{"content":" intriguing"},"logprobs":null,"finish_reason":null}]}
+
+data: {"id":"chatcmpl-BACy6SeKA1pUtQleihVc4K5pKie55","object":"chat.completion.chunk","created":1741772830,"model":"gpt-4o-mini-2024-07-18","service_tier":"default","system_fingerprint":"fp_06737a9306","choices":[{"index":0,"delta":{},"logprobs":null,"finish_reason":"length"}]}
+
+data: [DONE]
