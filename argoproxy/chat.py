@@ -124,21 +124,64 @@ async def send_non_streaming_request(session, api_url, data, convert_to_openai):
             )
 
 
-async def send_streaming_request(session, api_url, data, request):
+async def send_streaming_request(
+    session, api_url, data, request, convert_to_openai=False
+):
     """
-    Sends a streaming request and streams the response chunk by chunk.
+    Sends a streaming request and streams the response.
+
+    :param session: The aiohttp ClientSession.
+    :param api_url: The API endpoint to send the request to.
+    :param data: The JSON data to send in the request.
+    :param request: The Sanic request object.
+    :param convert_to_openai: Whether to convert the response to OpenAI-compatible format.
     """
     headers = {
         "Content-Type": "application/json",
         "Accept": "text/plain",
         "Accept-Encoding": "identity",
     }
-    response_headers = {"Content-Type": "text/event-stream"}
+
+    # Set response headers based on the mode
+    if convert_to_openai:
+        response_headers = {"Content-Type": "text/event-stream"}
+    else:
+        response_headers = {"Content-Type": "text/plain; charset=utf-8"}
+
     async with session.post(api_url, headers=headers, json=data) as resp:
+        # Initialize the streaming response
         streaming_response = await request.respond(headers=response_headers)
+
+        # Generate a unique ID and timestamp for the completion (if converting to OpenAI format)
+        created_timestamp = int(time.time()) if convert_to_openai else None
+
+        # Stream the response chunk by chunk
         async for chunk in resp.content.iter_chunked(1024):
-            await streaming_response.send(chunk.decode("utf-8"))
-        return streaming_response
+            chunk_text = chunk.decode("utf-8")
+
+            if convert_to_openai:
+                # Convert the chunk to OpenAI-compatible JSON
+                chunk_json = convert_custom_to_openai_response(
+                    json.dumps({"response": chunk_text}),
+                    model_name=data["model"],
+                    create_timestamp=created_timestamp,
+                    prompt=data.get("prompt", ""),
+                    is_streaming=True,
+                    finish_reason=None,  # Ongoing chunk
+                )
+                # Wrap the JSON in SSE format
+                sse_chunk = f"data: {json.dumps(chunk_json)}\n\n"
+            else:
+                # Return the chunk as-is (raw text)
+                sse_chunk = chunk_text
+
+            await streaming_response.send(sse_chunk)
+
+        # Handle the final chunk for OpenAI-compatible mode
+        if convert_to_openai:
+            # Send the [DONE] marker
+            sse_done_chunk = "data: [DONE]\n\n"
+            await streaming_response.send(sse_done_chunk)
 
 
 async def proxy_request(
@@ -196,47 +239,72 @@ async def proxy_request(
 
 
 def convert_custom_to_openai_response(
-    custom_response, model_name, create_timestamp, prompt
+    custom_response,
+    model_name,
+    create_timestamp,
+    prompt,
+    is_streaming=False,
+    finish_reason=None,
 ):
     """
     Converts the custom API response to an OpenAI compatible API response.
 
     :param custom_response: JSON response from the custom API.
+    :param model_name: The model used for the completion.
+    :param create_timestamp: Timestamp for the completion.
     :param prompt: The input prompt used in the request.
+    :param is_streaming: Whether the response is for streaming mode.
+    :param finish_reason: Reason for completion (e.g., "stop" or None).
     :return: OpenAI compatible JSON response.
     """
     try:
+        # Parse the custom response
         custom_response_dict = json.loads(custom_response)
+
+        # Extract the response text
         response_text = custom_response_dict.get("response", "")
 
+        # Calculate token counts (simplified example, actual tokenization may differ)
         if isinstance(prompt, list):
+            # concatenate the list elements
             prompt = " ".join(prompt)
         prompt_tokens = len(prompt.split())
         completion_tokens = len(response_text.split())
         total_tokens = prompt_tokens + completion_tokens
 
+        # Construct the base OpenAI compatible response
         openai_response = {
-            "id": str(uuid.uuid4()),
-            "object": "chat.completion",
-            "created": create_timestamp,
-            "model": model_name,
+            "id": str(uuid.uuid4()),  # Unique ID
+            "object": (
+                "chat.completion.chunk" if is_streaming else "chat.completion"
+            ),  # Object type
+            "created": create_timestamp,  # Current timestamp
+            "model": model_name,  # Model name
             "choices": [
                 {
                     "index": 0,
-                    "message": {
-                        "role": "assistant",
-                        "content": response_text,
-                    },
-                    "finish_reason": "stop",
+                    "finish_reason": finish_reason,
                 }
             ],
-            "usage": {
+            "system_fingerprint": "",  # Include system fingerprint as an empty string
+        }
+
+        # Add fields based on streaming mode
+        if is_streaming:
+            openai_response["choices"][0]["delta"] = {
+                "role": "assistant",
+                "content": response_text,
+            }
+        else:
+            openai_response["choices"][0]["message"] = {
+                "role": "assistant",
+                "content": response_text,
+            }
+            openai_response["usage"] = {
                 "prompt_tokens": prompt_tokens,
                 "completion_tokens": completion_tokens,
                 "total_tokens": total_tokens,
-            },
-            "system_fingerprint": "",
-        }
+            }
 
         return openai_response
 
