@@ -2,6 +2,8 @@ from openai import OpenAI
 
 client = OpenAI(api_key="random+whatever", base_url="http://localhost:44498/v1")
 
+model = "argo:gpt-o1-preview"
+
 user_prompt = """
 Instructions:
 - Given the React component below, change it so that nonfiction books have red
@@ -31,7 +33,7 @@ export default function BookList() {
 """
 
 response = client.chat.completions.create(
-    model="argo:gpt-o1-mini",
+    model=model,
     messages=[
         {"role": "system", "content": "You are a helpful assistant."},
         {
@@ -55,7 +57,7 @@ prompt = f"{system_prompt}\n\nUser: {user_prompt}"
 
 # Make the API call
 response = client.completions.create(
-    model="argo:gpt-o1-mini",
+    model=model,
     prompt=prompt,
     max_tokens=200,
     temperature=0.7,

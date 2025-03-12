@@ -1,5 +1,4 @@
 import json
-import logging
 import os
 import sys
 import time
@@ -8,6 +7,7 @@ from http import HTTPStatus
 
 import aiohttp
 from sanic import response
+from sanic.log import logger
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(current_dir)
@@ -20,12 +20,6 @@ from argoproxy.utils import make_bar
 ARGO_API_URL = config["argo_url"]
 VERBOSE = config["verbose"]
 
-# Setup logging
-logging.basicConfig(
-    level=logging.DEBUG if VERBOSE else logging.INFO, format="%(levelname)s:%(message)s"
-)
-
-
 async def proxy_request(convert_to_openai=False, request=None, input_data=None):
     try:
         # Retrieve the incoming JSON data from Sanic request if input_data is not provided
@@ -37,9 +31,9 @@ async def proxy_request(convert_to_openai=False, request=None, input_data=None):
         if not data:
             raise ValueError("Invalid input. Expected JSON data.")
         if VERBOSE:
-            logging.debug(make_bar("[completion] input"))
-            logging.debug(json.dumps(data, indent=4))
-            logging.debug(make_bar())
+            logger.debug(make_bar("[completion] input"))
+            logger.debug(json.dumps(data, indent=4))
+            logger.debug(make_bar())
 
         # Automatically replace or insert the user
         data["user"] = config["user"]
@@ -89,9 +83,9 @@ async def proxy_request(convert_to_openai=False, request=None, input_data=None):
                 resp.raise_for_status()
 
                 if VERBOSE:
-                    logging.debug(make_bar("[completion] fwd. response"))
-                    logging.debug(json.dumps(response_data, indent=4))
-                    logging.debug(make_bar())
+                    logger.debug(make_bar("[completion] fwd. response"))
+                    logger.debug(json.dumps(response_data, indent=4))
+                    logger.debug(make_bar())
 
                 if convert_to_openai:
                     openai_response = convert_custom_to_openai_response(

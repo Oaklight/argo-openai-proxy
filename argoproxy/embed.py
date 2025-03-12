@@ -1,11 +1,11 @@
 import json
-import logging
 import os
 import sys
 from http import HTTPStatus
 
 import aiohttp
 from sanic import response
+from sanic.log import logger
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(current_dir)
@@ -15,11 +15,6 @@ from argoproxy.utils import make_bar
 
 ARGO_EMBEDDING_API_URL = config["argo_embedding_url"]
 VERBOSE = config["verbose"]
-
-# Setup logging
-logging.basicConfig(
-    level=logging.DEBUG if VERBOSE else logging.INFO, format="%(levelname)s:%(message)s"
-)
 
 MODEL_AVAIL = {
     "argo:text-embedding-ada-002": "ada002",
@@ -35,9 +30,9 @@ async def proxy_request(request):
         if not data:
             raise ValueError("Invalid input. Expected JSON data.")
         if VERBOSE:
-            logging.debug(make_bar("[embed] input"))
-            logging.debug(json.dumps(data, indent=4))
-            logging.debug(make_bar())
+            logger.debug(make_bar("[embed] input"))
+            logger.debug(json.dumps(data, indent=4))
+            logger.debug(make_bar())
 
         # Remap the model using MODEL_AVAIL
         if "model" in data:
@@ -76,9 +71,9 @@ async def proxy_request(request):
                 resp.raise_for_status()
 
                 if VERBOSE:
-                    logging.debug(make_bar("[embed] fwd. response"))
-                    logging.debug(json.dumps(response_data, indent=4))
-                    logging.debug(make_bar())
+                    logger.debug(make_bar("[embed] fwd. response"))
+                    logger.debug(json.dumps(response_data, indent=4))
+                    logger.debug(make_bar())
 
                 return response.json(
                     response_data,
