@@ -38,7 +38,6 @@ NO_SYS_MSG_PATTERNS = {
     "gpto1*",
 }
 
-# then find matches in both key and value from MODEL_AVAIL
 NO_SYS_MSG = [
     model
     for model in MODEL_AVAIL
@@ -50,7 +49,101 @@ NO_SYS_MSG = [
 ]
 
 
-async def proxy_request(convert_to_openai=False, request=None, input_data=None):
+def prepare_request_data(data):
+    """
+    Prepares the request data by adding the user and remapping the model.
+    """
+    # Automatically replace or insert the user
+    data["user"] = config["user"]
+
+    # Remap the model using MODEL_AVAIL
+    if "model" in data:
+        user_model = data["model"]
+        if user_model in MODEL_AVAIL:
+            data["model"] = MODEL_AVAIL[user_model]
+        elif user_model in MODEL_AVAIL.values():
+            data["model"] = user_model
+        else:
+            data["model"] = DEFAULT_MODEL
+    else:
+        data["model"] = DEFAULT_MODEL
+
+    # Convert prompt to list if it's not already
+    if "prompt" in data and not isinstance(data["prompt"], list):
+        data["prompt"] = [data["prompt"]]
+
+    # Convert system message to user message for specific models
+    if data["model"] in NO_SYS_MSG:
+        if "messages" in data:
+            for message in data["messages"]:
+                if message["role"] == "system":
+                    message["role"] = "user"
+        if "system" in data:
+            if isinstance(data["system"], str):
+                data["system"] = [data["system"]]
+            elif not isinstance(data["system"], list):
+                raise ValueError("System prompt must be a string or list")
+            data["prompt"] = data["system"] + data["prompt"]
+            del data["system"]
+            logger.debug(f"New data is {data}")
+
+    return data
+
+
+async def send_non_streaming_request(session, api_url, data, convert_to_openai):
+    """
+    Sends a non-streaming request and processes the response.
+    """
+    headers = {"Content-Type": "application/json"}
+    async with session.post(api_url, headers=headers, json=data) as resp:
+        response_data = await resp.json()
+        resp.raise_for_status()
+
+        if VERBOSE:
+            logger.debug(make_bar("[chat] fwd. response"))
+            logger.debug(json.dumps(response_data, indent=4))
+            logger.debug(make_bar())
+
+        if convert_to_openai:
+            openai_response = convert_custom_to_openai_response(
+                json.dumps(response_data),
+                data.get("model"),
+                int(time.time()),
+                data.get("prompt", ""),
+            )
+            return response.json(
+                openai_response,
+                status=resp.status,
+                content_type="application/json",
+            )
+        else:
+            return response.json(
+                response_data,
+                status=resp.status,
+                content_type="application/json",
+            )
+
+
+async def send_streaming_request(session, api_url, data, request):
+    """
+    Sends a streaming request and streams the response chunk by chunk.
+    """
+    headers = {
+        "Content-Type": "application/json",
+        "Accept": "text/plain",
+        "Accept-Encoding": "identity",
+    }
+    response_headers = {"Content-Type": "text/event-stream"}
+    async with session.post(api_url, headers=headers, json=data) as resp:
+        streaming_response = await request.respond(headers=response_headers)
+        async for chunk in resp.content.iter_chunked(1024):
+            await streaming_response.send(chunk.decode("utf-8"))
+        return streaming_response
+
+
+async def proxy_request(
+    convert_to_openai=False, request=None, input_data=None, stream=False
+):
     try:
         # Retrieve the incoming JSON data from Sanic request if input_data is not provided
         if input_data is None:
@@ -65,82 +158,20 @@ async def proxy_request(convert_to_openai=False, request=None, input_data=None):
             logger.debug(json.dumps(data, indent=4))
             logger.debug(make_bar())
 
-        # Automatically replace or insert the user
-        data["user"] = config["user"]
+        # Prepare the request data
+        data = prepare_request_data(data)
 
-        # Remap the model using MODEL_AVAIL
-        if "model" in data:
-            user_model = data["model"]
-            # Check if the user_model is a key in MODEL_AVAIL
-            if user_model in MODEL_AVAIL:
-                data["model"] = MODEL_AVAIL[user_model]
-            # Check if the user_model is a value in MODEL_AVAIL
-            elif user_model in MODEL_AVAIL.values():
-                data["model"] = user_model
-            # If the user_model is not found, set the default model to GPT-4o
-            else:
-                data["model"] = DEFAULT_MODEL
-        # If the model argument is missing, set the default model to GPT-4o
-        else:
-            data["model"] = DEFAULT_MODEL
-
-        if "prompt" in data:
-            if not isinstance(data["prompt"], list):
-                tmp = data["prompt"]
-                data["prompt"] = [tmp]
-
-        # Convert system message to user message for specific models
-        if data["model"] in NO_SYS_MSG:
-            if "messages" in data:
-                for message in data["messages"]:
-                    if message["role"] == "system":
-                        message["role"] = "user"
-            if "system" in data:
-                # check if system is str or list, make it list
-                if isinstance(data["system"], str):
-                    data["system"] = [data["system"]]
-                elif not isinstance(data["system"], list):
-                    raise ValueError("System prompt must be a string or list")
-                # convert system prompt to prompt
-                data["prompt"] = data["system"] + data["prompt"]
-                del data["system"]
-                logger.debug(f"new data is {data}")
-
-        headers = {
-            "Content-Type": "application/json"
-            # Uncomment and customize if needed
-            # "Authorization": f"Bearer {YOUR_API_KEY}"
-        }
+        # Determine the API URL based on whether streaming is enabled
+        api_url = config["argo_stream_url"] if stream else config["argo_url"]
 
         # Forward the modified request to the actual API using aiohttp
         async with aiohttp.ClientSession() as session:
-            async with session.post(ARGO_API_URL, headers=headers, json=data) as resp:
-                response_data = await resp.json()
-                resp.raise_for_status()
-
-                if VERBOSE:
-                    logger.debug(make_bar("[chat] fwd. response"))
-                    logger.debug(json.dumps(response_data, indent=4))
-                    logger.debug(make_bar())
-
-                if convert_to_openai:
-                    openai_response = convert_custom_to_openai_response(
-                        json.dumps(response_data),
-                        data.get("model"),
-                        int(time.time()),
-                        data.get("prompt", ""),
-                    )
-                    return response.json(
-                        openai_response,
-                        status=resp.status,
-                        content_type="application/json",
-                    )
-                else:
-                    return response.json(
-                        response_data,
-                        status=resp.status,
-                        content_type="application/json",
-                    )
+            if stream:
+                return await send_streaming_request(session, api_url, data, request)
+            else:
+                return await send_non_streaming_request(
+                    session, api_url, data, convert_to_openai
+                )
 
     except ValueError as err:
         return response.json(
@@ -175,26 +206,20 @@ def convert_custom_to_openai_response(
     :return: OpenAI compatible JSON response.
     """
     try:
-        # Parse the custom response
         custom_response_dict = json.loads(custom_response)
-
-        # Extract the response text
         response_text = custom_response_dict.get("response", "")
 
-        # Calculate token counts (simplified example, actual tokenization may differ)
         if isinstance(prompt, list):
-            # concatenate the list elements
             prompt = " ".join(prompt)
         prompt_tokens = len(prompt.split())
         completion_tokens = len(response_text.split())
         total_tokens = prompt_tokens + completion_tokens
 
-        # Construct the OpenAI compatible response
         openai_response = {
-            "id": str(uuid.uuid4()),  # Unique ID
-            "object": "chat.completion",  # Object type
-            "created": create_timestamp,  # Current timestamp
-            "model": model_name,  # Model name
+            "id": str(uuid.uuid4()),
+            "object": "chat.completion",
+            "created": create_timestamp,
+            "model": model_name,
             "choices": [
                 {
                     "index": 0,
@@ -206,11 +231,11 @@ def convert_custom_to_openai_response(
                 }
             ],
             "usage": {
-                "prompt_tokens": prompt_tokens,  # Actual value based on prompt
-                "completion_tokens": completion_tokens,  # Actual value based on response
-                "total_tokens": total_tokens,  # Sum of prompt and completion tokens
+                "prompt_tokens": prompt_tokens,
+                "completion_tokens": completion_tokens,
+                "total_tokens": total_tokens,
             },
-            "system_fingerprint": "",  # Include system fingerprint as an empty string
+            "system_fingerprint": "",
         }
 
         return openai_response

@@ -22,22 +22,31 @@ logger.setLevel(config["logging_level"])
 @app.route("/v1/chat", methods=["POST"])
 async def proxy_argo_chat_directly(request):
     logger.info("/v1/chat")
+    stream = request.json.get("stream", False)
     logger.debug(request.json)
-    return await chat.proxy_request(convert_to_openai=False, request=request)
+    return await chat.proxy_request(
+        convert_to_openai=False, request=request, stream=stream
+    )
 
 
 @app.route("/v1/chat/completions", methods=["POST"])
 async def proxy_openai_chat_compatible(request):
     logger.info("/v1/chat/completions")
+    stream = request.json.get("stream", False)
     logger.debug(request.json)
-    return await chat.proxy_request(convert_to_openai=True, request=request)
+    return await chat.proxy_request(
+        convert_to_openai=True, request=request, stream=stream
+    )
 
 
 @app.route("/v1/completions", methods=["POST"])
 async def proxy_openai_legacy_completions_compatible(request):
     logger.info("/v1/completions")
     logger.debug(request.json)
-    return await completions.proxy_request(convert_to_openai=True, request=request)
+    stream = request.json.get("stream", False)
+    return await completions.proxy_request(
+        convert_to_openai=True, request=request, stream=stream
+    )
 
 
 @app.route("/v1/embeddings", methods=["POST"])
