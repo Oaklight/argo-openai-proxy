@@ -104,6 +104,7 @@ async def proxy_request(convert_to_openai=False, request=None, input_data=None):
                 # convert system prompt to prompt
                 data["prompt"] = data["system"] + data["prompt"]
                 del data["system"]
+                logger.debug(f"new data is {data}")
 
         headers = {
             "Content-Type": "application/json"
