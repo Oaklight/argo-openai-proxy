@@ -6,7 +6,7 @@ from argoproxy.chat import (
     proxy_request as chat_proxy_request,
 )
 from argoproxy.embed import MODEL_AVAIL as EMBED_MODEL_AVAIL
-from flask import Response
+from sanic import response
 
 # Combine the available models from chat.py and embed.py
 ALL_MODELS = {**CHAT_MODEL_AVAIL, **EMBED_MODEL_AVAIL}
@@ -33,12 +33,10 @@ def get_models():
     """
     Returns a list of available models in OpenAI-compatible format.
     """
-    return Response(
-        json.dumps(MODELS_DATA), status=200, content_type="application/json"
-    )
+    return response.json(MODELS_DATA, status=200)
 
 
-def get_status():
+async def get_status():
     """
     Makes a real call to GPT-4o using the chat.py proxy_request function.
     """
@@ -46,5 +44,12 @@ def get_status():
     mock_request = {"model": "gpt-4o", "prompt": "Say hello", "user": "system"}
 
     # Use the chat_proxy_request function to make the call
-    response = chat_proxy_request(convert_to_openai=True, input_data=mock_request)
-    return response
+    response_data = await chat_proxy_request(
+        convert_to_openai=True, input_data=mock_request
+    )
+
+    # Extract the JSON data from the JSONResponse object
+    json_data = response_data.body
+
+    # Return the JSON data as a new JSONResponse
+    return response.json(json.loads(json_data), status=200)

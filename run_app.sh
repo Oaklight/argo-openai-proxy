@@ -1,17 +1,7 @@
 #!/bin/bash
 
-# Function to extract value from YAML for a given key
-get_yaml_value() {
-    local key="$1"
-    local config="$2"
-    echo "$config" | grep "$key" | awk '{print $2}'
-}
-
 # Default config path
 CONFIG_PATH=${1:-"config.yaml"}
-
-# Export the config path as an environment variable
-export CONFIG_PATH
 
 # Check if config.yaml file exists
 if [ ! -f "$CONFIG_PATH" ]; then
@@ -33,12 +23,9 @@ done
 # Output success message if all checks pass
 echo "$CONFIG_PATH exists and contains all required variables."
 
-# Load the entire config into a variable
-config=$(cat "$CONFIG_PATH")
+# Load the port and num_workers from the config
+port=$(grep "^port:" "$CONFIG_PATH" | awk '{print $2}')
+num_workers=$(grep "^num_workers:" "$CONFIG_PATH" | awk '{print $2}')
 
-# Run the application
-timeout=$(get_yaml_value "timeout" "$config")
-port=$(get_yaml_value "port" "$config")
-num_workers=$(get_yaml_value "num_workers" "$config")
-
-gunicorn -b 0.0.0.0:$port -w $num_workers --timeout $timeout app:app
+# Run the application using Sanic's built-in server
+sanic app:app --host=0.0.0.0 --port=$port --workers=$num_workers

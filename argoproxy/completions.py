@@ -6,9 +6,8 @@ import time
 import uuid
 from http import HTTPStatus
 
-import requests
-import yaml
-from flask import request, Response
+import aiohttp
+from sanic import response
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(current_dir)
@@ -27,11 +26,11 @@ logging.basicConfig(
 )
 
 
-def proxy_request(convert_to_openai=False, input_data=None):
+async def proxy_request(convert_to_openai=False, request=None, input_data=None):
     try:
-        # Retrieve the incoming JSON data from Flask request if input_data is not provided
+        # Retrieve the incoming JSON data from Sanic request if input_data is not provided
         if input_data is None:
-            data = request.get_json(force=True)
+            data = request.json
         else:
             data = input_data
 
@@ -83,58 +82,53 @@ def proxy_request(convert_to_openai=False, input_data=None):
             # "Authorization": f"Bearer {YOUR_API_KEY}"
         }
 
-        # Forward the modified request to the actual API
-        response = requests.post(ARGO_API_URL, headers=headers, json=data)
-        response.raise_for_status()
+        # Forward the modified request to the actual API using aiohttp
+        async with aiohttp.ClientSession() as session:
+            async with session.post(ARGO_API_URL, headers=headers, json=data) as resp:
+                response_data = await resp.json()
+                resp.raise_for_status()
 
-        if VERBOSE:
-            logging.debug(make_bar("[completion] fwd. response"))
-            logging.debug(json.dumps(response.json(), indent=4))
-            logging.debug(make_bar())
+                if VERBOSE:
+                    logging.debug(make_bar("[completion] fwd. response"))
+                    logging.debug(json.dumps(response_data, indent=4))
+                    logging.debug(make_bar())
 
-        if convert_to_openai:
-            openai_response = convert_custom_to_openai_response(
-                response.text,
-                data.get("model"),
-                int(time.time()),
-                data.get("prompt", ""),
-            )
-            return Response(
-                json.dumps(openai_response),
-                status=response.status_code,
-                content_type="application/json",
-            )
-        else:
-            return Response(
-                response.text,
-                status=response.status_code,
-                content_type="application/json",
-            )
+                if convert_to_openai:
+                    openai_response = convert_custom_to_openai_response(
+                        json.dumps(response_data),
+                        data.get("model"),
+                        int(time.time()),
+                        data.get("prompt", ""),
+                    )
+                    return response.json(
+                        openai_response,
+                        status=resp.status,
+                        content_type="application/json",
+                    )
+                else:
+                    return response.json(
+                        response_data,
+                        status=resp.status,
+                        content_type="application/json",
+                    )
 
     except ValueError as err:
-        return Response(
-            json.dumps({"error": str(err)}),
+        return response.json(
+            {"error": str(err)},
             status=HTTPStatus.BAD_REQUEST,
             content_type="application/json",
         )
-    except requests.HTTPError as err:
+    except aiohttp.ClientError as err:
         error_message = f"HTTP error occurred: {err}"
-        return Response(
-            json.dumps({"error": error_message, "details": response.text}),
-            status=response.status_code,
-            content_type="application/json",
-        )
-    except requests.RequestException as err:
-        error_message = f"Request error occurred: {err}"
-        return Response(
-            json.dumps({"error": error_message}),
+        return response.json(
+            {"error": error_message},
             status=HTTPStatus.SERVICE_UNAVAILABLE,
             content_type="application/json",
         )
     except Exception as err:
         error_message = f"An unexpected error occurred: {err}"
-        return Response(
-            json.dumps({"error": error_message}),
+        return response.json(
+            {"error": error_message},
             status=HTTPStatus.INTERNAL_SERVER_ERROR,
             content_type="application/json",
         )

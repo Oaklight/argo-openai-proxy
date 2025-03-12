@@ -1,4 +1,5 @@
-Flask
+sanic
+aiohttp
 requests
 gunicorn
 gevent
