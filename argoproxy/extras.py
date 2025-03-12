@@ -1,12 +1,11 @@
 import json
 from datetime import datetime
 
-from argoproxy.chat import (
-    MODEL_AVAIL as CHAT_MODEL_AVAIL,
-    proxy_request as chat_proxy_request,
-)
-from argoproxy.embed import MODEL_AVAIL as EMBED_MODEL_AVAIL
 from sanic import response
+
+from argoproxy.chat import MODEL_AVAIL as CHAT_MODEL_AVAIL
+from argoproxy.chat import proxy_request as chat_proxy_request
+from argoproxy.embed import MODEL_AVAIL as EMBED_MODEL_AVAIL
 
 # Combine the available models from chat.py and embed.py
 ALL_MODELS = {**CHAT_MODEL_AVAIL, **EMBED_MODEL_AVAIL}

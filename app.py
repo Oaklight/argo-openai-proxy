@@ -1,8 +1,8 @@
-import logging
 import os
 import sys
 
 from sanic import Sanic, response
+from sanic.log import logger
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(current_dir)
@@ -15,45 +15,53 @@ from argoproxy.config import config
 
 app = Sanic("ArgoProxy")
 
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
-)
-logger = logging.getLogger(__name__)
+# Configure Sanic's logger to use our settings
+logger.setLevel(config["logging_level"])
 
 
 @app.route("/v1/chat", methods=["POST"])
 async def proxy_argo_chat_directly(request):
+    logger.info("/v1/chat")
+    logger.debug(request.json)
     return await chat.proxy_request(convert_to_openai=False, request=request)
 
 
 @app.route("/v1/chat/completions", methods=["POST"])
 async def proxy_openai_chat_compatible(request):
+    logger.info("/v1/chat/completions")
+    logger.debug(request.json)
     return await chat.proxy_request(convert_to_openai=True, request=request)
 
 
 @app.route("/v1/completions", methods=["POST"])
 async def proxy_openai_legacy_completions_compatible(request):
+    logger.info("/v1/completions")
+    logger.debug(request.json)
     return await completions.proxy_request(convert_to_openai=True, request=request)
 
 
 @app.route("/v1/embeddings", methods=["POST"])
 async def proxy_embedding_request(request):
+    logger.info("/v1/embeddings")
+    logger.debug(request.json)
     return await embed.proxy_request(request)
 
 
 @app.route("/v1/models", methods=["GET"])
 async def get_models(request):
+    logger.info("/v1/models")
     return extras.get_models()
 
 
 @app.route("/v1/status", methods=["GET"])
 async def get_status(request):
+    logger.info("/v1/status")
     return await extras.get_status()
 
 
 @app.route("/health", methods=["GET"])
 async def health_check(request):
+    logger.info("/health")
     return response.json({"status": "healthy"}, status=200)
 
 

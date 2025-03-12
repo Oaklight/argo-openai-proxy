@@ -1,13 +1,9 @@
-import logging
 import os
 import sys
 
 import yaml
 
-logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
-)
-logger = logging.getLogger(__name__)
+from sanic.log import logger
 
 # Get the config path from the environment variable, default to 'config.yaml' if not set
 config_path = os.getenv("CONFIG_PATH", "config.yaml")
@@ -29,7 +25,6 @@ required_keys = [
     "argo_url",
     "argo_embedding_url",
     "user",
-    "verbose",
     "num_workers",
     "timeout",
 ]
@@ -37,6 +32,15 @@ required_keys = [
 for key in required_keys:
     assert key in config, f"{config_path} is missing the '{key}' variable."
 
+verbose = os.getenv("VERBOSE", config.get("verbose", False))
+config["verbose"] = verbose
+logging_level = os.getenv("LOG_LEVEL", config.get("logging_level", "INFO"))
+
+if verbose:
+    config["logging_level"] = "DEBUG"
+else:
+    config["logging_level"] = logging_level
+
 # Echo config to console
-print("Configuration loaded successfully:")
-print(config)
+logger.debug("Configuration loaded successfully:")
+logger.debug(config)
