@@ -4,34 +4,32 @@ import requests
 
 # Configuration
 BASE_URL = "http://localhost:44498"  # Update if your server is running on a different host/port
-CHAT_ENDPOINT = f"{BASE_URL}/v1/chat/completions"
-MODEL = "argo:gpt-o1-preview"
+CHAT_ENDPOINT = f"{BASE_URL}/v1/completions"
+MODEL = "argo:gpt-o1-mini"
+
+system_prompt = (
+    "You are a super smart and helpful AI. You always answer truthfully and provide "
+    "the answer directly if you can. If you can't answer because you don't know the "
+    "answer you say I don't know or you provide help in rephrasing the question. "
+    "You do not give meta answers."
+)
+user_message = (
+    "Please generate four hypotheses on the origins of life that could be explored with a "
+    "self-driving laboratory. For each example please list the key equipment and instruments "
+    "that would be needed and the experimental protocols that would need to be automated to "
+    "test the hypotheses."
+)
 
 
 # Test Case: Successful Chat Request with Messages
 def chat_test():
     print("Running Chat Test with Messages")
 
-    system_prompt = (
-        "You are a super smart and helpful AI. You always answer truthfully and provide "
-        "the answer directly if you can. If you can't answer because you don't know the "
-        "answer you say I don't know or you provide help in rephrasing the question. "
-        "You do not give meta answers."
-    )
-    user_message = (
-        "Please generate four hypotheses on the origins of life that could be explored with a "
-        "self-driving laboratory. For each example please list the key equipment and instruments "
-        "that would be needed and the experimental protocols that would need to be automated to "
-        "test the hypotheses."
-    )
-
     # Define the request payload using the "messages" field
     payload = {
         "model": MODEL,
-        "messages": [
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_message},
-        ],
+        "system": system_prompt,
+        "prompt": user_message,
         "user": "test_user",  # This will be overridden by the proxy_request function
     }
     headers = {"Content-Type": "application/json"}
