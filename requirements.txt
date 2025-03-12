@@ -1,6 +1,5 @@
 sanic
 aiohttp
 requests
-gunicorn
-gevent
 PyYAML
+httpx

@@ -1,5 +1,6 @@
 port: 44497
 argo_url: "https://apps-dev.inside.anl.gov/argoapi/api/v1/resource/chat/"
+argo_stream_url: "https://apps-dev.inside.anl.gov/argoapi/api/v1/resource/streamchat/"
 argo_embedding_url: "https://apps-dev.inside.anl.gov/argoapi/api/v1/resource/embed/"
 user: "cels"
 verbose: true
