@@ -1,6 +1,10 @@
 # Argo Proxy Project
 
-This project is a proxy application that forwards requests to an ARGO API and optionally converts the responses to be compatible with OpenAI's API format.
+This project is a proxy application that forwards requests to an ARGO API and optionally converts the responses to be compatible with OpenAI's API format. You can couple it with [autossh-tunnel-dockerized](https://github.com/Oaklight/autossh-tunnel-dockerized) or other secure connection tool.
+
+## NOTICE OF USAGE
+The machine or server making the API calls to Argo must be connected to Argonne internal network or through VPN on an Argonne-managed computer if you are working off-site. Meaning your instance of argo proxy should always be on premise at some Argonne Machine.
+The software is provided as is, without any warranties or guarantees of any kind, either express or implied. By using this software, you agree that the authors, contributors, and any affiliated organizations shall not be held liable for any damages, losses, or issues arising from its use. This includes, but is not limited to, direct, indirect, incidental, consequential, or punitive damages. You are solely responsible for ensuring that the software meets your requirements and for any outcomes resulting from its use.
 
 ## Table of Contents
 
