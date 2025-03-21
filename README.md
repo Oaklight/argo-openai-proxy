@@ -147,6 +147,7 @@ This application provides proxy to the following models. You can call the models
 | `gpt4o`                  | `argo:gpt-4o`              |
 | `gpto1preview`           | `argo:gpt-o1-preview`      |
 | `gpto1mini`              | `argo:gpt-o1-mini`         |
+| `gpto3mini`              | `argo:gpt-o3-mini`         |
 
 ### embedding models
 
@@ -178,7 +179,7 @@ For an example of how to use the `/v1/chat` endpoint with the `argo:gpt-o1-mini`
 
 ### OpenAI Client Example
 
-For an example of how to use the `/v1/chat/completions` endpoint with the OpenAI client, see the [ `openai_o1_chat_example.py` ](examples/o1_chat_example_pyclient.py) file.
+For an example of how to use the `/v1/chat/completions` endpoint with the OpenAI client, see the [ `openai_o3_chat_example.py` ](examples/o3_chat_example_pyclient.py) file.
 
 ## Bug reports and Contributions
 
