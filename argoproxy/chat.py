@@ -28,13 +28,15 @@ MODEL_AVAIL = {
     "argo:gpt-4o": "gpt4o",
     "argo:gpt-o1-preview": "gpto1preview",
     "argo:gpt-o1-mini": "gpto1mini",
+    "argo:gpt-o3-mini": "gpto3mini",
+    # "argo:gpt-o1": "gpto1",
 }
 
 DEFAULT_MODEL = "gpt4o"
 
 NO_SYS_MSG_PATTERNS = {
-    "argo:gpt-o1-*",
-    "gpto1*",
+    "argo:gpt-o*",
+    "gpto*",
 }
 
 NO_SYS_MSG = [
