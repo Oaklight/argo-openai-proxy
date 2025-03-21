@@ -2,7 +2,7 @@ from openai import OpenAI
 
 client = OpenAI(api_key="random+whatever", base_url="http://localhost:44498/v1")
 
-model = "argo:gpt-o1-preview"
+model = "argo:gpt-o3-mini"
 
 user_prompt = """
 Instructions:
