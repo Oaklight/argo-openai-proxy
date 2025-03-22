@@ -1,26 +1,27 @@
 ### Timeout Override Examples
 
-To override the default timeout setting defined in `config.yaml`, use the examples below with different tools and libraries. **Note:** Make sure to replace `http://localhost:44497` with your actual Argo Proxy URL.
+To override the default timeout setting defined in `config.yaml`, use the examples below with different tools and libraries. **Note:** Make sure to replace `http://your-argo-proxy-url` with your actual Argo Proxy URL, such as `http://localhost:44498` or `lambda5:44497`.
 
 #### cURL
 
 Specify a timeout directly within your cURL command using `--max-time`.
 
 ```bash
-curl --max-time 120 -X POST "http://your-argo-proxy-url/v1/chat/completions" -H "Content-Type: application/json" --data '{"model":"argo:gpt-3.5-turbo","messages":[{"role":"user","content":"Hello!"}]}'
+curl --max-time 120 -X POST "http://your-argo-proxy-url/v1/chat/completions" -H "Content-Type: application/json" --data '{"model":"argo:gpt-o1-preview","messages":[{"role":"user","content":"Draft a strategic roadmap for building an integrated smart city that leverages autonomous public transportation, renewable energy, IoT-driven urban management, resilient disaster response, and sustainable resource utilization."}]}'
 ```
 
 #### OpenAI Python Client Style
 
 When using the OpenAI client, pass the timeout as an additional parameter.
+Note: OpenAI client by default will retry on failure for 3 times.
 
 ```python
-import openai
+from openai import OpenAI
 
-openai.api_base = "http://your-argo-proxy-url/v1"
-response = openai.ChatCompletion.create(
-    model="argo:gpt-3.5-turbo",
-    messages=[{"role": "user", "content": "Hello!"}],
+client = OpenAI(api_key="your_api_key", base_url="http://your-argo-proxy-url/v1")
+response = client.chat.completions.create(
+    model="argo:gpt-o1-preview",
+    messages=[{"role": "user", "content": "Draft a strategic roadmap for building an integrated smart city that leverages autonomous public transportation, renewable energy, IoT-driven urban management, resilient disaster response, and sustainable resource utilization."}],
     timeout=120
 )
 print(response)
@@ -34,7 +35,7 @@ Use the `timeout` parameter in the requests library.
 import requests
 
 url = "http://your-argo-proxy-url/v1/chat/completions"
-payload = {"model": "argo:gpt-3.5-turbo", "messages": [{"role": "user", "content": "Hello!"}]}
+payload = {"model": "argo:gpt-o1-preview", "messages": [{"role": "user", "content": "Draft a strategic roadmap for building an integrated smart city that leverages autonomous public transportation, renewable energy, IoT-driven urban management, resilient disaster response, and sustainable resource utilization."}]}
 response = requests.post(url, json=payload, timeout=120)
 print(response.json())
 ```
@@ -47,7 +48,7 @@ HTTPX supports async requests, and you can set a timeout using the `timeout` par
 import httpx
 
 url = "http://your-argo-proxy-url/v1/chat/completions"
-payload = {"model": "argo:gpt-3.5-turbo", "messages": [{"role": "user", "content": "Hello!"}]}
+payload = {"model": "argo:gpt-o1-preview", "messages": [{"role": "user", "content": "Draft a strategic roadmap for building an integrated smart city that leverages autonomous public transportation, renewable energy, IoT-driven urban management, resilient disaster response, and sustainable resource utilization."}]}
 
 with httpx.Client(timeout=120) as client:
     response = client.post(url, json=payload)
@@ -64,7 +65,7 @@ import asyncio
 
 async def fetch():
     url = "http://your-argo-proxy-url/v1/chat/completions"
-    payload = {"model": "argo:gpt-3.5-turbo", "messages": [{"role": "user", "content": "Hello!"}]}
+    payload = {"model": "argo:gpt-o1-preview", "messages": [{"role": "user", "content": "Draft a strategic roadmap for building an integrated smart city that leverages autonomous public transportation, renewable energy, IoT-driven urban management, resilient disaster response, and sustainable resource utilization."}]}
     timeout = aiohttp.ClientTimeout(total=120)
 
     async with aiohttp.ClientSession(timeout=timeout) as session:
