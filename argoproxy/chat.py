@@ -5,10 +5,12 @@ import sys
 import time
 import uuid
 from http import HTTPStatus
+from typing import Any, Callable, Dict, Optional, Union
 
 import aiohttp
 from sanic import response
 from sanic.log import logger
+from sanic.response import HTTPResponse
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(current_dir)
@@ -49,6 +51,10 @@ NO_SYS_MSG = [
     if any(fnmatch.fnmatch(model, pattern) for pattern in NO_SYS_MSG_PATTERNS)
 ]
 
+DEFAULT_TIMEOUT_SECONDS = 600
+DEFAULT_TIMEOUT = aiohttp.ClientTimeout(
+    total=config["timeout"] or DEFAULT_TIMEOUT_SECONDS
+)  # 10 minutes fall back if nothing provided
 
 def make_it_openai_chat_completions_compat(
     custom_response,
@@ -163,17 +169,29 @@ def prepare_request_data(data):
 
 
 async def send_non_streaming_request(
-    session,
-    api_url,
-    data,
-    convert_to_openai=False,
-    openai_compat_fn=make_it_openai_chat_completions_compat,
-):
+    session: aiohttp.ClientSession,
+    api_url: str,
+    data: Dict[str, Any],
+    convert_to_openai: bool = False,
+    openai_compat_fn: Callable = make_it_openai_chat_completions_compat,
+    timeout: Optional[aiohttp.ClientTimeout] = DEFAULT_TIMEOUT,
+) -> HTTPResponse:
     """
-    Sends a non-streaming request and processes the response.
+    Sends a non-streaming request to the specified API URL and processes the response.
+
+    :param session: The aiohttp ClientSession used to send the request.
+    :param api_url: The URL of the API endpoint to which the request is sent.
+    :param data: The JSON data to be sent in the request body.
+    :param convert_to_openai: A boolean flag indicating whether to convert the response to OpenAI-compatible format. Defaults to False.
+    :param openai_compat_fn: The function used to convert the response to OpenAI-compatible format. Defaults to `make_it_openai_chat_completions_compat`.
+    :param timeout: Optional timeout in seconds for the request. If not provided, the default timeout from the configuration is used.
+
+    :return: A Sanic response object containing the JSON response from the API, with the appropriate status code and content type.
     """
     headers = {"Content-Type": "application/json"}
-    async with session.post(api_url, headers=headers, json=data) as resp:
+    async with session.post(
+        api_url, headers=headers, json=data, timeout=timeout
+    ) as resp:
         response_data = await resp.json()
         resp.raise_for_status()
 
@@ -198,21 +216,26 @@ async def send_non_streaming_request(
 
 
 async def send_streaming_request(
-    session,
-    api_url,
-    data,
-    request,
-    convert_to_openai=False,
-    openai_compat_fn=make_it_openai_chat_completions_compat,
-):
+    session: aiohttp.ClientSession,
+    api_url: str,
+    data: Dict[str, Any],
+    request: Any,  # Replace 'Any' with the appropriate Sanic request type if available
+    convert_to_openai: bool = False,
+    openai_compat_fn: Callable = make_it_openai_chat_completions_compat,
+    timeout: Optional[aiohttp.ClientTimeout] = DEFAULT_TIMEOUT,
+) -> None:
     """
-    Sends a streaming request and streams the response.
+    Sends a streaming request to the specified API URL and streams the response back to the client.
 
-    :param session: The aiohttp ClientSession.
-    :param api_url: The API endpoint to send the request to.
-    :param data: The JSON data to send in the request.
-    :param request: The Sanic request object.
-    :param convert_to_openai: Whether to convert the response to OpenAI-compatible format.
+    :param session: The aiohttp ClientSession used to send the request.
+    :param api_url: The URL of the API endpoint to which the request is sent.
+    :param data: The JSON data to be sent in the request body.
+    :param request: The Sanic request object used to handle the streaming response.
+    :param convert_to_openai: A boolean flag indicating whether to convert the response to OpenAI-compatible format. Defaults to False.
+    :param openai_compat_fn: The function used to convert the response to OpenAI-compatible format. Defaults to `make_it_openai_chat_completions_compat`.
+    :param timeout: Optional timeout in seconds for the request. If not provided, the default timeout from the configuration is used.
+
+    :return: None, as the response is streamed back to the client in chunks.
     """
     headers = {
         "Content-Type": "application/json",
@@ -226,7 +249,6 @@ async def send_streaming_request(
     else:
         response_headers = {"Content-Type": "text/plain; charset=utf-8"}
 
-    timeout = aiohttp.ClientTimeout(total=600)  # 10 minutes
     async with session.post(
         api_url, headers=headers, json=data, timeout=timeout
     ) as resp:
@@ -270,7 +292,7 @@ async def send_streaming_request(
 
 
 async def proxy_request(
-    convert_to_openai=False, request=None, input_data=None, stream=False
+    convert_to_openai=False, request=None, input_data=None, stream=False, timeout=None
 ):
     """
     Proxies the request to the upstream API, handling both streaming and non-streaming modes.
@@ -279,6 +301,7 @@ async def proxy_request(
     :param request: The Sanic request object.
     :param input_data: Optional input data (used for testing).
     :param stream: Whether to enable streaming mode.
+    :param timeout: Optional timeout in seconds for the request
     :return: The response from the upstream API.
     """
     try:
@@ -301,6 +324,12 @@ async def proxy_request(
         # Determine the API URL based on whether streaming is enabled
         api_url = config["argo_stream_url"] if stream else config["argo_url"]
 
+        if timeout:
+            # Use provided timeout or default from config
+            timeout = aiohttp.ClientTimeout(total=timeout)
+        else:
+            timeout = DEFAULT_TIMEOUT
+
         # Forward the modified request to the actual API using aiohttp
         async with aiohttp.ClientSession() as session:
             if stream:
@@ -310,6 +339,7 @@ async def proxy_request(
                     data,
                     request,
                     convert_to_openai,
+                    timeout=timeout,
                 )
             else:
                 return await send_non_streaming_request(
@@ -317,6 +347,7 @@ async def proxy_request(
                     api_url,
                     data,
                     convert_to_openai,
+                    timeout=timeout,
                 )
 
     except ValueError as err:

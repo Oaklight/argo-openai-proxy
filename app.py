@@ -23,9 +23,10 @@ logger.setLevel(config["logging_level"])
 async def proxy_argo_chat_directly(request):
     logger.info("/v1/chat")
     stream = request.json.get("stream", False)
+    timeout = request.json.get("timeout", None)
     logger.debug(request.json)
     return await chat.proxy_request(
-        convert_to_openai=False, request=request, stream=stream
+        convert_to_openai=False, request=request, stream=stream, timeout=timeout
     )
 
 
@@ -33,9 +34,10 @@ async def proxy_argo_chat_directly(request):
 async def proxy_openai_chat_compatible(request):
     logger.info("/v1/chat/completions")
     stream = request.json.get("stream", False)
+    timeout = request.json.get("timeout", None)
     logger.debug(request.json)
     return await chat.proxy_request(
-        convert_to_openai=True, request=request, stream=stream
+        convert_to_openai=True, request=request, stream=stream, timeout=timeout
     )
 
 
@@ -44,8 +46,9 @@ async def proxy_openai_legacy_completions_compatible(request):
     logger.info("/v1/completions")
     logger.debug(request.json)
     stream = request.json.get("stream", False)
+    timeout = request.json.get("timeout", None)
     return await completions.proxy_request(
-        convert_to_openai=True, request=request, stream=stream
+        convert_to_openai=True, request=request, stream=stream, timeout=timeout
     )
 
 
