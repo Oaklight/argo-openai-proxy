@@ -202,8 +202,3 @@ $ tree .
 ## Bug Reports and Contributions
 
 This project was developed in my spare time. Bugs and issues may exist. If you encounter any or have suggestions for improvements, please [open an issue](https://github.com/Oaklight/argo-proxy/issues/new) or [submit a pull request](https://github.com/Oaklight/argo-proxy/compare). Your contributions are highly appreciated!
-
-```
-
-In this reordering, I've separated the "Deployment" and "Usage" sections to clarify the process of setting up the application and the ways to interact with it. This should help users who are consuming or deploying the tool identify the relevant information more easily.
-```
