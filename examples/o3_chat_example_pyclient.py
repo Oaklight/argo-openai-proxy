@@ -1,6 +1,8 @@
 from openai import OpenAI
 
-client = OpenAI(api_key="random+whatever", base_url="http://localhost:44498/v1")
+client = OpenAI(
+    api_key="random+whatever", base_url="http://localhost:44498/v1"
+)  # replace the base url with actual argo proxy port and ip, such as lambda5:44497
 model = "argo:gpt-o3-mini"
 
 # Initialize conversation history
