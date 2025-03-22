@@ -39,10 +39,10 @@ $ tree .
 │   ├── completions_example.py
 │   ├── completions_example_stream.py
 │   ├── embedding_example.py
+│   ├── o1_chat_example.py
+│   ├── o3_chat_example_pyclient.py
 │   ├── openai_chat_completions_example_stream.py
 │   ├── openai_completions_example_stream.py
-│   ├── problematic_prompt_for_o1.py
-│   ├── pyclient_o1_chat_example.py
 │   └── results_compare
 │       ├── argo_chunk
 │       ├── chat_completions
@@ -54,13 +54,19 @@ $ tree .
 │       │   ├── openai_chunk
 │       │   └── siliconflow_chunk
 │       └── my_chunk
+├── LICENSE
 ├── __pycache__
 │   └── app.cpython-310.pyc
 ├── README.md
 ├── requirements.txt
-└── run_app.sh
+├── run_app.sh
+└── test
+    ├── test2.py
+    ├── test2.sh
+    ├── test.py
+    └── test.sh
 
-6 directories, 31 files
+7 directories, 36 files
 ```
 
 ## Prerequisites
