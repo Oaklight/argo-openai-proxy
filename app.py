@@ -70,7 +70,7 @@ async def get_status(request):
 
 @app.route("/v1/docs", methods=["GET"])
 async def docs(request):
-    msg = "Documentation access: Please visit https://oaklight.github.io/argo-proxy for full documentation."
+    msg = "Documentation access: Please visit https://oaklight.github.io/argo-proxy for full documentation.\n"
     return response.text(msg, status=200)
 
 
