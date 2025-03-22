@@ -1,7 +1,6 @@
 import json
 import os
 import sys
-import time
 import uuid
 from http import HTTPStatus
 
@@ -13,9 +12,10 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(current_dir)
 
 from argoproxy.chat import (
+    DEFAULT_TIMEOUT_SECONDS,
     prepare_request_data,
-    send_streaming_request,
     send_non_streaming_request,
+    send_streaming_request,
 )
 from argoproxy.config import config
 from argoproxy.utils import make_bar
@@ -90,7 +90,7 @@ def make_it_openai_completions_compat(
 
 
 async def proxy_request(
-    convert_to_openai=False, request=None, input_data=None, stream=False
+    convert_to_openai=False, request=None, input_data=None, stream=False, timeout=None
 ):
     """
     Proxies the request to the upstream API, handling both streaming and non-streaming modes.
@@ -121,6 +121,10 @@ async def proxy_request(
         # Determine the API URL based on whether streaming is enabled
         api_url = config["argo_stream_url"] if stream else config["argo_url"]
 
+        timeout = aiohttp.ClientTimeout(
+            total=timeout or config["timeout"] or DEFAULT_TIMEOUT_SECONDS
+        )  # Use provided timeout or default from config
+
         # Forward the modified request to the actual API using aiohttp
         async with aiohttp.ClientSession() as session:
             if stream:
@@ -131,6 +135,7 @@ async def proxy_request(
                     request,
                     convert_to_openai,
                     openai_compat_fn=make_it_openai_completions_compat,
+                    timeout=timeout,
                 )
             else:
                 return await send_non_streaming_request(
@@ -139,6 +144,7 @@ async def proxy_request(
                     data,
                     convert_to_openai,
                     openai_compat_fn=make_it_openai_completions_compat,
+                    timeout=timeout,
                 )
 
     except ValueError as err:
