@@ -1,25 +1,39 @@
 # Argo Proxy Project
 
-This project is a proxy application that forwards requests to an ARGO API and optionally converts the responses to be compatible with OpenAI's API format. You can couple it with [autossh-tunnel-dockerized](https://github.com/Oaklight/autossh-tunnel-dockerized) or other secure connection tool.
+This project is a proxy application that forwards requests to an ARGO API and optionally converts the responses to be compatible with OpenAI's API format. It can be used in conjunction with [autossh-tunnel-dockerized](https://github.com/Oaklight/autossh-tunnel-dockerized) or other secure connection tools.
 
-## NOTICE OF USAGE
-The machine or server making the API calls to Argo must be connected to Argonne internal network or through VPN on an Argonne-managed computer if you are working off-site. Meaning your instance of argo proxy should always be on premise at some Argonne Machine.
-The software is provided as is, without any warranties or guarantees of any kind, either express or implied. By using this software, you agree that the authors, contributors, and any affiliated organizations shall not be held liable for any damages, losses, or issues arising from its use. This includes, but is not limited to, direct, indirect, incidental, consequential, or punitive damages. You are solely responsible for ensuring that the software meets your requirements and for any outcomes resulting from its use.
+## Notice of Usage
+
+The machine or server making API calls to Argo must be connected to the Argonne internal network or through a VPN on an Argonne-managed computer if you are working off-site. Your instance of argo proxy should always be on-premise at an Argonne machine. The software is provided "as is," without any warranties. By using this software, you accept that the authors, contributors, and affiliated organizations will not be liable for any damages or issues arising from its use. You are solely responsible for ensuring the software meets your requirements.
 
 ## Table of Contents
 
+- [Overview](#argo-proxy-project)
+- [Notice of Usage](#notice-of-usage)
 - [Folder Structure](#folder-structure)
 - [Prerequisites](#prerequisites)
 - [Configuration](#configuration)
+  - [Configuration Options](#configuration-options)
+  - [Example `config.yaml`](#example-configyaml)
 - [Running the Application](#running-the-application)
 - [Endpoints](#endpoints)
+  - [Timeout Override](#timeout-override)
 - [Models](#models)
+  - [Chat Models](#chat-models)
+  - [Embedding Models](#embedding-models)
 - [Examples](#examples)
-- [Bug reports and Contributions](#bug-reports-and-contributions)
+  - [Chat Completion Example](#chat-completion-example)
+  - [Embedding Example](#embedding-example)
+  - [o1 Chat Example](#o1-chat-example)
+  - [OpenAI Client Example](#openai-client-example)
+- [Bug Reports and Contributions](#bug-reports-and-contributions)
 
 ## Folder Structure
 
+The following is an overview of the project's directory structure:
+
 ```
+
 $ tree .
 .
 ├── app.py
@@ -55,8 +69,6 @@ $ tree .
 │       │   └── siliconflow_chunk
 │       └── my_chunk
 ├── LICENSE
-├── __pycache__
-│   └── app.cpython-310.pyc
 ├── README.md
 ├── requirements.txt
 ├── run_app.sh
@@ -66,27 +78,26 @@ $ tree .
     ├── test.py
     └── test.sh
 
-7 directories, 36 files
 ```
 
 ## Prerequisites
 
-- Python 3.10 or higher
+- Python 3.10 or higher is required.
 
 ## Configuration
 
-The application is configured using a `config.yaml` file. This file contains settings such as the ARGO API URLs, port number, and logging behavior. Below is a breakdown of the configuration options:
+The application is configured using a `config.yaml` file. This file contains settings like the ARGO API URLs, port number, and logging behavior.
 
 ### Configuration Options
 
-- **`port`**: The port number on which the application will listen. Default is `44497`.
-- **`argo_url`**: The URL of the ARGO API for chat and completions. Default is `"https://apps-dev.inside.anl.gov/argoapi/api/v1/resource/chat/"`.
-- **`argo_stream_url`**: The URL of the ARGO API for stream chat and completions. Default is `"https://apps-dev.inside.anl.gov/argoapi/api/v1/resource/steamchat/"`.
-- **`argo_embedding_url`**: The URL of the ARGO API for embeddings. Default is `"https://apps-dev.inside.anl.gov/argoapi/api/v1/resource/embed/"`.
-- **`user`**: The user name to be used in the requests. Default is `"cels"`.
-- **`verbose`**: A boolean flag to control whether to print input and output for debugging. Default is `true`.
-- **`num_workers`**: The number of worker processes for Gunicorn. Default is `5`.
-- **`timeout`**: The timeout for requests in seconds. Default is `600`.
+- **`port`**: Port number the application listens to. Default is `44497`.
+- **`argo_url`**: URL of the ARGO API for chat/completions. Default: `"https://apps-dev.inside.anl.gov/argoapi/api/v1/resource/chat/"`.
+- **`argo_stream_url`**: URL for stream chat/completions. Default: `"https://apps-dev.inside.anl.gov/argoapi/api/v1/resource/steamchat/"`.
+- **`argo_embedding_url`**: URL for embeddings. Default: `"https://apps-dev.inside.anl.gov/argoapi/api/v1/resource/embed/"`.
+- **`user`**: Username for requests. Default: `"cels"`.
+- **`verbose`**: Flag for debugging. Default: `true`.
+- **`num_workers`**: Number of worker processes for Gunicorn. Default: `5`.
+- **`timeout`**: Default request timeout in seconds. Default: `600`. This value can be overridden by providing a `timeout` parameter in the request or via the OpenAI client.
 
 ### Example `config.yaml`
 
@@ -105,22 +116,20 @@ timeout: 600 # in seconds
 ## Running the Application
 
 1. **Install Dependencies**:
-   Ensure you have Python 3.10 or higher installed. Install the required packages using pip:
+   Ensure Python 3.10 or higher is installed. Install required packages using pip:
 
    ```bash
-   # recommend to use `conda/mamba/venv` to manage argo specific environment
-   # you can use `screen` to run it in background
    pip install -r requirements.txt
    ```
 
 2. **Run the Application**:
-   Use the provided `run_app.sh` script to start the application. By default, the script looks for a `config.yaml` file in the current directory. You can optionally specify a custom path to the configuration file as an argument:
+   Use `run_app.sh` to start. It defaults to `config.yaml` in the current directory or specify a custom config:
 
    ```bash
    ./run_app.sh /path/to/config.yaml
    ```
 
-   If no path is provided, the script will use the default [`config.yaml`](./config.yaml) file in the project root directory:
+   Without a path, it uses the default `config.yaml`:
 
    ```bash
    ./run_app.sh
@@ -128,20 +137,61 @@ timeout: 600 # in seconds
 
 ## Endpoints
 
-The application provides the following endpoints:
+The application offers the following endpoints:
 
-- **`/v1/chat`**: Directly proxies requests to the ARGO API.
-- **`/v1/chat/completions`**: Proxies requests to the ARGO API and converts the response to OpenAI-compatible format.
-- **`/v1/completions`**: Proxies requests to the ARGO API and converts the response to OpenAI-compatible format (legacy).
-- **`/v1/embeddings`**: Proxies requests to the ARGO Embedding API.
-- **`/v1/models`**: Returns a list of available models in OpenAI-compatible format.
-- **`/v1/status`**: Returns a simple "hello" response from GPT-4o.
+- **`/v1/chat`**: Proxies requests to the ARGO API.
+- **`/v1/chat/completions`**: Converts ARGO responses to OpenAI-compatible format.
+- **`/v1/completions`**: Legacy API for response conversion.
+- **`/v1/embeddings`**: Access ARGO Embedding API.
+- **`/v1/models`**: Lists available models in OpenAI-compatible format.
+- **`/v1/status`**: Responds with a simple "hello" from GPT-4o.
+
+### Timeout Override
+
+Override the default timeout with a `timeout` parameter in your request:
+
+When using the OpenAI client, you can specify a timeout in seconds:
+
+```python
+response = client.chat.completions.create(
+    model="argo:gpt-4",
+    messages=[{"role": "user", "content": "Hello!"}],
+    timeout=300
+)
+```
+
+To specify a timeout using the `requests` library, you can use the `timeout` parameter in your request call:
+
+```python
+import requests
+
+url = "http://localhost:44497/v1/chat/completions"
+payload = {
+    "model": "argo:gpt-4o",
+    "messages": [{"role": "user", "content": "Hello!"}],
+}
+headers = {
+    "Content-Type": "application/json",
+    "Authorization": "Bearer whatever+random"
+}
+
+response = requests.post(url, json=payload, headers=headers, timeout=300)
+print(response.json())
+```
+
+For a `curl` command, you can use the `--max-time` option to specify the timeout in seconds. Here's the example:
+
+```bash
+curl -X POST http://localhost:44497/v1/chat/completions \
+     -H 'Content-Type: application/json' \
+     -H 'Authorization: Bearer whatever+random' \
+     -d '{"model": "argo:gpt-4o", "messages": [{"role": "user", "content": "Hello!"}]}' \
+     --max-time 300
+```
 
 ## Models
 
-This application provides proxy to the following models. You can call the models via either the argo original name or argo-proxy name.
-
-### chat models
+### Chat Models
 
 | Original ARGO Model Name | Argo Proxy Name            |
 | ------------------------ | -------------------------- |
@@ -155,7 +205,7 @@ This application provides proxy to the following models. You can call the models
 | `gpto1mini`              | `argo:gpt-o1-mini`         |
 | `gpto3mini`              | `argo:gpt-o3-mini`         |
 
-### embedding models
+### Embedding Models
 
 | Original ARGO Model Name | Argo Proxy Name               |
 | ------------------------ | ----------------------------- |
@@ -167,28 +217,25 @@ This application provides proxy to the following models. You can call the models
 
 ### Chat Completion Example
 
-For an example of how to use the `/v1/chat/completions`, /v1/completions`, /v1/chat` endpoint, see the followings:
-- [ `chat_completions_example.py` ](examples/chat_completions_example.py)
-- [ `chat_completions_example_stream.py` ](examples/chat_completions_example_stream.py)
-- [ `completions_example.py` ](examples/completions_example.py)
-- [ `completions_example_stream.py` ](examples/completions_example_stream.py)
-- [ `chat_example.py` ](examples/chat_example.py)
-- [ `chat_example_stream.py` ](examples/chat_example_stream.py) 
+- [chat_completions_example.py](examples/chat_completions_example.py)
+- [chat_completions_example_stream.py](examples/chat_completions_example_stream.py)
+- [completions_example.py](examples/completions_example.py)
+- [completions_example_stream.py](examples/completions_example_stream.py)
+- [chat_example.py](examples/chat_example.py)
+- [chat_example_stream.py](examples/chat_example_stream.py)
 
 ### Embedding Example
 
-For an example of how to use the `/v1/embeddings` endpoint, see the [ `embedding_example.py` ](examples/embedding_example.py) file.
+- [embedding_example.py](examples/embedding_example.py)
 
-### o1 chat Example
+### o1 Chat Example
 
-For an example of how to use the `/v1/chat` endpoint with the `argo:gpt-o1-mini` model, see the [ `o1_chat_example.py` ](examples/o1_chat_example.py) file.
+- [o1_chat_example.py](examples/o1_chat_example.py)
 
 ### OpenAI Client Example
 
-For an example of how to use the `/v1/chat/completions` endpoint with the OpenAI client, see the [ `openai_o3_chat_example.py` ](examples/o3_chat_example_pyclient.py) file.
+- [openai_o3_chat_example.py](examples/o3_chat_example_pyclient.py)
 
-## Bug reports and Contributions
+## Bug Reports and Contributions
 
-This project is made during my spare time, so there for sure are bugs and issues. <br>
-If you encounter any or have suggestions for improvements, please [open an issue](https://github.com/Oaklight/argo-proxy/issues/new) or [submit a pull request](https://github.com/Oaklight/argo-proxy/compare). <br>
-Your contributions are highly appreciated!
+This project was developed in my spare time. Bugs and issues may exist. If you encounter any or have suggestions for improvements, please [open an issue](https://github.com/Oaklight/argo-proxy/issues/new) or [submit a pull request](https://github.com/Oaklight/argo-proxy/compare). Your contributions are highly appreciated!
