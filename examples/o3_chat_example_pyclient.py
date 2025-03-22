@@ -1,70 +1,55 @@
 from openai import OpenAI
 
 client = OpenAI(api_key="random+whatever", base_url="http://localhost:44498/v1")
-
 model = "argo:gpt-o3-mini"
 
-user_prompt = """
-Instructions:
-- Given the React component below, change it so that nonfiction books have red
-  text. 
-- Return only the code in your reply
-- Do not include any additional formatting, such as markdown code blocks
-- For formatting, use four space tabs, and do not allow any lines of code to 
-  exceed 80 columns
-
-const books = [
-  { title: 'Dune', category: 'fiction', id: 1 },
-  { title: 'Frankenstein', category: 'fiction', id: 2 },
-  { title: 'Moneyball', category: 'nonfiction', id: 3 },
-];
-
-export default function BookList() {
-  const listItems = books.map(book =>
-    <li>
-      {book.title}
-    </li>
-  );
-
-  return (
-    <ul>{listItems}</ul>
-  );
-}
-"""
-
-response = client.chat.completions.create(
-    model=model,
-    messages=[
-        {"role": "system", "content": "You are a helpful assistant."},
-        {
-            "role": "user",
-            "content": [
-                {"type": "text", "text": user_prompt},
-            ],
-        },
-    ],
-    stream=True,
-)
-
-for chunk in response:
-    print(chunk.choices[0].delta.content or "", end="", flush=True)
+# Initialize conversation history
+messages = [{"role": "system", "content": "You are a helpful assistant."}]
 
 
-# Define the system prompt
-system_prompt = (
-    "You are a helpful assistant that provides information and answers questions."
-)
+def get_user_input():
+    print("\nUser: ", end="")
+    return input()
 
-# Combine the system prompt with the user's input
-prompt = f"{system_prompt}\n\nUser: {user_prompt}"
 
-# Make the API call
-response = client.completions.create(
-    model=model,
-    prompt=prompt,
-    max_tokens=200,
-    temperature=0.7,
-)
+def display_response(response):
+    print("\nAssistant: ", end="")
+    for chunk in response:
+        content = chunk.choices[0].delta.content or ""
+        print(content, end="", flush=True)
+    print()
 
-# Print the response
-print(response.choices[0].text)
+
+def main():
+    print("Chat with the assistant! Type 'exit' to end the conversation.")
+
+    while True:
+        user_input = get_user_input()
+
+        if user_input.lower() == "exit":
+            break
+
+        # Add user message to history
+        messages.append({"role": "user", "content": user_input})
+
+        # Get assistant response
+        response = client.chat.completions.create(
+            model=model,
+            messages=messages,
+            stream=True,
+        )
+
+        # Display response and add to history
+        assistant_response = ""
+        for chunk in response:
+            content = chunk.choices[0].delta.content or ""
+            assistant_response += content
+            print(content, end="", flush=True)
+        print()
+
+        # Add assistant response to history
+        messages.append({"role": "assistant", "content": assistant_response})
+
+
+if __name__ == "__main__":
+    main()
