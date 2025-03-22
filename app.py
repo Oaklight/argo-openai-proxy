@@ -68,6 +68,12 @@ async def get_status(request):
     return await extras.get_status()
 
 
+@app.route("/v1/docs", methods=["GET"])
+async def docs(request):
+    msg = "Documentation access: Please visit https://oaklight.github.io/argo-proxy for full documentation."
+    return response.text(msg, status=200)
+
+
 @app.route("/health", methods=["GET"])
 async def health_check(request):
     logger.info("/health")
