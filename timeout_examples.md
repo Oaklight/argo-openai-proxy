@@ -14,7 +14,7 @@ curl --max-time 120 -X POST "http://your-argo-proxy-url/v1/chat/completions" -H 
 
 When using the OpenAI client, pass the timeout as an additional parameter.
 
-```python file.py
+```python
 import openai
 
 openai.api_base = "http://your-argo-proxy-url/v1"
@@ -30,7 +30,7 @@ print(response)
 
 Use the `timeout` parameter in the requests library.
 
-```python file.py
+```python
 import requests
 
 url = "http://your-argo-proxy-url/v1/chat/completions"
@@ -43,7 +43,7 @@ print(response.json())
 
 HTTPX supports async requests, and you can set a timeout using the `timeout` parameter.
 
-```python file.py
+```python
 import httpx
 
 url = "http://your-argo-proxy-url/v1/chat/completions"
@@ -58,7 +58,7 @@ with httpx.Client(timeout=120) as client:
 
 For async requests with Aiohttp, use a `ClientTimeout` object.
 
-```python file.py
+```python
 import aiohttp
 import asyncio
 
