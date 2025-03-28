@@ -3,51 +3,205 @@
 # Default config path
 CONFIG_PATH=${1:-"config.yaml"}
 
-# Check if config.yaml file exists
+
+# Utility functions
+get_config_value() {
+    local config_path=$1
+    local key=$2
+    grep "^$key:" "$config_path" | awk -F': ' '{print $2}' | sed -e 's/^"//' -e 's/"$//' -e "s/^'//" -e "s/'$//"
+}
+
+set_config_value() {
+    local config_path=$1
+    local key=$2
+    local value=$3
+    sed -i "s/^$key:.*/$key: $value/" "$config_path"
+}
+
+validate_port_number() {
+    local port=$1
+    [[ "$port" =~ ^[0-9]+$ ]] && [ "$port" -ge 1024 ] && [ "$port" -le 65535 ]
+}
+
+# Port management functions
+check_port() {
+    lsof -i :$1 >/dev/null 2>&1
+}
+
+get_available_port() {
+    local port
+    while true; do
+        port=$((49152 + RANDOM % 16383))
+        if ! check_port $port; then
+            echo $port
+            return
+        fi
+    done
+}
+
+handle_port_selection() {
+    local current_port=$1
+    if check_port $current_port; then
+        echo "Port $current_port is already in use."
+        local suggested_port=$(get_available_port)
+        echo "Suggested available port: $suggested_port"
+        
+        read -p "Press enter to use $suggested_port or enter a different port: " new_port
+        new_port=${new_port:-$suggested_port}
+
+        if validate_port_number "$new_port"; then
+            if ! check_port $new_port; then
+                set_config_value "$CONFIG_PATH" "port" "$new_port"
+                echo "Updated config with port $new_port"
+                echo $new_port
+                return
+            else
+                echo "Port $new_port is also in use."
+            fi
+        else
+            echo "Invalid port number."
+        fi
+        
+        echo "Aborting: No valid port selected."
+        exit 1
+    fi
+    echo $current_port
+}
+
+# Display config with nice formatting
+show_config() {
+    local config_path=$1
+    local message=$2
+    echo "$message"
+    echo "--------------------------------------"
+    cat "$config_path"
+    echo "--------------------------------------"
+}
+
+# Config file operations
+create_config() {
+    cp config.sample.yaml "$CONFIG_PATH"
+    
+    # Start with a random available port
+    local port=$(get_available_port)
+    read -p "Enter port [$port]: " new_port
+    if [[ -n "$new_port" ]]; then
+        port=$(handle_port_selection "$new_port")
+    fi
+    set_config_value "$CONFIG_PATH" "port" "$port"
+
+    read -p "Enter your username: " username
+    set_config_value "$CONFIG_PATH" "user" "\"$username\""
+
+    read -p "Enable verbose mode? [Y/n] " verbose
+    if [[ "$verbose" =~ ^[Nn]$ ]]; then
+        set_config_value "$CONFIG_PATH" "verbose" "false"
+    fi
+
+    show_config "$CONFIG_PATH" "Created $CONFIG_PATH with your settings:"
+    read -p "Review the config above. Press enter to continue or Ctrl+C to abort."
+}
+
+validate_config() {
+    local config_path=$1
+    local required_vars=("port" "argo_url" "argo_embedding_url" "user" "verbose" "num_workers" "timeout")
+    local missing_vars=()
+    local needs_fix=false
+
+    for var in "${required_vars[@]}"; do
+        if ! grep -q "^$var:" "$config_path"; then
+            missing_vars+=("$var")
+            continue
+        fi
+        
+        local value=$(get_config_value "$config_path" "$var")
+        if [ -z "$value" ]; then
+            needs_fix=true
+            case "$var" in
+                "port")
+                    local port=$(handle_port_selection $(get_available_port))
+                    set_config_value "$config_path" "port" "$port"
+                    ;;
+                "user")
+                    read -p "Please enter your username: " username
+                    set_config_value "$config_path" "user" "\"$username\""
+                    ;;
+                "verbose")
+                    read -p "Enable verbose mode? [Y/n] " verbose
+                    if [[ "$verbose" =~ ^[Nn]$ ]]; then
+                        set_config_value "$config_path" "verbose" "false"
+                    else
+                        set_config_value "$config_path" "verbose" "true"
+                    fi
+                    ;;
+                *)
+                    read -p "Please enter value for $var: " new_value
+                    set_config_value "$config_path" "$var" "\"$new_value\""
+                    ;;
+            esac
+        elif [ "$var" = "port" ] && check_port $value; then
+            echo "Error: Configured port $value is already in use."
+            return 1
+        fi
+    done
+
+    if [ ${#missing_vars[@]} -gt 0 ]; then
+        echo "Error: Missing variables: ${missing_vars[*]}"
+        return 1
+    fi
+
+    if $needs_fix; then
+        show_config "$config_path" "Some values were empty and have been updated. Please review the config:"
+        read -p "Press enter to continue or Ctrl+C to abort."
+        # Re-validate after fixes
+        validate_config "$config_path"
+        return $?
+    fi
+
+    # Validate URLs are reachable
+    local argo_url=$(get_config_value "$config_path" "argo_url")
+    local argo_embedding_url=$(get_config_value "$config_path" "argo_embedding_url")
+    
+    echo "Validating URL connectivity..."
+    for url in "$argo_url" "$argo_embedding_url"; do
+        if ! curl --max-time 5 --head --fail "$url" >/dev/null 2>&1; then
+            echo "Warning: Could not reach $url"
+            read -p "Continue anyway? [y/N] " choice
+            if [[ ! "$choice" =~ ^[Yy]$ ]]; then
+                return 1
+            fi
+            break
+        fi
+    done
+
+    return 0
+}
+
+# Main config file handling
 if [ ! -f "$CONFIG_PATH" ]; then
     echo "$CONFIG_PATH file not found."
     read -p "Would you like to create it from config.sample.yaml? [y/N] " create_config
     if [[ "$create_config" =~ ^[Yy]$ ]]; then
-        cp config.sample.yaml "$CONFIG_PATH"
-
-        # Prompt for username
-        read -p "Enter your username: " username
-        sed -i "s/^user:.*/user: \"$username\"/" "$CONFIG_PATH"
-
-        # Prompt for verbose mode
-        read -p "Enable verbose mode? [Y/n] " verbose
-        if [[ "$verbose" =~ ^[Nn]$ ]]; then
-            sed -i "s/^verbose:.*/verbose: false/" "$CONFIG_PATH"
-        fi
-
-        echo "Created $CONFIG_PATH with your settings:"
-        echo "--------------------------------------"
-        cat "$CONFIG_PATH"
-        echo "--------------------------------------"
-        read -p "Review the config above. Press enter to continue or Ctrl+C to abort."
+        create_config
     else
         echo "Aborting: config file required."
         exit 1
     fi
 fi
 
-# Define the required configuration variables
-required_vars=("port" "argo_url" "argo_embedding_url" "user" "verbose" "num_workers" "timeout")
+# Validate config file
+if ! validate_config "$CONFIG_PATH"; then
+    exit 1
+fi
 
-# Check if the file contains all required variables
-for var in "${required_vars[@]}"; do
-    if ! grep -q "^$var:" "$CONFIG_PATH"; then
-        echo "Error: $CONFIG_PATH is missing the '$var' variable."
-        exit 1
-    fi
-done
-
-# Output success message if all checks pass
 echo "$CONFIG_PATH exists and contains all required variables."
 
 # Load the port and num_workers from the config
 port=$(grep "^port:" "$CONFIG_PATH" | awk '{print $2}')
 num_workers=$(grep "^num_workers:" "$CONFIG_PATH" | awk '{print $2}')
+
+# Handle port selection
+port=$(handle_port_selection $port)
 
 # Run the application using Sanic's built-in server
 sanic app:app --host=0.0.0.0 --port=$port --workers=$num_workers
