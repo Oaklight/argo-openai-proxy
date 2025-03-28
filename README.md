@@ -8,15 +8,26 @@ The machine or server making API calls to Argo must be connected to the Argonne 
 
 ## Table of Contents
 
+- [Notice of Usage](#notice-of-usage)
 - [Deployment](#deployment)
   - [Prerequisites](#prerequisites)
-  - [Configuration](#configuration)
+  - [Configuration File](#configuration-file)
   - [Running the Application](#running-the-application)
-    - [Interactive Setup](#interactive-setup)
+  - [First-Time Setup](#first-time-setup)
+  - [Configuration Options Reference](#configuration-options-reference)
 - [Usage](#usage)
   - [Endpoints](#endpoints)
+    - [OpenAI Compatible](#openai-compatible)
+    - [Not OpenAI Compatible](#not-openai-compatible)
+    - [Timeout Override](#timeout-override)
   - [Models](#models)
+    - [Chat Models](#chat-models)
+    - [Embedding Models](#embedding-models)
   - [Examples](#examples)
+    - [Chat Completion Example](#chat-completion-example)
+    - [Embedding Example](#embedding-example)
+    - [o1 Chat Example](#o1-chat-example)
+    - [OpenAI Client Example](#openai-client-example)
 - [Folder Structure](#folder-structure)
 - [Bug Reports and Contributions](#bug-reports-and-contributions)
 
@@ -24,68 +35,57 @@ The machine or server making API calls to Argo must be connected to the Argonne 
 
 ### Prerequisites
 
-- Python 3.10 or higher is required.
+- Python 3.10 or higher is required
+- Install dependencies:
 
-### Configuration
+  ```bash
+  # recommend to use conda/mamba or pipx etc to manage exclusive environment.
+  pip install -r requirements.txt
+  ```
 
-The application is configured using a `config.yaml` file. This file contains settings like the ARGO API URLs, port number, and logging behavior.
+### Configuration File
 
-#### Configuration Options
-
-- **`port`**: Port number the application listens to. Default is `44497`.
-- **`argo_url`**: URL of the ARGO API for chat/completions. Default: `"https://apps-dev.inside.anl.gov/argoapi/api/v1/resource/chat/"`.
-- **`argo_stream_url`**: URL for stream chat/completions. Default: `"https://apps-dev.inside.anl.gov/argoapi/api/v1/resource/steamchat/"`.
-- **`argo_embedding_url`**: URL for embeddings. Default: `"https://apps-dev.inside.anl.gov/argoapi/api/v1/resource/embed/"`.
-- **`user`**: Username for requests. Default: `"cels"`.
-- **`verbose`**: Flag for debugging. Default: `true`.
-- **`num_workers`**: Number of worker processes for Gunicorn. Default: `5`.
-- **`timeout`**: Default request timeout in seconds. Default: `600`. This value can be overridden by providing a `timeout` parameter in the request or via the OpenAI client.
-
-#### Example `config.yaml`
+The application uses `config.yaml` for configuration. Here's an example:
 
 ```yaml
 port: 44497
 argo_url: "https://apps-dev.inside.anl.gov/argoapi/api/v1/resource/chat/"
 argo_stream_url: "https://apps-dev.inside.anl.gov/argoapi/api/v1/resource/streamchat/"
 argo_embedding_url: "https://apps.inside.anl.gov/argoapi/api/v1/resource/embed/"
-user: "your_username" # set during interactive setup
-verbose: true # can be changed during interactive setup
+user: "your_username" # set during first-time setup
+verbose: true # can be changed during setup
 num_workers: 5
 timeout: 600 # in seconds
 ```
 
 ### Running the Application
 
-1. **Install Dependencies**:
-   Ensure Python 3.10 or higher is installed. Install required packages using pip:
+To start the application:
 
-   ```bash
-   pip install -r requirements.txt
-   ```
+```bash
+./run_app.sh [config_path]
+```
 
-2. **Run the Application**:
-   Use `run_app.sh` to start. It defaults to `config.yaml` in the current directory or specify a custom config:
+- Without arguments: uses `config.yaml` in current directory
+- With path: uses specified config file
 
-   ```bash
-   ./run_app.sh /path/to/config.yaml
-   ```
+  ```bash
+  ./run_app.sh /path/to/config.yaml
+  ```
 
-   Without a path, it uses the default `config.yaml`:
+### First-Time Setup
 
-   ```bash
-   ./run_app.sh
-   ```
+When running without an existing config file:
 
-   If `config.yaml` doesn't exist, the script will:
+1. The script offers to create `config.yaml` from `config.sample.yaml`
+2. Automatically selects a random available port (can be overridden)
+3. Prompts for:
+   - Your username (sets `user` field)
+   - Verbose mode preference (sets `verbose` field)
+4. Validates connectivity to configured URLs
+5. Shows the generated config in a formatted display for review before proceeding
 
-   - Offer to create it from `config.sample.yaml`
-   - Prompt for your username to set in the config
-   - Ask whether to enable verbose mode
-   - Show the final config for review before proceeding
-
-#### Interactive Setup
-
-When running for the first time without a config file:
+Example session:
 
 ```bash
 $ ./run_app.sh
@@ -106,6 +106,19 @@ timeout: 600
 --------------------------------------
 Review the config above. Press enter to continue or Ctrl+C to abort.
 ```
+
+### Configuration Options Reference
+
+| Option               | Description                                                  | Default            |
+| -------------------- | ------------------------------------------------------------ | ------------------ |
+| `port`               | Application port (random available port selected by default) | `44497`            |
+| `argo_url`           | ARGO chat API URL                                            | Dev URL            |
+| `argo_stream_url`    | ARGO stream API URL                                          | Dev URL            |
+| `argo_embedding_url` | ARGO embedding API URL                                       | Prod URL           |
+| `user`               | Your username                                                | (Set during setup) |
+| `verbose`            | Debug logging                                                | `true`             |
+| `num_workers`        | Worker processes                                             | `5`                |
+| `timeout`            | Request timeout (seconds)                                    | `600`              |
 
 ## Usage
 
@@ -185,7 +198,7 @@ Details of how to make such override in different query flavors: [Timeout Overri
 The following is an overview of the project's directory structure:
 
 ```
-$ tree .
+$ tree -I "__pycache__|dev_scripts|config.yaml"
 .
 ├── app.py
 ├── argoproxy
@@ -195,7 +208,7 @@ $ tree .
 │   ├── embed.py
 │   ├── extras.py
 │   └── utils.py
-├── config.yaml
+├── config.sample.yaml
 ├── examples
 │   ├── chat_completions_example.py
 │   ├── chat_completions_example_stream.py
@@ -205,29 +218,14 @@ $ tree .
 │   ├── completions_example_stream.py
 │   ├── embedding_example.py
 │   ├── o1_chat_example.py
-│   ├── o3_chat_example_pyclient.py
-│   ├── openai_chat_completions_example_stream.py
-│   ├── openai_completions_example_stream.py
-│   └── results_compare
-│       ├── argo_chunk
-│       ├── chat_completions
-│       │   ├── my_chunk
-│       │   ├── openai_chunk
-│       │   └── siliconflow_chunk
-│       ├── completions
-│       │   ├── my_chunk
-│       │   ├── openai_chunk
-│       │   └── siliconflow_chunk
-│       └── my_chunk
+│   └── o3_chat_example_pyclient.py
 ├── LICENSE
 ├── README.md
 ├── requirements.txt
 ├── run_app.sh
-└── test
-    ├── test2.py
-    ├── test2.sh
-    ├── test.py
-    └── test.sh
+└── timeout_examples.md
+
+2 directories, 22 files
 ```
 
 ## Bug Reports and Contributions
