@@ -45,6 +45,8 @@ The machine or server making API calls to Argo must be connected to the Argonne 
 
 ### Configuration File
 
+If you don't want to bother manually configure it, the [First-Time Setup](#first-time-setup) will automatically create it for you.
+
 The application uses `config.yaml` for configuration. Here's an example:
 
 ```yaml
@@ -111,9 +113,9 @@ Review the config above. Press enter to continue or Ctrl+C to abort.
 
 | Option               | Description                                                  | Default            |
 | -------------------- | ------------------------------------------------------------ | ------------------ |
-| `port`               | Application port (random available port selected by default) | `44497`            |
-| `argo_url`           | ARGO chat API URL                                            | Dev URL            |
-| `argo_stream_url`    | ARGO stream API URL                                          | Dev URL            |
+| `port`               | Application port (random available port selected by default) | randomly assigned  |
+| `argo_url`           | ARGO chat API URL                                            | Dev URL (for now)  |
+| `argo_stream_url`    | ARGO stream API URL                                          | Dev URL (for now)  |
 | `argo_embedding_url` | ARGO embedding API URL                                       | Prod URL           |
 | `user`               | Your username                                                | (Set during setup) |
 | `verbose`            | Debug logging                                                | `true`             |
