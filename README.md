@@ -12,6 +12,7 @@ The machine or server making API calls to Argo must be connected to the Argonne 
   - [Prerequisites](#prerequisites)
   - [Configuration](#configuration)
   - [Running the Application](#running-the-application)
+    - [Interactive Setup](#interactive-setup)
 - [Usage](#usage)
   - [Endpoints](#endpoints)
   - [Models](#models)
@@ -43,13 +44,12 @@ The application is configured using a `config.yaml` file. This file contains set
 #### Example `config.yaml`
 
 ```yaml
-# use production url as much as you can.
 port: 44497
-argo_url: "https://apps.inside.anl.gov/argoapi/api/v1/resource/chat/"
+argo_url: "https://apps-dev.inside.anl.gov/argoapi/api/v1/resource/chat/"
 argo_stream_url: "https://apps-dev.inside.anl.gov/argoapi/api/v1/resource/streamchat/"
 argo_embedding_url: "https://apps.inside.anl.gov/argoapi/api/v1/resource/embed/"
-user: "cels" # you should replace it with your username
-verbose: true
+user: "your_username" # set during interactive setup
+verbose: true # can be changed during interactive setup
 num_workers: 5
 timeout: 600 # in seconds
 ```
@@ -75,6 +75,37 @@ timeout: 600 # in seconds
    ```bash
    ./run_app.sh
    ```
+
+   If `config.yaml` doesn't exist, the script will:
+
+   - Offer to create it from `config.sample.yaml`
+   - Prompt for your username to set in the config
+   - Ask whether to enable verbose mode
+   - Show the final config for review before proceeding
+
+#### Interactive Setup
+
+When running for the first time without a config file:
+
+```bash
+$ ./run_app.sh
+config.yaml file not found.
+Would you like to create it from config.sample.yaml? [y/N] y
+Enter your username: your_username
+Enable verbose mode? [Y/n] y
+Created config.yaml with your settings:
+--------------------------------------
+port: 44497
+argo_url: "https://apps-dev.inside.anl.gov/argoapi/api/v1/resource/chat/"
+argo_stream_url: "https://apps-dev.inside.anl.gov/argoapi/api/v1/resource/streamchat/"
+argo_embedding_url: "https://apps.inside.anl.gov/argoapi/api/v1/resource/embed/"
+user: "your_username"
+verbose: true
+num_workers: 5
+timeout: 600
+--------------------------------------
+Review the config above. Press enter to continue or Ctrl+C to abort.
+```
 
 ## Usage
 
