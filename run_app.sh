@@ -3,8 +3,64 @@
 # Default config path
 CONFIG_PATH=${1:-"config.yaml"}
 
-
 # Utility functions
+validate_chat_api() {
+    local url=$1
+    local username=$2
+    echo "Validating API endpoint: $url"
+
+    payload=$(
+        cat <<EOF
+{
+  "user": "$username",
+  "model": "gpt4o",
+  "messages": [
+    {"role": "user", 
+      "content": "What are you?"}
+  ]
+}
+EOF
+    )
+    if ! curl --max-time 5 --fail -X POST "$url" \
+        -H "Content-Type: application/json" \
+        -d "$payload" >/dev/null 2>&1; then
+        echo "Warning: Could not connect to API at $url"
+        read -p "Continue anyway? [y/N] " choice
+        if [[ ! "$choice" =~ ^[Yy]$ ]]; then
+            return 1
+        fi
+    fi
+    return 0
+}
+
+validate_embedding_api() {
+    local url=$1
+    local username=$2
+    echo "Testing embedding API at $url"
+
+    payload=$(
+        cat <<EOF
+{
+  "user": "$username",
+  "model": "v3small",
+  "prompt": [
+    "hello"
+  ]
+}
+EOF
+    )
+    if ! curl --max-time 5 --fail -X POST "$url" \
+        -H "Content-Type: application/json" \
+        -d "$payload" >/dev/null 2>&1; then
+        echo "Warning: Could not connect to embedding API at $url"
+        read -p "Continue anyway? [y/N] " choice
+        if [[ ! "$choice" =~ ^[Yy]$ ]]; then
+            return 1
+        fi
+    fi
+    return 0
+}
+
 get_config_value() {
     local config_path=$1
     local key=$2
@@ -176,21 +232,19 @@ validate_config() {
         return $?
     fi
 
-    # Validate URLs are reachable
+    # Validate URLs
     local argo_url=$(get_config_value "$config_path" "argo_url")
     local argo_embedding_url=$(get_config_value "$config_path" "argo_embedding_url")
+    local username=$(get_config_value "$config_path" "user")
 
     echo "Validating URL connectivity..."
-    for url in "$argo_url" "$argo_embedding_url"; do
-        if ! curl --max-time 5 --head --fail "$url" >/dev/null 2>&1; then
-            echo "Warning: Could not reach $url"
-            read -p "Continue anyway? [y/N] " choice
-            if [[ ! "$choice" =~ ^[Yy]$ ]]; then
-                return 1
-            fi
-            break
-        fi
-    done
+    if ! validate_chat_api "$argo_url" "$username"; then
+        return 1
+    fi
+
+    if ! validate_embedding_api "$argo_embedding_url" "$username"; then
+        return 1
+    fi
 
     return 0
 }
