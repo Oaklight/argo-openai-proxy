@@ -4,12 +4,30 @@
 CONFIG_PATH=${1:-"config.yaml"}
 
 # Utility functions
+validate_api() {
+    local url=$1
+    local payload=$2
+    local api_type=$3
+
+    echo "Validating $api_type API endpoint connectivity: $url"
+
+    if ! curl --max-time 5 --fail -X POST "$url" \
+        -H "Content-Type: application/json" \
+        -d "$payload" >/dev/null 2>&1; then
+        echo "Warning: Could not connect to $api_type API at $url"
+        read -p "Continue anyway? [y/N] " choice
+        if [[ ! "$choice" =~ ^[Yy]$ ]]; then
+            return 1
+        fi
+    fi
+    return 0
+}
+
 validate_chat_api() {
     local url=$1
     local username=$2
-    echo "Validating API endpoint: $url"
 
-    payload=$(
+    local payload=$(
         cat <<EOF
 {
   "user": "$username",
@@ -21,24 +39,14 @@ validate_chat_api() {
 }
 EOF
     )
-    if ! curl --max-time 5 --fail -X POST "$url" \
-        -H "Content-Type: application/json" \
-        -d "$payload" >/dev/null 2>&1; then
-        echo "Warning: Could not connect to API at $url"
-        read -p "Continue anyway? [y/N] " choice
-        if [[ ! "$choice" =~ ^[Yy]$ ]]; then
-            return 1
-        fi
-    fi
-    return 0
+    validate_api "$url" "$payload" "chat"
 }
 
 validate_embedding_api() {
     local url=$1
     local username=$2
-    echo "Testing embedding API at $url"
 
-    payload=$(
+    local payload=$(
         cat <<EOF
 {
   "user": "$username",
@@ -49,16 +57,7 @@ validate_embedding_api() {
 }
 EOF
     )
-    if ! curl --max-time 5 --fail -X POST "$url" \
-        -H "Content-Type: application/json" \
-        -d "$payload" >/dev/null 2>&1; then
-        echo "Warning: Could not connect to embedding API at $url"
-        read -p "Continue anyway? [y/N] " choice
-        if [[ ! "$choice" =~ ^[Yy]$ ]]; then
-            return 1
-        fi
-    fi
-    return 0
+    validate_api "$url" "$payload" "embedding"
 }
 
 get_config_value() {
