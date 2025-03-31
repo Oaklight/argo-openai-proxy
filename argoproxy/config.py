@@ -32,6 +32,11 @@ required_keys = [
 for key in required_keys:
     assert key in config, f"{config_path} is missing the '{key}' variable."
 
+# Validate username
+if config["user"] == "cels":
+    logger.error("Error: 'cels' is not allowed as a username")
+    sys.exit(1)
+
 verbose = os.getenv("VERBOSE", config.get("verbose", False))
 config["verbose"] = verbose
 logging_level = os.getenv("LOG_LEVEL", config.get("logging_level", "INFO"))

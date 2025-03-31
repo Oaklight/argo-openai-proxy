@@ -45,7 +45,7 @@ handle_port_selection() {
         echo "Port $current_port is already in use."
         local suggested_port=$(get_available_port)
         echo "Suggested available port: $suggested_port"
-        
+
         read -p "Press enter to use $suggested_port or enter a different port: " new_port
         new_port=${new_port:-$suggested_port}
 
@@ -61,7 +61,7 @@ handle_port_selection() {
         else
             echo "Invalid port number."
         fi
-        
+
         echo "Aborting: No valid port selected."
         exit 1
     fi
@@ -81,7 +81,7 @@ show_config() {
 # Config file operations
 create_config() {
     cp config.sample.yaml "$CONFIG_PATH"
-    
+
     # Start with a random available port
     local port=$(get_available_port)
     read -p "Enter port [$port]: " new_port
@@ -90,8 +90,17 @@ create_config() {
     fi
     set_config_value "$CONFIG_PATH" "port" "$port"
 
-    read -p "Enter your username: " username
-    set_config_value "$CONFIG_PATH" "user" "\"$username\""
+    while true; do
+        read -p "Enter your username: " username
+        if [[ -z "$username" ]]; then
+            echo "Error: Username cannot be empty"
+        elif [[ "$username" == "cels" ]]; then
+            echo "Error: 'cels' is not allowed as a username"
+        else
+            set_config_value "$CONFIG_PATH" "user" "\"$username\""
+            break
+        fi
+    done
 
     read -p "Enable verbose mode? [Y/n] " verbose
     if [[ "$verbose" =~ ^[Nn]$ ]]; then
@@ -113,31 +122,40 @@ validate_config() {
             missing_vars+=("$var")
             continue
         fi
-        
+
         local value=$(get_config_value "$config_path" "$var")
         if [ -z "$value" ]; then
             needs_fix=true
             case "$var" in
-                "port")
-                    local port=$(handle_port_selection $(get_available_port))
-                    set_config_value "$config_path" "port" "$port"
-                    ;;
-                "user")
+            "port")
+                local port=$(handle_port_selection $(get_available_port))
+                set_config_value "$config_path" "port" "$port"
+                ;;
+            "user")
+                while true; do
                     read -p "Please enter your username: " username
-                    set_config_value "$config_path" "user" "\"$username\""
-                    ;;
-                "verbose")
-                    read -p "Enable verbose mode? [Y/n] " verbose
-                    if [[ "$verbose" =~ ^[Nn]$ ]]; then
-                        set_config_value "$config_path" "verbose" "false"
+                    if [[ -z "$username" ]]; then
+                        echo "Error: Username cannot be empty"
+                    elif [[ "$username" == "cels" ]]; then
+                        echo "Error: 'cels' is not allowed as a username"
                     else
-                        set_config_value "$config_path" "verbose" "true"
+                        set_config_value "$config_path" "user" "\"$username\""
+                        break
                     fi
-                    ;;
-                *)
-                    read -p "Please enter value for $var: " new_value
-                    set_config_value "$config_path" "$var" "\"$new_value\""
-                    ;;
+                done
+                ;;
+            "verbose")
+                read -p "Enable verbose mode? [Y/n] " verbose
+                if [[ "$verbose" =~ ^[Nn]$ ]]; then
+                    set_config_value "$config_path" "verbose" "false"
+                else
+                    set_config_value "$config_path" "verbose" "true"
+                fi
+                ;;
+            *)
+                read -p "Please enter value for $var: " new_value
+                set_config_value "$config_path" "$var" "\"$new_value\""
+                ;;
             esac
         elif [ "$var" = "port" ] && check_port $value; then
             echo "Error: Configured port $value is already in use."
@@ -161,7 +179,7 @@ validate_config() {
     # Validate URLs are reachable
     local argo_url=$(get_config_value "$config_path" "argo_url")
     local argo_embedding_url=$(get_config_value "$config_path" "argo_embedding_url")
-    
+
     echo "Validating URL connectivity..."
     for url in "$argo_url" "$argo_embedding_url"; do
         if ! curl --max-time 5 --head --fail "$url" >/dev/null 2>&1; then
