@@ -5,7 +5,7 @@ CHAT_MODELS = {
     "argo:gpt-4-32k": "gpt4large",
     "argo:gpt-4-turbo-preview": "gpt4turbo",
     "argo:gpt-4o": "gpt4o",
-    "argo:gpt-o1-preview": "gpto1preview",
+    "argo:gpt-4o-latest": "gpt4olatest",
     "argo:gpt-o1-mini": "gpto1mini",
     "argo:gpt-o3-mini": "gpto3mini",
     # "argo:gpt-o1": "gpto1",
