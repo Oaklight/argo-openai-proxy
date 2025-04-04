@@ -39,5 +39,5 @@ fi
 
 # Commit the changes
 git commit -m "$COMMIT_MESSAGE"
-
+git push
 echo "Successfully copied files and created commit in GitLab repository."
