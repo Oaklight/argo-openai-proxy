@@ -11,17 +11,11 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(current_dir)
 
 from argoproxy.config import config
+from argoproxy.constants import EMBED_MODELS as MODEL_AVAIL
 from argoproxy.utils import make_bar
 
 ARGO_EMBEDDING_API_URL = config["argo_embedding_url"]
 VERBOSE = config["verbose"]
-
-MODEL_AVAIL = {
-    "argo:text-embedding-ada-002": "ada002",
-    "argo:text-embedding-3-small": "v3small",
-    "argo:text-embedding-3-large": "v3large",
-}
-
 
 async def proxy_request(request):
     try:

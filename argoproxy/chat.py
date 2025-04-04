@@ -21,18 +21,7 @@ from argoproxy.utils import make_bar
 # Configuration variables
 VERBOSE = config["verbose"]
 
-MODEL_AVAIL = {
-    "argo:gpt-3.5-turbo": "gpt35",
-    "argo:gpt-3.5-turbo-16k": "gpt35large",
-    "argo:gpt-4": "gpt4",
-    "argo:gpt-4-32k": "gpt4large",
-    "argo:gpt-4-turbo-preview": "gpt4turbo",
-    "argo:gpt-4o": "gpt4o",
-    "argo:gpt-o1-preview": "gpto1preview",
-    "argo:gpt-o1-mini": "gpto1mini",
-    "argo:gpt-o3-mini": "gpto3mini",
-    # "argo:gpt-o1": "gpto1",
-}
+from argoproxy.constants import CHAT_MODELS as MODEL_AVAIL
 
 DEFAULT_MODEL = "gpt4o"
 
