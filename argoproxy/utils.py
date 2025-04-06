@@ -1,7 +1,13 @@
-import re
-from typing import Optional
+import os
+import sys
 
+import tiktoken
 from sanic.log import logger
+
+current_dir = os.path.dirname(os.path.abspath(__file__))
+sys.path.append(current_dir)
+
+from argoproxy.constants import ALL_MODELS, TIKTOKEN_ENCODING_PREFIX_MAPPING
 
 
 def make_bar(message: str = "", bar_length=40) -> str:
@@ -43,3 +49,32 @@ def validate_input(json_input: dict, endpoint: str) -> bool:
             return False
 
     return True
+
+
+def get_tiktoken_encoding_model(model: str) -> str:
+    """
+    Get tiktoken encoding name for a given model.
+    If the model starts with 'argo:', use TIKTOKEN_ENCODING_PREFIX_MAPPING to find encoding.
+    Otherwise use MODEL_TO_ENCODING mapping.
+    """
+    if model.startswith("argo:"):
+        model = ALL_MODELS[model]
+
+    for prefix, encoding in TIKTOKEN_ENCODING_PREFIX_MAPPING.items():
+        if model == prefix:
+            return encoding
+        if model.startswith(prefix):
+            return encoding
+    return "cl100k_base"
+
+
+def count_tokens(text: str, model: str) -> int:
+    """
+    Calculate token count for a given text using tiktoken.
+    If the model starts with 'argo:', the part after 'argo:' is used
+    to determine the encoding via a MODEL_TO_ENCODING mapping.
+    """
+
+    encoding_name = get_tiktoken_encoding_model(model)
+    encoding = tiktoken.get_encoding(encoding_name)
+    return len(encoding.encode(text))

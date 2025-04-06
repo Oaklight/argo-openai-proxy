@@ -16,3 +16,15 @@ EMBED_MODELS = {
     "argo:text-embedding-3-small": "v3small",
     "argo:text-embedding-3-large": "v3large",
 }
+
+ALL_MODELS = {**CHAT_MODELS, **EMBED_MODELS}
+
+TIKTOKEN_ENCODING_PREFIX_MAPPING = {
+    "gpto": "o200k_base",  # o-series
+    "gpt4o": "o200k_base",  # gpt-4o
+    # this order need to be preserved to correctly parse mapping
+    "gpt4": "cl100k_base",  # gpt-4 series
+    "gpt3": "cl100k_base",  # gpt-3 series
+    "ada002": "cl100k_base",  # embedding
+    "v3": "cl100k_base",  # embedding
+}
