@@ -97,7 +97,9 @@ async def proxy_request(request, convert_to_openai=False):
 
         # Transform the incoming payload to match the destination API format
         data["user"] = config["user"]
-        data["prompt"] = data["input"]
+        data["prompt"] = (
+            [data["input"]] if not isinstance(data["input"], list) else data["input"]
+        )
 
         del data["input"]
 
