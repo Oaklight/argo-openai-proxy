@@ -45,15 +45,18 @@ def make_it_openai_embeddings_compat(
             prompt_tokens = sum(count_tokens(text, model_name) for text in prompt)
 
         # Construct the OpenAI compatible response
-        openai_response = {
-            "object": "list",
-            "data": [
+        data = []
+        for embedding in custom_response_dict["embedding"]:
+            data.append(
                 {
                     "object": "embedding",
                     "index": 0,
-                    "embedding": custom_response_dict["embedding"],
+                    "embedding": embedding,
                 }
-            ],
+            )
+        openai_response = {
+            "object": "list",
+            "data": data,
             "model": model_name,
             "usage": {
                 "prompt_tokens": prompt_tokens,
