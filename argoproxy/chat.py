@@ -16,7 +16,7 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(current_dir)
 
 from argoproxy.config import config
-from argoproxy.utils import make_bar
+from argoproxy.utils import make_bar, count_tokens
 
 # Configuration variables
 VERBOSE = config["verbose"]
@@ -44,6 +44,7 @@ DEFAULT_TIMEOUT_SECONDS = 600
 DEFAULT_TIMEOUT = aiohttp.ClientTimeout(
     total=config["timeout"] or DEFAULT_TIMEOUT_SECONDS
 )  # 10 minutes fall back if nothing provided
+
 
 def make_it_openai_chat_completions_compat(
     custom_response,
@@ -80,8 +81,8 @@ def make_it_openai_chat_completions_compat(
             if isinstance(prompt, list):
                 # concatenate the list elements
                 prompt = " ".join(prompt)
-            prompt_tokens = len(prompt.split())
-            completion_tokens = len(response_text.split())
+            prompt_tokens = count_tokens(prompt, model_name)
+            completion_tokens = count_tokens(response_text, model_name)
             total_tokens = prompt_tokens + completion_tokens
 
         # Construct the base OpenAI compatible response
