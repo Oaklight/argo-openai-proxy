@@ -12,12 +12,63 @@ sys.path.append(current_dir)
 
 from argoproxy.config import config
 from argoproxy.constants import EMBED_MODELS as MODEL_AVAIL
-from argoproxy.utils import make_bar
+from argoproxy.utils import count_tokens, make_bar
 
 ARGO_EMBEDDING_API_URL = config["argo_embedding_url"]
 VERBOSE = config["verbose"]
 
-async def proxy_request(request):
+
+def make_it_openai_embeddings_compat(
+    custom_response,
+    model_name,
+    prompt,
+):
+    """
+    Converts the custom API response to an OpenAI compatible API response.
+
+    :param custom_response: JSON response from the custom API.
+    :param model_name: The model used for the completion.
+    :param prompt: The input prompt used in the request.
+    :return: OpenAI compatible JSON response.
+    """
+    try:
+        # Parse the custom response
+        if isinstance(custom_response, str):
+            custom_response_dict = json.loads(custom_response)
+        else:
+            custom_response_dict = custom_response
+
+        # Calculate token counts
+        if isinstance(prompt, str):
+            prompt_tokens = count_tokens(prompt, model_name)
+        else:
+            prompt_tokens = sum(count_tokens(text, model_name) for text in prompt)
+
+        # Construct the OpenAI compatible response
+        openai_response = {
+            "object": "list",
+            "data": [
+                {
+                    "object": "embedding",
+                    "index": 0,
+                    "embedding": custom_response_dict["embedding"],
+                }
+            ],
+            "model": model_name,
+            "usage": {
+                "prompt_tokens": prompt_tokens,
+                "total_tokens": prompt_tokens,
+            },
+        }
+        return openai_response
+
+    except json.JSONDecodeError as err:
+        return {"error": f"Error decoding JSON: {err}"}
+    except Exception as err:
+        return {"error": f"An error occurred: {err}"}
+
+
+async def proxy_request(request, convert_to_openai=False):
     try:
         # Retrieve the incoming JSON data
         data = request.json
@@ -69,11 +120,23 @@ async def proxy_request(request):
                     logger.debug(json.dumps(response_data, indent=4))
                     logger.debug(make_bar())
 
-                return response.json(
-                    response_data,
-                    status=resp.status,
-                    content_type="application/json",
-                )
+                if convert_to_openai:
+                    openai_response = make_it_openai_embeddings_compat(
+                        json.dumps(response_data),
+                        data["model"],
+                        data["prompt"],
+                    )
+                    return response.json(
+                        openai_response,
+                        status=resp.status,
+                        content_type="application/json",
+                    )
+                else:
+                    return response.json(
+                        response_data,
+                        status=resp.status,
+                        content_type="application/json",
+                    )
 
     except ValueError as err:
         return response.json(

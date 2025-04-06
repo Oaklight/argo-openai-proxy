@@ -56,7 +56,7 @@ async def proxy_openai_legacy_completions_compatible(request):
 async def proxy_embedding_request(request):
     logger.info("/v1/embeddings")
     logger.debug(request.json)
-    return await embed.proxy_request(request)
+    return await embed.proxy_request(request, convert_to_openai=True)
 
 
 @app.route("/v1/models", methods=["GET"])
