@@ -101,6 +101,9 @@ async def proxy_request(request, convert_to_openai=False):
 
         del data["input"]
 
+        print("===========DEBUG===========")
+        print(data)
+
         headers = {
             "Content-Type": "application/json"
             # Uncomment and customize if needed
