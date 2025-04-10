@@ -83,3 +83,43 @@ def count_tokens(text: Union[str, List[str]], model: str) -> int:
         return sum([len(encoding.encode(each)) for each in text])
 
     return len(encoding.encode(text))
+
+
+def extract_text_content(content: Union[str, list]) -> str:
+    """Extract text content from message content which can be string or list of objects"""
+    if isinstance(content, str):
+        return content
+    elif isinstance(content, list):
+        texts = []
+        for item in content:
+            if isinstance(item, dict) and "text" in item:
+                texts.append(item["text"])
+            elif isinstance(item, str):
+                texts.append(item)
+        return " ".join(texts)
+    return ""
+
+
+def calculate_prompt_tokens(data: dict, model: str) -> int:
+    """
+    Calculate prompt tokens from either messages or prompt field in the request data.
+    Supports both string content and list of content objects in messages.
+
+    Args:
+        data: The request data dictionary
+        model: The model name for token counting
+
+    Returns:
+        int: Total token count for the prompt/messages
+    """
+
+    if "messages" in data:
+        messages_content = " ".join(
+            [
+                extract_text_content(msg["content"])
+                for msg in data["messages"]
+                if "content" in msg
+            ]
+        )
+        return count_tokens(messages_content, model)
+    return count_tokens(data.get("prompt", ""), model)

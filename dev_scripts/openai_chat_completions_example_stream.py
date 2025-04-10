@@ -5,9 +5,9 @@ BASE_URL = "https://api.siliconflow.cn"  # Update if your server is running on a
 MODEL = "Qwen/Qwen2-1.5B-Instruct"
 API_KEY = "sk-your-siliconflow-api-key"
 
-# BASE_URL = "https://api.openai.com"  # Update if your server is running on a different host/port
-# MODEL = "gpt-4o-mini"
-# API_KEY = "sk-your-openai-api-key"
+BASE_URL = "http://localhost:44498"  # Update if your server is running on a different host/port
+MODEL = "argo:gpt-4o"
+API_KEY = "sk-your-openai-api-key"
 
 CHAT_ENDPOINT = f"{BASE_URL}/v1/chat/completions"
 
@@ -21,7 +21,13 @@ payload = {
     "messages": [
         {
             "role": "user",
-            "content": "Tell me something interesting about quantum mechanics.",
+            # "content": "Tell me something interesting about quantum mechanics.",
+            "content": [
+                {
+                    "type": "text",
+                    "text": "Tell me something interesting about quantum mechanics.",
+                }
+            ],
         },
     ],
     "user": "test_user",  # This will be overridden by the proxy_request function

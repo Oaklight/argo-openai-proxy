@@ -16,7 +16,7 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(current_dir)
 
 from argoproxy.config import config
-from argoproxy.utils import make_bar, count_tokens
+from argoproxy.utils import make_bar, count_tokens, calculate_prompt_tokens
 
 # Configuration variables
 VERBOSE = config["verbose"]
@@ -182,7 +182,8 @@ async def send_non_streaming_request(
         resp.raise_for_status()
 
         if convert_to_openai:
-            prompt_tokens = count_tokens(data.get("prompt", ""), data["model"])
+            # Calculate prompt tokens using the unified function
+            prompt_tokens = calculate_prompt_tokens(data, data["model"])
             openai_response = openai_compat_fn(
                 json.dumps(response_data),
                 model_name=data.get("model"),
@@ -251,7 +252,8 @@ async def send_streaming_request(
             # logger.debug(f"Received chunk: {chunk_text}")
 
             if convert_to_openai:
-                prompt_tokens = count_tokens(data.get("prompt", ""), data["model"])
+                # Calculate prompt tokens using the unified function
+                prompt_tokens = calculate_prompt_tokens(data, data["model"])
                 # Convert the chunk to OpenAI-compatible JSON
                 chunk_json = openai_compat_fn(
                     json.dumps({"response": chunk_text}),
