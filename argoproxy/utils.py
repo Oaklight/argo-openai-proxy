@@ -120,7 +120,6 @@ def calculate_prompt_tokens(data: dict, model: str) -> int:
             for msg in data["messages"]
             if "content" in msg
         ]
-        print(messages_content)
         prompt_tokens = count_tokens(messages_content, model)
         return prompt_tokens
     return count_tokens(data.get("prompt", ""), model)
