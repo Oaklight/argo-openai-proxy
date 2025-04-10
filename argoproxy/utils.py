@@ -2,6 +2,7 @@ import os
 import sys
 from typing import List, Union
 
+from click import prompt
 import tiktoken
 from sanic.log import logger
 
@@ -114,12 +115,12 @@ def calculate_prompt_tokens(data: dict, model: str) -> int:
     """
 
     if "messages" in data:
-        messages_content = " ".join(
-            [
-                extract_text_content(msg["content"])
-                for msg in data["messages"]
-                if "content" in msg
-            ]
-        )
-        return count_tokens(messages_content, model)
+        messages_content = [
+            extract_text_content(msg["content"])
+            for msg in data["messages"]
+            if "content" in msg
+        ]
+        print(messages_content)
+        prompt_tokens = count_tokens(messages_content, model)
+        return prompt_tokens
     return count_tokens(data.get("prompt", ""), model)
