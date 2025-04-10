@@ -50,7 +50,7 @@ def make_it_openai_chat_completions_compat(
     custom_response,
     model_name,
     create_timestamp,
-    prompt,
+    prompt_tokens,
     is_streaming=False,
     finish_reason=None,
 ):
@@ -60,7 +60,7 @@ def make_it_openai_chat_completions_compat(
     :param custom_response: JSON response from the custom API.
     :param model_name: The model used for the completion.
     :param create_timestamp: Timestamp for the completion.
-    :param prompt: The input prompt used in the request.
+    :param prompt_tokens: The input prompt token count used in the request.
     :param is_streaming: Whether the response is for streaming mode.
     :param finish_reason: Reason for completion (e.g., "stop" or None).
     :return: OpenAI compatible JSON response.
@@ -78,10 +78,6 @@ def make_it_openai_chat_completions_compat(
         if not is_streaming:
             # only count usage if not stream
             # Calculate token counts (simplified example, actual tokenization may differ)
-            if isinstance(prompt, list):
-                # concatenate the list elements
-                prompt = " ".join(prompt)
-            prompt_tokens = count_tokens(prompt, model_name)
             completion_tokens = count_tokens(response_text, model_name)
             total_tokens = prompt_tokens + completion_tokens
 
@@ -186,11 +182,12 @@ async def send_non_streaming_request(
         resp.raise_for_status()
 
         if convert_to_openai:
+            prompt_tokens = count_tokens(data.get("prompt", ""), data["model"])
             openai_response = openai_compat_fn(
                 json.dumps(response_data),
-                data.get("model"),
-                int(time.time()),
-                data.get("prompt", ""),
+                model_name=data.get("model"),
+                create_timestamp=int(time.time()),
+                prompt_tokens=prompt_tokens,
             )
             return response.json(
                 openai_response,
@@ -254,12 +251,13 @@ async def send_streaming_request(
             # logger.debug(f"Received chunk: {chunk_text}")
 
             if convert_to_openai:
+                prompt_tokens = count_tokens(data.get("prompt", ""), data["model"])
                 # Convert the chunk to OpenAI-compatible JSON
                 chunk_json = openai_compat_fn(
                     json.dumps({"response": chunk_text}),
                     model_name=data["model"],
                     create_timestamp=created_timestamp,
-                    prompt=data.get("prompt", ""),
+                    prompt_tokens=prompt_tokens,
                     is_streaming=True,
                     finish_reason=None,  # Ongoing chunk
                 )

@@ -28,7 +28,7 @@ def make_it_openai_completions_compat(
     custom_response,
     model_name,
     create_timestamp,
-    prompt,
+    prompt_tokens,
     is_streaming=False,
     finish_reason=None,
 ):
@@ -38,7 +38,7 @@ def make_it_openai_completions_compat(
     :param custom_response: JSON response from the custom API.
     :param model_name: The model used for the completion.
     :param create_timestamp: Timestamp for the completion.
-    :param prompt: The input prompt used in the request.
+    :param prompt_tokens: The input prompt token count used in the request.
     :return: OpenAI compatible JSON response.
     """
     try:
@@ -53,10 +53,6 @@ def make_it_openai_completions_compat(
 
         # Calculate token counts (simplified example, actual tokenization may differ)
         if not is_streaming:
-            if isinstance(prompt, list):
-                # concatenate the list elements
-                prompt = " ".join(prompt)
-            prompt_tokens = len(prompt.split())
             completion_tokens = len(response_text.split())
             total_tokens = prompt_tokens + completion_tokens
 

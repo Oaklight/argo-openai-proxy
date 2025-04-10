@@ -1,5 +1,6 @@
 import os
 import sys
+from typing import List, Union
 
 import tiktoken
 from sanic.log import logger
@@ -68,7 +69,7 @@ def get_tiktoken_encoding_model(model: str) -> str:
     return "cl100k_base"
 
 
-def count_tokens(text: str, model: str) -> int:
+def count_tokens(text: Union[str, List[str]], model: str) -> int:
     """
     Calculate token count for a given text using tiktoken.
     If the model starts with 'argo:', the part after 'argo:' is used
@@ -77,4 +78,8 @@ def count_tokens(text: str, model: str) -> int:
 
     encoding_name = get_tiktoken_encoding_model(model)
     encoding = tiktoken.get_encoding(encoding_name)
+
+    if isinstance(text, list):
+        return sum([len(encoding.encode(each)) for each in text])
+
     return len(encoding.encode(text))
