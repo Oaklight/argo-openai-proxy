@@ -2,7 +2,8 @@ import os
 import sys
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
-sys.path.append(current_dir)
+parent_dir = os.path.dirname(current_dir)
+sys.path.extend([current_dir, parent_dir])
 
 from argoproxy.utils import get_tiktoken_encoding_model
 
