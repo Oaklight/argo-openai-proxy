@@ -23,16 +23,15 @@ def validate_input(json_input: dict, endpoint: str) -> bool:
     """
     Validates the input JSON to ensure it contains the necessary fields.
     """
-    match endpoint:
-        case "chat/completions":
-            required_fields = ["model", "messages"]
-        case "completions":
-            required_fields = ["model", "prompt"]
-        case "embeddings":
-            required_fields = ["model", "input"]
-        case _:
-            logger.error(f"Unknown endpoint: {endpoint}")
-            return False
+    if endpoint == "chat/completions":
+        required_fields = ["model", "messages"]
+    elif endpoint == "completions":
+        required_fields = ["model", "prompt"]
+    elif endpoint == "embeddings":
+        required_fields = ["model", "input"]
+    else:
+        logger.error(f"Unknown endpoint: {endpoint}")
+        return False
 
     # check required field presence and type
     for field in required_fields:
