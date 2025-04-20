@@ -5,7 +5,7 @@ import sys
 import time
 import uuid
 from http import HTTPStatus
-from typing import Any, Callable, Dict, Optional, Union
+from typing import Any, Callable, Dict, Optional
 
 import aiohttp
 from sanic import response
@@ -16,19 +16,19 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(current_dir)
 
 from argoproxy.config import config
-from argoproxy.utils import make_bar, count_tokens, calculate_prompt_tokens
+from argoproxy.constants import CHAT_MODELS as MODEL_AVAIL
+from argoproxy.utils import calculate_prompt_tokens, count_tokens, make_bar
 
 # Configuration variables
 VERBOSE = config["verbose"]
 
-from argoproxy.constants import CHAT_MODELS as MODEL_AVAIL
 
 DEFAULT_MODEL = "gpt4o"
 
 NO_SYS_MSG_PATTERNS = {
-    "argo:gpt-o*",
-    "argo:o*",
-    "gpto*",
+    "^argo:gpt-o.*$",
+    "^argo:o.*$",
+    "^gpto.*$",
 }
 
 NO_SYS_MSG = [
