@@ -1,8 +1,7 @@
 import os
 import sys
-from typing import List, Union
+from typing import Dict, List, Optional, Union
 
-from click import prompt
 import tiktoken
 from sanic.log import logger
 
@@ -51,6 +50,39 @@ def validate_input(json_input: dict, endpoint: str) -> bool:
             return False
 
     return True
+
+
+def resolve_model_name(
+    model_name: str,
+    default_model: str,
+    avail_models: Optional[Dict[str, Union[str, List[str]]]] = None,
+) -> str:
+    """
+    Resolves a model name to its primary model name using the flattened model mapping.
+
+    Args:
+        model_name: The input model name to resolve
+        model_mapping: Dictionary mapping primary names to aliases (unused)
+        default_model: Default model name to return if no match found
+
+    Returns:
+        The resolved primary model name or default_model if no match found
+    """
+    if not avail_models:
+        avail_models = ALL_MODELS
+
+    # Check if input exists in the flattened mapping
+    if model_name in avail_models:
+        return model_name
+
+    # Check if input is an alias in any alias list
+    for primary_name, aliases in avail_models.items():
+        if isinstance(aliases, list) and model_name in aliases:
+            return primary_name
+        elif model_name == aliases:  # Handle single string aliases
+            return primary_name
+
+    return default_model
 
 
 def get_tiktoken_encoding_model(model: str) -> str:

@@ -17,7 +17,12 @@ sys.path.append(current_dir)
 
 from argoproxy.config import config
 from argoproxy.constants import CHAT_MODELS as MODEL_AVAIL
-from argoproxy.utils import calculate_prompt_tokens, count_tokens, make_bar
+from argoproxy.utils import (
+    calculate_prompt_tokens,
+    count_tokens,
+    make_bar,
+    resolve_model_name,
+)
 
 # Configuration variables
 VERBOSE = config["verbose"]
@@ -123,13 +128,9 @@ def prepare_request_data(data):
 
     # Remap the model using MODEL_AVAIL
     if "model" in data:
-        user_model = data["model"]
-        if user_model in MODEL_AVAIL:
-            data["model"] = MODEL_AVAIL[user_model]
-        elif user_model in MODEL_AVAIL.values():
-            data["model"] = user_model
-        else:
-            data["model"] = DEFAULT_MODEL
+        data["model"] = resolve_model_name(
+            data["model"], DEFAULT_MODEL, avail_models=MODEL_AVAIL
+        )
     else:
         data["model"] = DEFAULT_MODEL
 

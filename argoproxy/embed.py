@@ -12,11 +12,12 @@ sys.path.append(current_dir)
 
 from argoproxy.config import config
 from argoproxy.constants import EMBED_MODELS as MODEL_AVAIL
-from argoproxy.utils import count_tokens, make_bar
+from argoproxy.utils import count_tokens, make_bar, resolve_model_name
 
 ARGO_EMBEDDING_API_URL = config["argo_embedding_url"]
 VERBOSE = config["verbose"]
 
+DEFAULT_MODEL = "v3small"
 
 def make_it_openai_embeddings_compat(
     custom_response,
@@ -84,19 +85,12 @@ async def proxy_request(request, convert_to_openai=False):
 
         # Remap the model using MODEL_AVAIL
         if "model" in data:
-            user_model = data["model"]
-            # Check if the user_model is a key in MODEL_AVAIL
-            if user_model in MODEL_AVAIL:
-                data["model"] = MODEL_AVAIL[user_model]
-            # Check if the user_model is a value in MODEL_AVAIL
-            elif user_model in MODEL_AVAIL.values():
-                data["model"] = user_model
-            # If the user_model is not found, set the default model
-            else:
-                data["model"] = "v3small"
+            data["model"] = resolve_model_name(
+                data["model"], DEFAULT_MODEL, avail_models=MODEL_AVAIL
+            )
         # If "model" is not provided, set the default model
         else:
-            data["model"] = "v3small"
+            data["model"] = DEFAULT_MODEL
 
         # Transform the incoming payload to match the destination API format
         data["user"] = config["user"]

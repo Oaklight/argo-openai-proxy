@@ -1,28 +1,39 @@
+# Model definitions with primary names as keys and aliases as strings or lists
 CHAT_MODELS = {
-    "argo:gpt-3.5-turbo": "gpt35",
-    "argo:gpt-3.5-turbo-16k": "gpt35large",
-    "argo:gpt-4": "gpt4",
-    "argo:gpt-4-32k": "gpt4large",
-    "argo:gpt-4-turbo-preview": "gpt4turbo",
-    "argo:gpt-4o": "gpt4o",
-    "argo:gpt-4o-latest": "gpt4olatest",
-    "argo:gpt-o1-mini": "gpto1mini",
-    "argo:o1-mini": "gpto1mini",
-    "argo:gpt-o3-mini": "gpto3mini",
-    "argo:o3-mini": "gpto3mini",
-    "argo:gpt-o1": "gpto1",
-    "argo:o1": "gpto1",
-    "argo:gpt-o1-preview": "gpto1preview",
-    "argo:o1-preview": "gpto1preview",
+    "gpt35": "argo:gpt-3.5-turbo",
+    "gpt35large": "argo:gpt-3.5-turbo-16k",
+    "gpt4": "argo:gpt-4",
+    "gpt4large": "argo:gpt-4-32k",
+    "gpt4turbo": "argo:gpt-4-turbo-preview",
+    "gpt4o": "argo:gpt-4o",
+    "gpt4olatest": "argo:gpt-4o-latest",
+    "gpto1mini": ["argo:gpt-o1-mini", "argo:o1-mini"],
+    "gpto3mini": ["argo:gpt-o3-mini", "argo:o3-mini"],
+    "gpto1": ["argo:gpt-o1", "argo:o1"],
+    "gpto1preview": ["argo:gpt-o1-preview", "argo:o1-preview"],
 }
 
 EMBED_MODELS = {
-    "argo:text-embedding-ada-002": "ada002",
-    "argo:text-embedding-3-small": "v3small",
-    "argo:text-embedding-3-large": "v3large",
+    "ada002": "argo:text-embedding-ada-002",
+    "v3small": "argo:text-embedding-3-small",
+    "v3large": "argo:text-embedding-3-large",
 }
 
-ALL_MODELS = {**CHAT_MODELS, **EMBED_MODELS}
+# Create flattened mappings for lookup
+def flatten_mapping(mapping):
+    flat = {}
+    for model, aliases in mapping.items():
+        if isinstance(aliases, str):
+            flat[aliases] = model
+        else:
+            for alias in aliases:
+                flat[alias] = model
+    return flat
+
+
+CHAT_MODELS_FLAT = flatten_mapping(CHAT_MODELS)
+EMBED_MODELS_FLAT = flatten_mapping(EMBED_MODELS)
+ALL_MODELS = {**CHAT_MODELS_FLAT, **EMBED_MODELS_FLAT}
 
 TIKTOKEN_ENCODING_PREFIX_MAPPING = {
     "gpto": "o200k_base",  # o-series
