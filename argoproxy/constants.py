@@ -1,5 +1,5 @@
 # Model definitions with primary names as keys and aliases as strings or lists
-CHAT_MODELS = {
+_CHAT_MODELS = {
     "gpt35": "argo:gpt-3.5-turbo",
     "gpt35large": "argo:gpt-3.5-turbo-16k",
     "gpt4": "argo:gpt-4",
@@ -13,7 +13,7 @@ CHAT_MODELS = {
     "gpto1preview": ["argo:gpt-o1-preview", "argo:o1-preview"],
 }
 
-EMBED_MODELS = {
+_EMBED_MODELS = {
     "ada002": "argo:text-embedding-ada-002",
     "v3small": "argo:text-embedding-3-small",
     "v3large": "argo:text-embedding-3-large",
@@ -31,9 +31,9 @@ def flatten_mapping(mapping):
     return flat
 
 
-CHAT_MODELS_FLAT = flatten_mapping(CHAT_MODELS)
-EMBED_MODELS_FLAT = flatten_mapping(EMBED_MODELS)
-ALL_MODELS = {**CHAT_MODELS_FLAT, **EMBED_MODELS_FLAT}
+CHAT_MODELS = flatten_mapping(_CHAT_MODELS)
+EMBED_MODELS = flatten_mapping(_EMBED_MODELS)
+ALL_MODELS = {**CHAT_MODELS, **EMBED_MODELS}
 
 TIKTOKEN_ENCODING_PREFIX_MAPPING = {
     "gpto": "o200k_base",  # o-series
