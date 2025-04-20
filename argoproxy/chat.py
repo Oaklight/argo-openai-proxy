@@ -16,7 +16,7 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(current_dir)
 
 from argoproxy.config import config
-from argoproxy.constants import CHAT_MODELS_FLAT
+from argoproxy.constants import CHAT_MODELS
 from argoproxy.utils import (
     calculate_prompt_tokens,
     count_tokens,
@@ -38,7 +38,7 @@ NO_SYS_MSG_PATTERNS = {
 
 NO_SYS_MSG = [
     model
-    for model in CHAT_MODELS_FLAT
+    for model in CHAT_MODELS
     if any(fnmatch.fnmatch(model, pattern) for pattern in NO_SYS_MSG_PATTERNS)
 ]
 
@@ -125,7 +125,7 @@ def prepare_request_data(data):
     # Remap the model using MODEL_AVAIL
     if "model" in data:
         data["model"] = resolve_model_name(
-            data["model"], DEFAULT_MODEL, avail_models=CHAT_MODELS_FLAT
+            data["model"], DEFAULT_MODEL, avail_models=CHAT_MODELS
         )
     else:
         data["model"] = DEFAULT_MODEL

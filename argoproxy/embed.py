@@ -11,7 +11,7 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(current_dir)
 
 from argoproxy.config import config
-from argoproxy.constants import EMBED_MODELS as MODEL_AVAIL
+from argoproxy.constants import EMBED_MODELS
 from argoproxy.utils import count_tokens, make_bar, resolve_model_name
 
 ARGO_EMBEDDING_API_URL = config["argo_embedding_url"]
@@ -83,10 +83,10 @@ async def proxy_request(request, convert_to_openai=False):
             logger.debug(json.dumps(data, indent=4))
             logger.debug(make_bar())
 
-        # Remap the model using MODEL_AVAIL
+        # Remap the model using EMBED_MODELS
         if "model" in data:
             data["model"] = resolve_model_name(
-                data["model"], DEFAULT_MODEL, avail_models=MODEL_AVAIL
+                data["model"], DEFAULT_MODEL, avail_models=EMBED_MODELS
             )
         # If "model" is not provided, set the default model
         else:
