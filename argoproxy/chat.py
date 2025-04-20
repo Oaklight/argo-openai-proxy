@@ -27,6 +27,7 @@ DEFAULT_MODEL = "gpt4o"
 
 NO_SYS_MSG_PATTERNS = {
     "argo:gpt-o*",
+    "argo:o*",
     "gpto*",
 }
 
