@@ -1,11 +1,5 @@
-import os
-import sys
-
 from sanic import Sanic, response
 from sanic.log import logger
-
-current_dir = os.path.dirname(os.path.abspath(__file__))
-sys.path.append(current_dir)
 
 import argoproxy.chat as chat
 import argoproxy.completions as completions

@@ -1,7 +1,5 @@
 import fnmatch
 import json
-import os
-import sys
 import time
 import uuid
 from http import HTTPStatus
@@ -12,12 +10,9 @@ from sanic import response
 from sanic.log import logger
 from sanic.response import HTTPResponse
 
-current_dir = os.path.dirname(os.path.abspath(__file__))
-sys.path.append(current_dir)
-
-from argoproxy.config import config
-from argoproxy.constants import CHAT_MODELS
-from argoproxy.utils import (
+from .config import config
+from .constants import CHAT_MODELS
+from .utils import (
     calculate_prompt_tokens,
     count_tokens,
     make_bar,

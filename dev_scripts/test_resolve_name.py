@@ -1,9 +1,4 @@
 import os
-import sys
-
-_current_dir = os.path.dirname(os.path.abspath(__file__))
-_parent_dir = os.path.dirname(_current_dir)
-sys.path.extend([_current_dir, _parent_dir])
 
 from argoproxy.constants import CHAT_MODELS
 from argoproxy.utils import resolve_model_name

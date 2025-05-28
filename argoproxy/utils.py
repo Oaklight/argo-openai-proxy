@@ -1,14 +1,9 @@
-import os
-import sys
 from typing import Dict, List, Optional, Union
 
 import tiktoken
 from sanic.log import logger
 
-current_dir = os.path.dirname(os.path.abspath(__file__))
-sys.path.append(current_dir)
-
-from argoproxy.constants import ALL_MODELS, TIKTOKEN_ENCODING_PREFIX_MAPPING
+from .constants import ALL_MODELS, TIKTOKEN_ENCODING_PREFIX_MAPPING
 
 
 def make_bar(message: str = "", bar_length=40) -> str:

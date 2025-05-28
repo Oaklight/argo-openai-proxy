@@ -1,6 +1,4 @@
 import json
-import os
-import sys
 import uuid
 from http import HTTPStatus
 
@@ -8,17 +6,14 @@ import aiohttp
 from sanic import response
 from sanic.log import logger
 
-current_dir = os.path.dirname(os.path.abspath(__file__))
-sys.path.append(current_dir)
-
-from argoproxy.chat import (
+from .chat import (
     DEFAULT_TIMEOUT_SECONDS,
     prepare_request_data,
     send_non_streaming_request,
     send_streaming_request,
 )
-from argoproxy.config import config
-from argoproxy.utils import make_bar
+from .config import config
+from .utils import make_bar
 
 # Configuration variables
 VERBOSE = config["verbose"]

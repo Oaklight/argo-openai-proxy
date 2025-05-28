@@ -1,23 +1,19 @@
 import json
-import os
-import sys
 from http import HTTPStatus
 
 import aiohttp
 from sanic import response
 from sanic.log import logger
 
-current_dir = os.path.dirname(os.path.abspath(__file__))
-sys.path.append(current_dir)
-
-from argoproxy.config import config
-from argoproxy.constants import EMBED_MODELS
-from argoproxy.utils import count_tokens, make_bar, resolve_model_name
+from .config import config
+from .constants import EMBED_MODELS
+from .utils import count_tokens, make_bar, resolve_model_name
 
 ARGO_EMBEDDING_API_URL = config["argo_embedding_url"]
 VERBOSE = config["verbose"]
 
 DEFAULT_MODEL = "v3small"
+
 
 def make_it_openai_embeddings_compat(
     custom_response,
