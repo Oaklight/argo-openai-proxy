@@ -208,30 +208,31 @@ $ tree -I "__pycache__|*.egg-info|dev_scripts|config.yaml"
 .
 ├── app.py
 ├── argoproxy
-│   ├── chat.py
-│   ├── completions.py
-│   ├── config.py
-│   ├── embed.py
-│   ├── extras.py
-│   └── utils.py
+│   ├── chat.py
+│   ├── completions.py
+│   ├── config.py
+│   ├── constants.py
+│   ├── embed.py
+│   ├── extras.py
+│   └── utils.py
 ├── config.sample.yaml
 ├── examples
-│   ├── chat_completions_example.py
-│   ├── chat_completions_example_stream.py
-│   ├── chat_example.py
-│   ├── chat_example_stream.py
-│   ├── completions_example.py
-│   ├── completions_example_stream.py
-│   ├── embedding_example.py
-│   ├── o1_chat_example.py
-│   └── o3_chat_example_pyclient.py
+│   ├── chat_completions_example.py
+│   ├── chat_completions_example_stream.py
+│   ├── chat_example.py
+│   ├── chat_example_stream.py
+│   ├── completions_example.py
+│   ├── completions_example_stream.py
+│   ├── embedding_example.py
+│   ├── o1_chat_example.py
+│   └── o3_chat_example_pyclient.py
 ├── LICENSE
+├── pyproject.toml
 ├── README.md
-├── requirements.txt
 ├── run_app.sh
 └── timeout_examples.md
 
-2 directories, 22 files
+3 directories, 23 files
 ```
 
 ## Bug Reports and Contributions
