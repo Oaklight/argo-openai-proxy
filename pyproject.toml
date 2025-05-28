@@ -1,0 +1,40 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "argo-proxy"
+version = "2.5.0"
+authors = [{ name = "Peng Ding", email = "oaklight@gmx.com" }]
+description = "Proxy server to Argo API, OpenAI format compatible"
+readme = "README.md"
+requires-python = ">=3.9"
+license = "MIT"
+classifiers = [
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Topic :: Software Development",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+
+dependencies = [
+    "aiohttp>=3.12.2",
+    "PyYAML>=6.0.2",
+    "sanic>=25.3.0",
+    "tiktoken>=0.9.0",
+]
+
+[project.optional-dependencies]
+dev = ["httpx>=0.28.1", "requests>=2.25.1"]
+
+[project.urls]
+Documentation = "https://github.com/yourusername/argo-proxy#readme"
+Repository = "https://github.com/yourusername/argo-proxy"
+Issuses = "https://github.com/yourusername/argo-proxy/issues"
+
+[project.scripts]
+argo-proxy = "cli:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+exclude = ["examples*", "dev_scripts*"]
