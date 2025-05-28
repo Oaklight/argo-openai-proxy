@@ -33,14 +33,14 @@ The machine or server making API calls to Argo must be connected to the Argonne 
 
 ### Prerequisites
 
-- **Python 3.10+** is required \
+- **Python 3.9+** is required \
   recommend to use conda/mamba or pipx etc to manage exclusive environment \
-  **Conda/Mamba** Download and install from: https://conda-forge.org/download/
+  **Conda/Mamba** Download and install from: <https://conda-forge.org/download/>
 
 - Install dependencies:
 
   ```bash
-  pip install -r requirements.txt
+  pip install .
   ```
 
 ### Configuration File
@@ -204,7 +204,7 @@ For an example of how to use the `/v1/chat/completions`, /v1/completions`, /v1/c
 The following is an overview of the project's directory structure:
 
 ```
-$ tree -I "__pycache__|dev_scripts|config.yaml"
+$ tree -I "__pycache__|*.egg-info|dev_scripts|config.yaml"
 .
 ├── app.py
 ├── argoproxy

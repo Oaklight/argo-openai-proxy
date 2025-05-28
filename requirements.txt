@@ -1,6 +1,0 @@
-sanic
-aiohttp
-requests
-PyYAML
-httpx
-tiktoken
