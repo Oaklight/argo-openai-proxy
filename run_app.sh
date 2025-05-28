@@ -275,4 +275,4 @@ num_workers=$(grep "^num_workers:" "$CONFIG_PATH" | awk '{print $2}')
 port=$(handle_port_selection $port)
 
 # Run the application using Sanic's built-in server
-sanic app:app --host=0.0.0.0 --port=$port --workers=$num_workers
+sanic argoproxy.app:app --host=0.0.0.0 --port=$port --workers=$num_workers

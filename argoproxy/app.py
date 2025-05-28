@@ -1,11 +1,10 @@
+import sys
+
 from sanic import Sanic, response
 from sanic.log import logger
 
-import argoproxy.chat as chat
-import argoproxy.completions as completions
-import argoproxy.embed as embed
-import argoproxy.extras as extras
-from argoproxy.config import config
+from . import chat, completions, embed, extras
+from .config import config
 
 app = Sanic("ArgoProxy")
 
