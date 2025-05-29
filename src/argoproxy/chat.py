@@ -299,7 +299,7 @@ async def proxy_request(
             logger.info(make_bar())
 
         # Prepare the request data
-        data = prepare_request_data(data)
+        data = prepare_request_data(data, request)
 
         # Determine the API URL based on whether streaming is enabled
         api_url = config.argo_stream_url if stream else config.argo_url
