@@ -47,7 +47,6 @@ argo-proxy = "argoproxy.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
-exclude = ["examples*", "dev_scripts*"]
 
 [tool.setuptools.package-data]
-"toolregistry" = ["py.typed"]
+"argoproxy" = ["py.typed"]
