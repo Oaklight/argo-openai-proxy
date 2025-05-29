@@ -422,8 +422,15 @@ def validate_config(
 
     if not config_data:
         logger.error("No valid configuration found.")
-        config_data = create_config()
-        show_config = True
+        user_decision = _get_yes_no_input(
+            "Would you like to create it from config.sample.yaml? [Y/n]: "
+        )
+        if user_decision:
+            config_data = create_config()
+            show_config = True
+        else:
+            logger.warning("User aborted configuration creation. Exiting...")
+            exit(1)
 
     # Config may change here. We need to persist
     file_changed = config_data.validate()
