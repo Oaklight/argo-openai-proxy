@@ -301,7 +301,7 @@ def load_config(optional_path: Optional[str] = None) -> ArgoConfig:
 config_path = os.getenv("CONFIG_PATH", None)
 
 try:
-    config_instance = load_config()
+    config_instance = load_config(config_path)
 
     # Set global configuration variable as a dictionary
     config = config_instance.to_dict()
