@@ -73,6 +73,7 @@ class ArgoConfig:
     verbose: bool = True
     num_workers: int = 5
     timeout: int = 600
+    logging_level: str = "INFO"
 
     @classmethod
     def from_dict(cls, config_dict: dict):
