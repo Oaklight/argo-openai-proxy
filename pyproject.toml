@@ -23,6 +23,7 @@ dependencies = [
     "PyYAML>=6.0.2",
     "sanic>=25.3.0",
     "tiktoken>=0.9.0",
+    "setuptools<81", # for safety in long run: See https://setuptools.pypa.io/en/latest/pkg_resources.html
 ]
 
 [project.optional-dependencies]
