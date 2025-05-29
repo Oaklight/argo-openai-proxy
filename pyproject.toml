@@ -27,12 +27,20 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["httpx>=0.28.1", "requests>=2.25.1"]
+dev = [
+    "dotenv>=0.9.9",
+    "openai>=1.79.0",
+    "mypy>=1.14.1",
+    "build>=1.2.2.post1",
+    "twine>=6.1.0",
+    "httpx>=0.28.1",
+    "requests>=2.25.1",
+]
 
 [project.urls]
-Documentation = "https://github.com/yourusername/argo-proxy#readme"
-Repository = "https://github.com/yourusername/argo-proxy"
-Issuses = "https://github.com/yourusername/argo-proxy/issues"
+Documentation = "https://github.com/Oaklight/argo-openai-proxy#readme"
+Repository = "https://github.com/Oaklight/argo-openai-proxy"
+Issuses = "https://github.com/Oaklight/argo-openai-proxy/issues"
 
 [project.scripts]
 argo-proxy = "argoproxy.cli:main"
