@@ -101,9 +101,9 @@ async def proxy_request(
         if not data:
             raise ValueError("Invalid input. Expected JSON data.")
         if config.verbose:
-            logger.debug(make_bar("[completion] input"))
-            logger.debug(json.dumps(data, indent=4))
-            logger.debug(make_bar())
+            logger.info(make_bar("[completion] input"))
+            logger.info(json.dumps(data, indent=4))
+            logger.info(make_bar())
 
         # Prepare the request data
         data = prepare_request_data(data)

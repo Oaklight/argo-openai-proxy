@@ -72,9 +72,9 @@ async def proxy_request(request, convert_to_openai=False):
         if not data:
             raise ValueError("Invalid input. Expected JSON data.")
         if config.verbose:
-            logger.debug(make_bar("[embed] input"))
-            logger.debug(json.dumps(data, indent=4))
-            logger.debug(make_bar())
+            logger.info(make_bar("[embed] input"))
+            logger.info(json.dumps(data, indent=4))
+            logger.info(make_bar())
 
         # Remap the model using EMBED_MODELS
         if "model" in data:
@@ -108,9 +108,9 @@ async def proxy_request(request, convert_to_openai=False):
                 resp.raise_for_status()
 
                 if config.verbose:
-                    logger.debug(make_bar("[embed] fwd. response"))
-                    logger.debug(json.dumps(response_data, indent=4))
-                    logger.debug(make_bar())
+                    logger.info(make_bar("[embed] fwd. response"))
+                    logger.info(json.dumps(response_data, indent=4))
+                    logger.info(make_bar())
 
                 if convert_to_openai:
                     openai_response = make_it_openai_embeddings_compat(

@@ -136,7 +136,8 @@ def prepare_request_data(data, request):
                 raise ValueError("System prompt must be a string or list")
             data["prompt"] = data["system"] + data["prompt"]
             del data["system"]
-            logger.debug(f"New data is {data}")
+            if config.verbose:
+                logger.info(f"New data is {data}")
 
     return data
 
@@ -293,9 +294,9 @@ async def proxy_request(
         if not data:
             raise ValueError("Invalid input. Expected JSON data.")
         if config.verbose:
-            logger.debug(make_bar("[chat] input"))
-            logger.debug(json.dumps(data, indent=4))
-            logger.debug(make_bar())
+            logger.info(make_bar("[chat] input"))
+            logger.info(json.dumps(data, indent=4))
+            logger.info(make_bar())
 
         # Prepare the request data
         data = prepare_request_data(data)
