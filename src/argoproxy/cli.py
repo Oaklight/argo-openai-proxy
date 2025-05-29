@@ -32,28 +32,24 @@ def parsing_args() -> argparse.Namespace:
         "--host",
         "-H",
         type=str,
-        default="0.0.0.0",
         help="Host address to bind the server to",
     )
     parser.add_argument(
         "--port",
         "-p",
         type=int,
-        default=8000,
         help="Port number to bind the server to",
     )
     parser.add_argument(
         "--num-worker",
         "-n",
         type=int,
-        default=5,
         help="Number of worker processes to run",
     )
     parser.add_argument(
         "--verbose",
         "-v",
         type=bool,
-        default=False,
         help="Enable verbose logging",
     )
     args = parser.parse_args()
