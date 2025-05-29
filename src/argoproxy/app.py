@@ -1,9 +1,19 @@
+import os
+
 from sanic import Sanic, response
 from sanic.log import logger
 
 from . import chat, completions, embed, extras
+from .config import load_config
 
 app = Sanic("ArgoProxy")
+
+
+@app.before_server_start
+async def setup_config(app, loop):
+    """Load configuration without validation for worker processes"""
+    config_path = os.getenv("CONFIG_PATH")
+    app.ctx.config, _ = load_config(config_path)
 
 
 @app.route("/v1/chat", methods=["POST"])
