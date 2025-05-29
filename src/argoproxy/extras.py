@@ -4,8 +4,8 @@ from typing import Any, Dict
 
 from sanic import response
 
-from argoproxy.chat import proxy_request as chat_proxy_request
-from argoproxy.constants import ALL_MODELS
+from .chat import proxy_request as chat_proxy_request
+from .constants import ALL_MODELS
 
 # Mock data for available models
 MODELS_DATA: Dict[str, Any] = {"object": "list", "data": []}  # type: ignore
