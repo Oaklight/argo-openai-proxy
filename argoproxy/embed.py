@@ -5,12 +5,8 @@ import aiohttp
 from sanic import response
 from sanic.log import logger
 
-from .config import config
 from .constants import EMBED_MODELS
 from .utils import count_tokens, make_bar, resolve_model_name
-
-ARGO_EMBEDDING_API_URL = config["argo_embedding_url"]
-VERBOSE = config["verbose"]
 
 DEFAULT_MODEL = "v3small"
 
@@ -69,12 +65,13 @@ def make_it_openai_embeddings_compat(
 
 
 async def proxy_request(request, convert_to_openai=False):
+    config = request.app.ctx.config
     try:
         # Retrieve the incoming JSON data
         data = request.json
         if not data:
             raise ValueError("Invalid input. Expected JSON data.")
-        if VERBOSE:
+        if config.verbose:
             logger.debug(make_bar("[embed] input"))
             logger.debug(json.dumps(data, indent=4))
             logger.debug(make_bar())
@@ -89,7 +86,7 @@ async def proxy_request(request, convert_to_openai=False):
             data["model"] = DEFAULT_MODEL
 
         # Transform the incoming payload to match the destination API format
-        data["user"] = config["user"]
+        data["user"] = config.user
         data["prompt"] = (
             [data["input"]] if not isinstance(data["input"], list) else data["input"]
         )
@@ -105,12 +102,12 @@ async def proxy_request(request, convert_to_openai=False):
         # Send transformed request to the target API using aiohttp
         async with aiohttp.ClientSession() as session:
             async with session.post(
-                ARGO_EMBEDDING_API_URL, headers=headers, json=data
+                config.argo_embedding_url, headers=headers, json=data
             ) as resp:
                 response_data = await resp.json()
                 resp.raise_for_status()
 
-                if VERBOSE:
+                if config.verbose:
                     logger.debug(make_bar("[embed] fwd. response"))
                     logger.debug(json.dumps(response_data, indent=4))
                     logger.debug(make_bar())

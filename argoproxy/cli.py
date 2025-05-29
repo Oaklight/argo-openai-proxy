@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import argparse
 import os
+import subprocess
 import sys
 
 from loguru import logger
@@ -9,7 +10,7 @@ logger.remove()  # Remove default handlers
 logger.add(sys.stdout, colorize=True, format="<level>{message}</level>", level="INFO")
 
 
-def main():
+def parsing_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Argo Proxy CLI")
     parser.add_argument(
         "config",
@@ -54,6 +55,10 @@ def main():
     )
     args = parser.parse_args()
 
+    return args
+
+
+def set_config_envs(args: argparse.Namespace):
     if args.config:
         os.environ["CONFIG_PATH"] = args.config
     if args.show:
@@ -67,18 +72,39 @@ def main():
     if args.verbose:
         os.environ["VERBOSE"] = str(args.verbose)
 
+
+def main():
+    args = parsing_args()
+    set_config_envs(args)
+
     # import config after setting CONFIG_PATH
+    from .config import load_config
     from .app import app
-    from .config import config_instance
 
     try:
-        app.run(
-            host=config_instance.host,
-            port=config_instance.port,
-            workers=config_instance.num_workers,
+        # Load config and store in app context
+        config_instance = load_config(
+            os.getenv("CONFIG_PATH"),
+            os.getenv("SHOW_CONFIG", "false").lower() in ["true", "1", "t"],
         )
+        app.ctx.config = config_instance
+
+        cmd = [
+            "sanic",
+            "argoproxy.app:app",
+            "--host",
+            config_instance.host,
+            "--port",
+            str(config_instance.port),
+            "--workers",
+            str(config_instance.num_workers),
+        ]
+        subprocess.run(cmd, check=True)
     except KeyError:
         logger.error("Port not specified in configuration file.")
+        sys.exit(1)
+    except subprocess.CalledProcessError as e:
+        logger.error(f"Failed to start Sanic server: {e}")
         sys.exit(1)
     except Exception as e:
         logger.error(f"An error occurred while starting the server: {e}")

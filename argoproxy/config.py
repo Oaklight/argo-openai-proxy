@@ -393,16 +393,4 @@ def load_config(
     return config_data
 
 
-# Use the environment variable `CONFIG_PATH` or fallback to predefined locations
-config_path = os.getenv("CONFIG_PATH", None)
-show_config = os.getenv("SHOW_CONFIG", "false").lower() in ["true", "1", "t"]
-
-try:
-    config_instance = load_config(config_path, show_config=show_config)
-
-    # Set global configuration variable as a dictionary
-    config = config_instance.to_dict()
-    logger.info("Configuration validated and set successfully.")
-except (FileNotFoundError, yaml.YAMLError, ValueError) as e:
-    logger.error(f"Error loading or validating configuration: {e}")
-    sys.exit(1)
+# Remove module-level config loading

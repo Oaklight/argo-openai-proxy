@@ -1,17 +1,17 @@
-import sys
-
 from sanic import Sanic, response
 from sanic.log import logger
 
 from . import chat, completions, embed, extras
-from .config import config
 
 app = Sanic("ArgoProxy")
 
+config = app.ctx.config
+
 # Configure Sanic's logger to use our settings
-logger.setLevel(
-    config.get("logging_level", "INFO")
-)  # Ensure a default level if not set
+if config.verbose:
+    logger.setLevel("DEBUG")
+else:
+    logger.setLevel("INFO")
 
 
 @app.route("/v1/chat", methods=["POST"])
@@ -76,14 +76,3 @@ async def docs(request):
 async def health_check(request):
     logger.info("/health")
     return response.json({"status": "healthy"}, status=200)
-
-
-# if __name__ == "__main__":
-#     try:
-#         app.run(host=config.get("host", "0.0.0.0"), port=config["port"])
-#     except KeyError:
-#         logger.error("Port not specified in configuration file.")
-#         sys.exit(1)
-#     except Exception as e:
-#         logger.error(f"An error occurred while starting the server: {e}")
-#         sys.exit(1)

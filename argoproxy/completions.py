@@ -12,11 +12,9 @@ from .chat import (
     send_non_streaming_request,
     send_streaming_request,
 )
-from .config import config
 from .utils import make_bar
 
 # Configuration variables
-VERBOSE = config["verbose"]
 
 
 def make_it_openai_completions_compat(
@@ -92,6 +90,7 @@ async def proxy_request(
     :param stream: Whether to enable streaming mode.
     :return: The response from the upstream API.
     """
+    config = request.app.ctx.config
     try:
         # Retrieve the incoming JSON data from Sanic request if input_data is not provided
         if input_data is None:
@@ -101,7 +100,7 @@ async def proxy_request(
 
         if not data:
             raise ValueError("Invalid input. Expected JSON data.")
-        if VERBOSE:
+        if config.verbose:
             logger.debug(make_bar("[completion] input"))
             logger.debug(json.dumps(data, indent=4))
             logger.debug(make_bar())
@@ -110,10 +109,10 @@ async def proxy_request(
         data = prepare_request_data(data)
 
         # Determine the API URL based on whether streaming is enabled
-        api_url = config["argo_stream_url"] if stream else config["argo_url"]
+        api_url = config.argo_stream_url if stream else config.argo_url
 
         timeout = aiohttp.ClientTimeout(
-            total=timeout or config["timeout"] or DEFAULT_TIMEOUT_SECONDS
+            total=timeout or config.timeout or DEFAULT_TIMEOUT_SECONDS
         )  # Use provided timeout or default from config
 
         # Forward the modified request to the actual API using aiohttp

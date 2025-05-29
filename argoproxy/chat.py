@@ -10,18 +10,14 @@ from sanic import response
 from sanic.log import logger
 from sanic.response import HTTPResponse
 
-from .config import config
 from .constants import CHAT_MODELS
+
 from .utils import (
     calculate_prompt_tokens,
     count_tokens,
     make_bar,
     resolve_model_name,
 )
-
-# Configuration variables
-VERBOSE = config["verbose"]
-
 
 DEFAULT_MODEL = "gpt4o"
 
@@ -38,9 +34,6 @@ NO_SYS_MSG = [
 ]
 
 DEFAULT_TIMEOUT_SECONDS = 600
-DEFAULT_TIMEOUT = aiohttp.ClientTimeout(
-    total=config["timeout"] or DEFAULT_TIMEOUT_SECONDS
-)  # 10 minutes fall back if nothing provided
 
 
 def make_it_openai_chat_completions_compat(
@@ -110,12 +103,13 @@ def make_it_openai_chat_completions_compat(
         return {"error": f"An error occurred: {err}"}
 
 
-def prepare_request_data(data):
+def prepare_request_data(data, request):
     """
     Prepares the request data by adding the user and remapping the model.
     """
+    config = request.app.ctx.config
     # Automatically replace or insert the user
-    data["user"] = config["user"]
+    data["user"] = config.user
 
     # Remap the model using MODEL_AVAIL
     if "model" in data:
@@ -153,7 +147,7 @@ async def send_non_streaming_request(
     data: Dict[str, Any],
     convert_to_openai: bool = False,
     openai_compat_fn: Callable = make_it_openai_chat_completions_compat,
-    timeout: Optional[aiohttp.ClientTimeout] = DEFAULT_TIMEOUT,
+    timeout: Optional[aiohttp.ClientTimeout] = None,
 ) -> HTTPResponse:
     """
     Sends a non-streaming request to the specified API URL and processes the response.
@@ -200,10 +194,10 @@ async def send_streaming_request(
     session: aiohttp.ClientSession,
     api_url: str,
     data: Dict[str, Any],
-    request: Any,  # Replace 'Any' with the appropriate Sanic request type if available
+    request: Any,
     convert_to_openai: bool = False,
     openai_compat_fn: Callable = make_it_openai_chat_completions_compat,
-    timeout: Optional[aiohttp.ClientTimeout] = DEFAULT_TIMEOUT,
+    timeout: Optional[aiohttp.ClientTimeout] = None,
 ) -> None:
     """
     Sends a streaming request to the specified API URL and streams the response back to the client.
@@ -287,6 +281,8 @@ async def proxy_request(
     :param timeout: Optional timeout in seconds for the request
     :return: The response from the upstream API.
     """
+    config = request.app.ctx.config
+
     try:
         # Retrieve the incoming JSON data from Sanic request if input_data is not provided
         if input_data is None:
@@ -296,7 +292,7 @@ async def proxy_request(
 
         if not data:
             raise ValueError("Invalid input. Expected JSON data.")
-        if VERBOSE:
+        if config.verbose:
             logger.debug(make_bar("[chat] input"))
             logger.debug(json.dumps(data, indent=4))
             logger.debug(make_bar())
@@ -305,13 +301,15 @@ async def proxy_request(
         data = prepare_request_data(data)
 
         # Determine the API URL based on whether streaming is enabled
-        api_url = config["argo_stream_url"] if stream else config["argo_url"]
+        api_url = config.argo_stream_url if stream else config.argo_url
 
         if timeout:
             # Use provided timeout or default from config
             timeout = aiohttp.ClientTimeout(total=timeout)
         else:
-            timeout = DEFAULT_TIMEOUT
+            timeout = aiohttp.ClientTimeout(
+                total=config.timeout or DEFAULT_TIMEOUT_SECONDS
+            )
 
         # Forward the modified request to the actual API using aiohttp
         async with aiohttp.ClientSession() as session:
