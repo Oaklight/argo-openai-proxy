@@ -88,8 +88,13 @@ class ArgoConfig:
         """Provide a formatted string representation for logger.infoing."""
         return json.dumps(self.to_dict(), indent=4)
 
-    def validate(self) -> None:
-        """Validate and patch all configuration aspects."""
+    def validate(self, creation_mode: bool = False) -> None:
+        """
+        Validate and patch all configuration aspects.
+
+        Args:
+           creation_mode (bool): If True, it's assumed that this is the first time the config is being created.
+        """
         # First ensure all required keys exist (but don't validate values yet)
         config_dict = self.to_dict()
         for key in self.REQUIRED_KEYS:
@@ -103,7 +108,7 @@ class ArgoConfig:
         logger.info("")
         self._validate_urls()  # Handles URL validation with skip option
         logger.info("")
-        self._get_verbose()  # Handles verbose flag
+        self._get_verbose(first_time=creation_mode)  # Handles verbose flag
         logger.info("")
 
     def _validate_user(self) -> None:
@@ -175,7 +180,7 @@ class ArgoConfig:
         if errors:
             logger.error("URL validation errors:")
             for error in errors:
-                logger.error(f"\t- {error}")
+                logger.error(f"- {error}")
 
             choice = (
                 input("Continue despite connectivity issue? [Y/n] ").strip().lower()
@@ -184,10 +189,11 @@ class ArgoConfig:
                 raise ValueError("URL validation aborted by user")
             logger.info("Continuing with configuration despite URL issues...")
 
-    def _get_verbose(self) -> None:
+    def _get_verbose(self, first_time: bool = False) -> None:
         """
         Toggle verbose mode based on existing settings or user input.
         Checks for self.verbose preset or VERBOSE environment variable first.
+        Only prompts user if first_time is True or no setting was found.
         """
 
         # Check environment variable
@@ -195,17 +201,15 @@ class ArgoConfig:
         if env_verbose in ("1", "true", "yes"):
             self.verbose = True
             logger.info("Verbose mode enabled (from environment VERBOSE)")
-            return
         elif env_verbose in ("0", "false", "no"):
             self.verbose = False
             logger.info("Verbose mode disabled (from environment VERBOSE)")
-            return
 
         # Check for existing verbosity setting
-        if hasattr(self, "verbose") and self.verbose is not None:
+        if self.verbose is not None and not first_time:
             return
 
-        # Only prompt if no setting was found
+        # Only prompt if first_time or no setting was found
         while True:
             verbose = input("Enable verbose mode? [Y/n] ").strip().lower()
             if verbose in ("", "y", "yes"):
@@ -239,7 +243,7 @@ def create_config() -> ArgoConfig:
     logger.info(f"Creating new configuration at: {config_path}")
     config_data = ArgoConfig()  # Create a default ArgoConfig instance
     config_data.show()
-    config_data.validate()
+    config_data.validate(creation_mode=True)
 
     # Save to config file
     os.makedirs(os.path.dirname(config_path), exist_ok=True)
