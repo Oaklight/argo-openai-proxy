@@ -5,7 +5,7 @@ import urllib
 from dataclasses import asdict, dataclass
 from typing import Any, Optional, Union
 
-import yaml
+import yaml  # type: ignore
 from loguru import logger
 
 from .utils import get_random_port, is_port_available
@@ -120,7 +120,7 @@ class ArgoConfig:
 
     def _validate_urls(self) -> None:
         """Validate URL connectivity with option to skip failures."""
-        required_urls = [
+        required_urls: list[tuple[str, dict[str, Any]]] = [
             (
                 self.argo_url,
                 {
@@ -316,7 +316,7 @@ def create_config() -> ArgoConfig:
         ),
         user=_get_valid_username(),
         verbose=_get_yes_no_input(prompt="Enable verbose mode? [Y/n] "),
-        num_workers=os.environ.get("NUM_WORKERS", 5),
+        num_workers=int(os.environ.get("NUM_WORKERS", 5)),
         timeout=_get_yes_no_input(
             prompt="Set timeout to [600] seconds? [Y/n/<timeout>] ",
             accept_value={"timeout": int},
