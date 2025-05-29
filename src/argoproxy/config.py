@@ -3,7 +3,9 @@ import os
 import sys
 import urllib
 from dataclasses import asdict, dataclass
-from typing import Any, Optional, Union
+from hashlib import md5
+from pathlib import Path
+from typing import Any, Optional, Tuple, Union
 
 import yaml  # type: ignore
 from loguru import logger
@@ -84,19 +86,27 @@ class ArgoConfig:
         """Convert ArgoConfig instance to a dictionary."""
         return asdict(self)
 
-    def validate(self) -> None:
-        """Validate and patch all configuration aspects."""
+    def validate(self) -> bool:
+        """Validate and patch all configuration aspects.
+
+        Returns:
+            bool: True if configuration changed after validation. False otherwise.
+        """
         # First ensure all required keys exist (but don't validate values yet)
         config_dict = self.to_dict()
         for key in self.REQUIRED_KEYS:
             if key not in config_dict:
                 raise ValueError(f"Missing required configuration: '{key}'")
 
+        hash_original = md5(json.dumps(config_dict).encode()).hexdigest()
         # Then validate and patch individual components
         self._validate_user()  # Handles empty user
         self._validate_port()  # Handles invalid port
         self._validate_urls()  # Handles URL validation with skip option
         self._get_verbose()  # Handles verbose flag
+        hash_after_validation = md5(json.dumps(self.to_dict()).encode()).hexdigest()
+
+        return hash_original != hash_after_validation
 
     def _validate_user(self) -> None:
         """Validate and update the user attribute using the helper function."""
@@ -300,13 +310,34 @@ def _get_valid_username(username: str = "") -> str:
     return username
 
 
+def save_config(config_data: ArgoConfig, config_path: Optional[str] = None) -> str:
+    """Save configuration to YAML file.
+
+    Args:
+        config_data: The ArgoConfig instance to save
+        config_path: Optional path to save the config. If not provided,
+            will use default path in user's config directory.
+
+    Returns:
+        str: The path where the config was saved
+
+    Raises:
+        OSError: If there are issues creating directories or writing the file
+    """
+    if config_path is None:
+        home_dir = os.getenv("HOME") or os.path.expanduser("~")
+        config_path = os.path.join(home_dir, ".config", "argoproxy", "config.yaml")
+
+    os.makedirs(os.path.dirname(config_path), exist_ok=True)
+    with open(config_path, "w") as f:
+        yaml.dump(config_data.to_dict(), f)
+
+    return config_path
+
+
 def create_config() -> ArgoConfig:
     """Interactive method to create and persist config."""
-    # Get home directory, with fallback to expanduser if HOME is not set
-    home_dir = os.getenv("HOME") or os.path.expanduser("~")
-    config_path = os.path.join(home_dir, ".config", "argoproxy", "config.yaml")
-
-    logger.info(f"Creating new configuration at: {config_path}")
+    logger.info("Creating new configuration...")
 
     random_port = get_random_port(49152, 65535)
     config_data = ArgoConfig(
@@ -321,76 +352,94 @@ def create_config() -> ArgoConfig:
             prompt="Set timeout to [600] seconds? [Y/n/<timeout>] ",
             accept_value={"timeout": int},
         ),
-    )  # Create a default ArgoConfig instance
+    )
 
-    # Save to config file
-    os.makedirs(os.path.dirname(config_path), exist_ok=True)
-    with open(config_path, "w") as f:
-        yaml.dump(config_data.to_dict(), f)
+    config_path = save_config(config_data)
+    logger.info(f"Created new configuration at: {config_path}")
 
     return config_data
 
 
-def load_config(
-    optional_path: Optional[str] = None, show_config: bool = False
-) -> ArgoConfig:
-    """Load configuration from an optional path or predefined paths, or create one interactively.
-
-    Args:
-        optional_path (Optional[str]): Specific path to load the configuration from. Defaults to None.
-
-    Returns:
-        ArgoConfig: Loaded or newly created configuration instance.
-    """
-    config_data = None
-
-    # Check if the optional path is provided and valid
-    if optional_path and os.path.exists(optional_path):
-        logger.info(f"Loading config from specified path: {optional_path}")
-        with open(optional_path, "r") as f:
-            try:
-                config_dict = yaml.safe_load(f)
-                config_data = ArgoConfig.from_dict(config_dict)
-            except (yaml.YAMLError, AssertionError) as e:
-                logger.info(f"Error loading configuration file at {optional_path}: {e}")
-                config_data = None  # Reset config_data to None on error
-    else:
-        # Iterate over predefined paths if optional_path is not provided or invalid
-        for path in PATHS_TO_TRY:
-            if os.path.exists(path):
-                logger.info(f"Loading config from: {path}")
-                with open(path, "r") as f:
-                    try:
-                        config_dict = yaml.safe_load(f)
-                        config_data = ArgoConfig.from_dict(config_dict)
-                    except (yaml.YAMLError, AssertionError) as e:
-                        logger.info(f"Error loading configuration file at {path}: {e}")
-                        config_data = None  # Reset config_data to None on error
-                break
-
-    # If no valid config is found, create a new one interactively
-    if config_data is None:
-        logger.info(
-            "No valid configuration found. Creating a new configuration interactively..."
-        )
-        config_data = create_config()
-
-    # Override with environment variables if they exist
-    if env_host := os.getenv("HOST"):
-        config_data.host = env_host
+def _apply_env_overrides(config_data: ArgoConfig) -> ArgoConfig:
+    """Apply environment variable overrides to the config"""
     if env_port := os.getenv("PORT"):
         config_data.port = int(env_port)
-    if env_num_worker := os.getenv("NUM_WORKERS"):
-        config_data.num_workers = int(env_num_worker)
     if env_verbose := os.getenv("VERBOSE"):
         config_data.verbose = env_verbose.lower() in ["true", "1", "t"]
+    return config_data
 
-    config_data.validate()
+
+def load_config(
+    optional_path: Optional[str] = None, env_override: bool = True
+) -> Optional[Tuple[ArgoConfig, Path]]:
+    """Loads configuration from file with optional environment variable overrides.
+
+    Returns both the loaded config and the actual path it was loaded from.
+    Assumes configuration is already validated.
+
+    Args:
+        optional_path: Optional path to a specific configuration file to load. If not provided,
+            will attempt to load from default locations defined in PATHS_TO_TRY.
+        env_override: If True, environment variables will override the configuration file settings. Defaults to True.
+
+    Returns:
+        Optional[Tuple[ArgoConfig, Path]]:
+            - Tuple containing (loaded_config, actual_path) if successful
+            - None if no valid configuration file could be loaded or if loading failed
+
+    Notes:
+        - If a configuration is successfully loaded, environment variables will override
+          the file-based configuration.
+        - Returns None, None if loading fails for any reason
+    """
+    paths_to_try = [optional_path] if optional_path else [] + PATHS_TO_TRY
+
+    for path in paths_to_try:
+        if path and os.path.exists(path):
+            with open(path, "r") as f:
+                try:
+                    config_dict = yaml.safe_load(f)
+                    config_data = ArgoConfig.from_dict(config_dict)
+                    if env_override:
+                        config_data = _apply_env_overrides(config_data)
+                    actual_path = Path(path).absolute()
+                    logger.info(f"Loaded configuration from {actual_path}")
+                    return config_data, actual_path
+                except (yaml.YAMLError, AssertionError) as e:
+                    logger.warning(f"Error loading config at {path}: {e}")
+                    continue
+
+    return None, None
+
+
+def validate_config(
+    optional_path: Optional[str] = None, show_config: bool = False
+) -> ArgoConfig:
+    """Validate configuration with user interaction if needed"""
+    config_data, actual_path = load_config(optional_path)
+
+    if not config_data:
+        logger.error("No valid configuration found.")
+        config_data = create_config()
+        show_config = True
+
+    # Config may change here. We need to persist
+    file_changed = config_data.validate()
+    print(f"file changed? {file_changed}")
+    if file_changed:
+        config_original, _ = load_config(actual_path, env_override=False)
+        # prompt user with yes or no to ask for persistence of changes
+        logger.info("Configuration has been modified.")
+        config_original.show("Original configuration:")
+        config_data.show("Current Configuration:")
+        user_decision = _get_yes_no_input(
+            "Do you want to save the changes to the configuration file? [y/N]: ",
+            default_choice="n",
+        )
+        if user_decision:
+            save_config(config_data, actual_path)
 
     if show_config:
         config_data.show()
 
     return config_data
-
-
-# Remove module-level config loading

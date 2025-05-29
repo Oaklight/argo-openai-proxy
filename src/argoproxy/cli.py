@@ -7,7 +7,7 @@ import sys
 from loguru import logger
 
 from . import app
-from .config import load_config
+from .config import validate_config
 
 logger.remove()  # Remove default handlers
 logger.add(sys.stdout, colorize=True, format="<level>{message}</level>", level="INFO")
@@ -58,16 +58,8 @@ def parsing_args() -> argparse.Namespace:
 
 
 def set_config_envs(args: argparse.Namespace):
-    if args.config:
-        os.environ["CONFIG_PATH"] = args.config
-    if args.show:
-        os.environ["SHOW_CONFIG"] = "true"
-    if args.host:
-        os.environ["HOST"] = args.host
     if args.port:
         os.environ["PORT"] = str(args.port)
-    if args.num_worker:
-        os.environ["NUM_WORKERS"] = str(args.num_worker)
     if args.verbose:
         os.environ["VERBOSE"] = str(args.verbose)
 
@@ -77,23 +69,13 @@ def main():
     set_config_envs(args)
 
     try:
-        # Load config and store in app context
-        config_instance = load_config(
-            os.getenv("CONFIG_PATH"),
-            os.getenv("SHOW_CONFIG", "false").lower() in ["true", "1", "t"],
-        )
-        app.app.ctx.config = config_instance
-
-        # Configure Sanic's logger to use our settings
-        if config_instance.verbose:
-            app.logger.setLevel("DEBUG")
-        else:
-            app.logger.setLevel("INFO")
-
+        # Validate config in main process only
+        config_instance = validate_config(args.config, args.show)
+        # Run the app with validated config
         app.app.run(
-            host=config_instance.host,
-            port=config_instance.port,
-            workers=config_instance.num_workers,
+            host=args.host or config_instance.host,
+            port=args.port or config_instance.port,
+            workers=args.num_worker or config_instance.num_workers,
         )
     except KeyError:
         logger.error("Port not specified in configuration file.")
