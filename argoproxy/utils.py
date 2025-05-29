@@ -1,3 +1,5 @@
+import random
+import socket
 from typing import Dict, List, Optional, Union
 
 import tiktoken
@@ -44,6 +46,50 @@ def validate_input(json_input: dict, endpoint: str) -> bool:
             return False
 
     return True
+
+
+def get_random_port(low: int, high: int) -> int:
+    """
+    Generates a random port within the specified range and ensures it is available.
+
+    Args:
+        low (int): The lower bound of the port range.
+        high (int): The upper bound of the port range.
+
+    Returns:
+        int: A random available port within the range.
+
+    Raises:
+        ValueError: If no available port can be found within the range.
+    """
+    if low < 1024 or high > 65535 or low >= high:
+        raise ValueError("Invalid port range. Ports should be between 1024 and 65535.")
+
+    attempts = high - low  # Maximum attempts to check ports in the range
+    for _ in range(attempts):
+        port = random.randint(low, high)
+        if is_port_available(port):
+            return port
+
+    raise ValueError(f"No available port found in the range {low}-{high}.")
+
+
+def is_port_available(port: int) -> bool:
+    """
+    Checks if a given port is available (not already in use).
+
+    Args:
+        port (int): The port number to check.
+
+    Returns:
+        bool: True if the port is available, False otherwise.
+    """
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        try:
+            s.bind(("127.0.0.1", port))
+        except OSError:
+            return False
+        return True
 
 
 def resolve_model_name(
