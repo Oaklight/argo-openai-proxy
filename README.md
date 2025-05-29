@@ -33,7 +33,7 @@ The machine or server making API calls to Argo must be connected to the Argonne 
 
 ### Prerequisites
 
-- **Python 3.9+** is required \
+- **Python 3.10+** is required \
   recommend to use conda/mamba or pipx etc to manage exclusive environment \
   **Conda/Mamba** Download and install from: <https://conda-forge.org/download/>
 
