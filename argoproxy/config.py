@@ -20,7 +20,7 @@ PATHS_TO_TRY = [
 ]
 
 
-def validate_api(url: str, username: str, payload: dict) -> bool:
+def validate_api(url: str, username: str, payload: dict, timeout: int = 2) -> bool:
     """
     Helper to validate API endpoint connectivity.
     Args:
@@ -39,7 +39,7 @@ def validate_api(url: str, username: str, payload: dict) -> bool:
         url, data=request_data, headers={"Content-Type": "application/json"}
     )
     try:
-        with urllib.request.urlopen(req, timeout=1) as response:
+        with urllib.request.urlopen(req, timeout=timeout) as response:
             if response.getcode() != 200:
                 raise ValueError(f"API returned status code {response.getcode()}")
             return True
@@ -101,13 +101,9 @@ class ArgoConfig:
 
         # Then validate and patch individual components
         self._validate_user()  # Handles empty user
-        logger.info("")
         self._validate_port()  # Handles invalid port
-        logger.info("")
         self._validate_urls()  # Handles URL validation with skip option
-        logger.info("")
-        self._get_verbose(first_time=creation_mode)  # Handles verbose flag
-        logger.info("")
+        self._get_verbose()  # Handles verbose flag
 
     def _validate_user(self) -> None:
         """Validate and update the user attribute using the helper function."""
@@ -166,7 +162,7 @@ class ArgoConfig:
                 raise ValueError("URL validation aborted by user")
             logger.info("Continuing with configuration despite URL issues...")
 
-    def _get_verbose(self, first_time: bool = False) -> None:
+    def _get_verbose(self) -> None:
         """
         Toggle verbose mode based on existing settings or user input.
         Checks for self.verbose preset or VERBOSE environment variable first.
@@ -182,7 +178,7 @@ class ArgoConfig:
             logger.info("Verbose mode disabled (from environment VERBOSE)")
 
         # Check for existing verbosity setting
-        if self.verbose is not None and not first_time:
+        if self.verbose is not None:
             return
 
         # Only prompt if first_time or no setting was found
