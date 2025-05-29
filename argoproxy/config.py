@@ -2,13 +2,13 @@ import json
 import os
 import sys
 import urllib
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass
 from typing import Any, Optional, Union
 
 import yaml
 from loguru import logger
 
-from argoproxy.utils import get_random_port, is_port_available
+from .utils import get_random_port, is_port_available
 
 logger.remove()  # Remove default handlers
 logger.add(sys.stdout, colorize=True, format="<level>{message}</level>", level="INFO")
@@ -61,9 +61,9 @@ class ArgoConfig:
     ]
 
     # Configuration fields with default values
-    port: int = field(
-        default_factory=lambda: get_random_port(49152, 65535)
-    )  # Default to a random port in the ephemeral range
+    host: str = "0.0.0.0"  # Default to 0.0.0.0
+    port: int = 44497
+    user: str = ""
     argo_url: str = "https://apps-dev.inside.anl.gov/argoapi/api/v1/resource/chat/"
     argo_stream_url: str = (
         "https://apps-dev.inside.anl.gov/argoapi/api/v1/resource/streamchat/"
@@ -71,11 +71,9 @@ class ArgoConfig:
     argo_embedding_url: str = (
         "https://apps.inside.anl.gov/argoapi/api/v1/resource/embed/"
     )
-    user: str = ""
     verbose: bool = True
     num_workers: int = 5
     timeout: int = 600
-    logging_level: str = "INFO"
 
     @classmethod
     def from_dict(cls, config_dict: dict):
@@ -86,13 +84,8 @@ class ArgoConfig:
         """Convert ArgoConfig instance to a dictionary."""
         return asdict(self)
 
-    def validate(self, creation_mode: bool = False) -> None:
-        """
-        Validate and patch all configuration aspects.
-
-        Args:
-           creation_mode (bool): If True, it's assumed that this is the first time the config is being created.
-        """
+    def validate(self) -> None:
+        """Validate and patch all configuration aspects."""
         # First ensure all required keys exist (but don't validate values yet)
         config_dict = self.to_dict()
         for key in self.REQUIRED_KEYS:
@@ -323,10 +316,7 @@ def create_config() -> ArgoConfig:
         ),
         user=_get_valid_username(),
         verbose=_get_yes_no_input(prompt="Enable verbose mode? [Y/n] "),
-        num_workers=_get_yes_no_input(
-            prompt="Use [5] workers? [Y/n/<num_worker>] ",
-            accept_value={"num_worker": int},
-        ),
+        num_workers=os.environ.get("NUM_WORKERS", 5),
         timeout=_get_yes_no_input(
             prompt="Set timeout to [600] seconds? [Y/n/<timeout>] ",
             accept_value={"timeout": int},
@@ -341,7 +331,9 @@ def create_config() -> ArgoConfig:
     return config_data
 
 
-def load_config(optional_path: Optional[str] = None) -> ArgoConfig:
+def load_config(
+    optional_path: Optional[str] = None, show_config: bool = False
+) -> ArgoConfig:
     """Load configuration from an optional path or predefined paths, or create one interactively.
 
     Args:
@@ -359,7 +351,6 @@ def load_config(optional_path: Optional[str] = None) -> ArgoConfig:
             try:
                 config_dict = yaml.safe_load(f)
                 config_data = ArgoConfig.from_dict(config_dict)
-                config_data.validate()
             except (yaml.YAMLError, AssertionError) as e:
                 logger.info(f"Error loading configuration file at {optional_path}: {e}")
                 config_data = None  # Reset config_data to None on error
@@ -372,7 +363,6 @@ def load_config(optional_path: Optional[str] = None) -> ArgoConfig:
                     try:
                         config_dict = yaml.safe_load(f)
                         config_data = ArgoConfig.from_dict(config_dict)
-                        config_data.validate()
                     except (yaml.YAMLError, AssertionError) as e:
                         logger.info(f"Error loading configuration file at {path}: {e}")
                         config_data = None  # Reset config_data to None on error
@@ -385,14 +375,30 @@ def load_config(optional_path: Optional[str] = None) -> ArgoConfig:
         )
         config_data = create_config()
 
+    # Override with environment variables if they exist
+    if env_host := os.getenv("HOST"):
+        config_data.host = env_host
+    if env_port := os.getenv("PORT"):
+        config_data.port = int(env_port)
+    if env_num_worker := os.getenv("NUM_WORKERS"):
+        config_data.num_workers = int(env_num_worker)
+    if env_verbose := os.getenv("VERBOSE"):
+        config_data.verbose = env_verbose.lower() in ["true", "1", "t"]
+
+    config_data.validate()
+
+    if show_config:
+        config_data.show()
+
     return config_data
 
 
 # Use the environment variable `CONFIG_PATH` or fallback to predefined locations
 config_path = os.getenv("CONFIG_PATH", None)
+show_config = os.getenv("SHOW_CONFIG", "false").lower() in ["true", "1", "t"]
 
 try:
-    config_instance = load_config(config_path)
+    config_instance = load_config(config_path, show_config=show_config)
 
     # Set global configuration variable as a dictionary
     config = config_instance.to_dict()
