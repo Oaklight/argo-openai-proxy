@@ -8,7 +8,7 @@ version = "2.5.0"
 authors = [{ name = "Peng Ding", email = "oaklight@gmx.com" }]
 description = "Proxy server to Argo API, OpenAI format compatible"
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 license = "MIT"
 classifiers = [
     "Intended Audience :: Developers",
@@ -38,5 +38,5 @@ Issuses = "https://github.com/yourusername/argo-proxy/issues"
 argo-proxy = "argoproxy.cli:main"
 
 [tool.setuptools.packages.find]
-where = ["."]
+where = ["src"]
 exclude = ["examples*", "dev_scripts*"]
