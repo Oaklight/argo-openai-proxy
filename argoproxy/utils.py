@@ -74,22 +74,28 @@ def get_random_port(low: int, high: int) -> int:
     raise ValueError(f"No available port found in the range {low}-{high}.")
 
 
-def is_port_available(port: int) -> bool:
+def is_port_available(port: int, timeout: float = 0.1) -> bool:
     """
     Checks if a given port is available (not already in use).
 
     Args:
         port (int): The port number to check.
+        timeout (float): Timeout in seconds for the connection attempt.
 
     Returns:
         bool: True if the port is available, False otherwise.
     """
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+    for family in (socket.AF_INET, socket.AF_INET6):
         try:
-            s.bind(("127.0.0.1", port))
-        except OSError:
-            return False
-        return True
+            with socket.socket(family, socket.SOCK_STREAM) as s:
+                s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+                s.settimeout(timeout)
+                s.bind(("127.0.0.1", port))
+                s.close()
+                return True
+        except (OSError, socket.timeout):
+            continue
+    return False
 
 
 def resolve_model_name(
