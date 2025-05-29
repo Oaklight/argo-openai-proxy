@@ -6,6 +6,9 @@ import sys
 
 from loguru import logger
 
+from . import app
+from .config import load_config
+
 logger.remove()  # Remove default handlers
 logger.add(sys.stdout, colorize=True, format="<level>{message}</level>", level="INFO")
 
@@ -77,29 +80,25 @@ def main():
     args = parsing_args()
     set_config_envs(args)
 
-    # import config after setting CONFIG_PATH
-    from .config import load_config
-    from .app import app
-
     try:
         # Load config and store in app context
         config_instance = load_config(
             os.getenv("CONFIG_PATH"),
             os.getenv("SHOW_CONFIG", "false").lower() in ["true", "1", "t"],
         )
-        app.ctx.config = config_instance
+        app.app.ctx.config = config_instance
 
-        cmd = [
-            "sanic",
-            "argoproxy.app:app",
-            "--host",
-            config_instance.host,
-            "--port",
-            str(config_instance.port),
-            "--workers",
-            str(config_instance.num_workers),
-        ]
-        subprocess.run(cmd, check=True)
+        # Configure Sanic's logger to use our settings
+        if config_instance.verbose:
+            app.logger.setLevel("DEBUG")
+        else:
+            app.logger.setLevel("INFO")
+
+        app.app.run(
+            host=config_instance.host,
+            port=config_instance.port,
+            workers=config_instance.num_workers,
+        )
     except KeyError:
         logger.error("Port not specified in configuration file.")
         sys.exit(1)

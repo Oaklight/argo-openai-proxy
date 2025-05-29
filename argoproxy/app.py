@@ -5,14 +5,6 @@ from . import chat, completions, embed, extras
 
 app = Sanic("ArgoProxy")
 
-config = app.ctx.config
-
-# Configure Sanic's logger to use our settings
-if config.verbose:
-    logger.setLevel("DEBUG")
-else:
-    logger.setLevel("INFO")
-
 
 @app.route("/v1/chat", methods=["POST"])
 async def proxy_argo_chat_directly(request):
