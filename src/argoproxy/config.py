@@ -310,7 +310,9 @@ def _get_valid_username(username: str = "") -> str:
     return username
 
 
-def save_config(config_data: ArgoConfig, config_path: Optional[str] = None) -> str:
+def save_config(
+    config_data: ArgoConfig, config_path: Optional[str | Path] = None
+) -> str:
     """Save configuration to YAML file.
 
     Args:
@@ -332,7 +334,7 @@ def save_config(config_data: ArgoConfig, config_path: Optional[str] = None) -> s
     with open(config_path, "w") as f:
         yaml.dump(config_data.to_dict(), f)
 
-    return config_path
+    return str(config_path)
 
 
 def create_config() -> ArgoConfig:
@@ -370,8 +372,8 @@ def _apply_env_overrides(config_data: ArgoConfig) -> ArgoConfig:
 
 
 def load_config(
-    optional_path: Optional[str] = None, env_override: bool = True
-) -> Optional[Tuple[ArgoConfig, Path]]:
+    optional_path: Optional[str | Path] = None, env_override: bool = True
+) -> Tuple[Optional[ArgoConfig], Optional[Path]]:
     """Loads configuration from file with optional environment variable overrides.
 
     Returns both the loaded config and the actual path it was loaded from.
@@ -383,7 +385,7 @@ def load_config(
         env_override: If True, environment variables will override the configuration file settings. Defaults to True.
 
     Returns:
-        Optional[Tuple[ArgoConfig, Path]]:
+        Tuple[Optional[ArgoConfig], Optional[Path]]:
             - Tuple containing (loaded_config, actual_path) if successful
             - None if no valid configuration file could be loaded or if loading failed
 
@@ -392,7 +394,7 @@ def load_config(
           the file-based configuration.
         - Returns None, None if loading fails for any reason
     """
-    paths_to_try = [optional_path] if optional_path else [] + PATHS_TO_TRY
+    paths_to_try = [str(optional_path)] if optional_path else [] + PATHS_TO_TRY
 
     for path in paths_to_try:
         if path and os.path.exists(path):
@@ -428,6 +430,8 @@ def validate_config(
     print(f"file changed? {file_changed}")
     if file_changed:
         config_original, _ = load_config(actual_path, env_override=False)
+        if not config_original:
+            raise ValueError("Failed to load original configuration for comparison.")
         # prompt user with yes or no to ask for persistence of changes
         logger.info("Configuration has been modified.")
         config_original.show("Original configuration:")
