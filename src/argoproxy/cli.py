@@ -7,6 +7,7 @@ import sys
 from loguru import logger
 
 from . import app
+from .__init__ import __version__
 from .config import validate_config
 
 logger.remove()  # Remove default handlers
@@ -51,6 +52,13 @@ def parsing_args() -> argparse.Namespace:
         "-v",
         type=bool,
         help="Enable verbose logging",
+    )
+    parser.add_argument(
+        "--version",
+        "-V",
+        action="version",
+        version=f"%(prog)s {__version__}",
+        help="Show the version and exit.",
     )
     args = parser.parse_args()
 
