@@ -51,6 +51,7 @@ The application uses `config.yaml` for configuration. Here's an example:
 
 ```yaml
 port: 44497
+host: 0.0.0.0
 argo_url: "https://apps-dev.inside.anl.gov/argoapi/api/v1/resource/chat/"
 argo_stream_url: "https://apps-dev.inside.anl.gov/argoapi/api/v1/resource/streamchat/"
 argo_embedding_url: "https://apps.inside.anl.gov/argoapi/api/v1/resource/embed/"
@@ -204,17 +205,8 @@ For an example of how to use the `/v1/chat/completions`, /v1/completions`, /v1/c
 The following is an overview of the project's directory structure:
 
 ```
-$ tree -I "__pycache__|*.egg-info|dev_scripts|config.yaml"
+$ tree -I "__pycache__|*.egg-info|dist|dev_scripts|config.yaml"
 .
-├── app.py
-├── argoproxy
-│   ├── chat.py
-│   ├── completions.py
-│   ├── config.py
-│   ├── constants.py
-│   ├── embed.py
-│   ├── extras.py
-│   └── utils.py
 ├── config.sample.yaml
 ├── examples
 │   ├── chat_completions_example.py
@@ -227,12 +219,26 @@ $ tree -I "__pycache__|*.egg-info|dev_scripts|config.yaml"
 │   ├── o1_chat_example.py
 │   └── o3_chat_example_pyclient.py
 ├── LICENSE
+├── Makefile
 ├── pyproject.toml
 ├── README.md
 ├── run_app.sh
+├── src
+│   └── argoproxy
+│       ├── app.py
+│       ├── chat.py
+│       ├── cli.py
+│       ├── completions.py
+│       ├── config.py
+│       ├── constants.py
+│       ├── embed.py
+│       ├── extras.py
+│       ├── __init__.py
+│       ├── py.typed
+│       └── utils.py
 └── timeout_examples.md
 
-3 directories, 23 files
+4 directories, 27 files
 ```
 
 ## Bug Reports and Contributions
