@@ -27,7 +27,7 @@ def parsing_args() -> argparse.Namespace:
         "--show",
         "-s",
         action="store_true",
-        help="Show the current configuration",
+        help="Show the current configuration during launch",
     )
     parser.add_argument(
         "--host",
