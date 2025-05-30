@@ -66,14 +66,14 @@ timeout: 600 # in seconds
 To start the application:
 
 ```bash
-./run_app.sh [config_path]
+argo-proxy [config_path]
 ```
 
-- Without arguments: uses `config.yaml` in current directory
+- Without arguments: search for `config.yaml` under `~/.config/argoproxy/`, `~/.argoproxy/`, or current directory
 - With path: uses specified config file
 
   ```bash
-  ./run_app.sh /path/to/config.yaml
+  argo-proxy /path/to/config.yaml
   ```
 
 ### First-Time Setup
@@ -91,29 +91,39 @@ When running without an existing config file:
 Example session:
 
 ```bash
-$ ./run_app.sh
-config.yaml file not found.
-Would you like to create it from config.sample.yaml? [y/N] y
+$ argo-proxy 
+No valid configuration found.
+Would you like to create it from config.sample.yaml? [Y/n]: 
+Creating new configuration...
+Use port [52226]? [Y/n/<port>]: 
 Enter your username: your_username
-Enable verbose mode? [Y/n] y
-Created config.yaml with your settings:
+Enable verbose mode? [Y/n] 
+Set timeout to [600] seconds? [Y/n/<timeout>] 
+Created new configuration at: /home/your_username/.config/argoproxy/config.yaml
+Using port 52226...
+Validating URL connectivity...
+Current configuration:
 --------------------------------------
-port: 44497
-argo_url: "https://apps-dev.inside.anl.gov/argoapi/api/v1/resource/chat/"
-argo_stream_url: "https://apps-dev.inside.anl.gov/argoapi/api/v1/resource/streamchat/"
-argo_embedding_url: "https://apps.inside.anl.gov/argoapi/api/v1/resource/embed/"
-user: "your_username"
-verbose: true
-num_workers: 5
-timeout: 600
+{
+    "host": "0.0.0.0",
+    "port": 52226,
+    "user": "your_username",
+    "argo_url": "https://apps-dev.inside.anl.gov/argoapi/api/v1/resource/chat/",
+    "argo_stream_url": "https://apps-dev.inside.anl.gov/argoapi/api/v1/resource/streamchat/",
+    "argo_embedding_url": "https://apps.inside.anl.gov/argoapi/api/v1/resource/embed/",
+    "verbose": true,
+    "num_workers": 5,
+    "timeout": 600
+}
 --------------------------------------
-Review the config above. Press enter to continue or Ctrl+C to abort.
+# ... proxy server starting info display ...
 ```
 
 ### Configuration Options Reference
 
 | Option               | Description                                                  | Default            |
 | -------------------- | ------------------------------------------------------------ | ------------------ |
+| `host`               | Host address to bind the server to                           | `0.0.0.0`          |
 | `port`               | Application port (random available port selected by default) | randomly assigned  |
 | `argo_url`           | ARGO chat API URL                                            | Dev URL (for now)  |
 | `argo_stream_url`    | ARGO stream API URL                                          | Dev URL (for now)  |
