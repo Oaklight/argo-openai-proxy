@@ -133,6 +133,31 @@ Current configuration:
 | `num_workers`        | Worker processes                                             | `5`                |
 | `timeout`            | Request timeout (seconds)                                    | `600`              |
 
+### `argo-proxy` Cli Available Options
+
+```bash
+$ argo-proxy -h
+usage: argo-proxy [-h] [--show] [--host HOST] [--port PORT] [--num-worker NUM_WORKER]
+                  [--verbose | --quiet] [--version]
+                  [config]
+
+Argo Proxy CLI
+
+positional arguments:
+  config                Path to the configuration file
+
+options:
+  -h, --help            show this help message and exit
+  --show, -s            Show the current configuration during launch
+  --host HOST, -H HOST  Host address to bind the server to
+  --port PORT, -p PORT  Port number to bind the server to
+  --num-worker NUM_WORKER, -n NUM_WORKER
+                        Number of worker processes to run
+  --verbose, -v         Enable verbose logging, override if `verbose` set False in config
+  --quiet, -q           Disable verbose logging, override if `verbose` set True in config
+  --version, -V         Show the version and exit.
+```
+
 ## Usage
 
 ### Endpoints
