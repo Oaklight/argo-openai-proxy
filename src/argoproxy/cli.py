@@ -47,12 +47,23 @@ def parsing_args() -> argparse.Namespace:
         type=int,
         help="Number of worker processes to run",
     )
-    parser.add_argument(
+
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument(
         "--verbose",
         "-v",
-        type=bool,
-        help="Enable verbose logging",
+        action="store_true",
+        default=False,  # default is False, so --verbose will set it to True
+        help="Enable verbose logging, override if `verbose` set False in config",
     )
+    group.add_argument(
+        "--quiet",
+        "-q",
+        action="store_true",
+        default=False,  # default is False, so --quiet will set it to True
+        help="Disable verbose logging, override if `verbose` set True in config",
+    )
+
     parser.add_argument(
         "--version",
         "-V",
@@ -69,7 +80,9 @@ def set_config_envs(args: argparse.Namespace):
     if args.port:
         os.environ["PORT"] = str(args.port)
     if args.verbose:
-        os.environ["VERBOSE"] = str(args.verbose)
+        os.environ["VERBOSE"] = str(True)
+    if args.quiet:
+        os.environ["VERBOSE"] = str(False)
 
 
 def main():
