@@ -446,7 +446,6 @@ def validate_config(
 
     # Config may change here. We need to persist
     file_changed = config_data.validate()
-    print(f"file changed? {file_changed}")
     if file_changed:
         config_original, _ = load_config(actual_path, env_override=False)
         if not config_original:
