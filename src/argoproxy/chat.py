@@ -281,6 +281,10 @@ async def send_streaming_request(
             sse_done_chunk = "data: [DONE]\n\n"
             await response.write(sse_done_chunk)
 
+        # Ensure response is properly closed
+        if not response._eof_sent:
+            await response.write_eof()
+
         return response
 
 
