@@ -15,8 +15,8 @@ async def setup_config(app):
 
 async def proxy_argo_chat_directly(request: web.Request):
     logger.info("/v1/chat")
-    logger.debug(request.json)
     data = await request.json()
+    logger.debug(data)
 
     stream = data.get("stream", False)
     timeout = data.get("timeout", None)
@@ -27,8 +27,8 @@ async def proxy_argo_chat_directly(request: web.Request):
 
 async def proxy_openai_chat_compatible(request: web.Request):
     logger.info("/v1/chat/completions")
-    logger.debug(request.json)
     data = await request.json()
+    logger.debug(data)
 
     stream = data.get("stream", False)
     timeout = data.get("timeout", None)
@@ -39,8 +39,8 @@ async def proxy_openai_chat_compatible(request: web.Request):
 
 async def proxy_openai_legacy_completions_compatible(request: web.Request):
     logger.info("/v1/completions")
-    logger.debug(request.json)
     data = await request.json()
+    logger.debug(data)
 
     stream = data.get("stream", False)
     timeout = data.get("timeout", None)
@@ -51,7 +51,7 @@ async def proxy_openai_legacy_completions_compatible(request: web.Request):
 
 async def proxy_embedding_request(request: web.Request):
     logger.info("/v1/embeddings")
-    logger.debug(request.json)
+    logger.debug(await request.json())
     return await embed.proxy_request(request, convert_to_openai=True)
 
 
