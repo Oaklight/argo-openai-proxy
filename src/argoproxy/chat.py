@@ -322,7 +322,7 @@ async def proxy_request(
     try:
         # Retrieve the incoming JSON data from request if input_data is not provided
         if input_data is None:
-            data = request.json
+            data = await request.json()
         else:
             data = input_data
 

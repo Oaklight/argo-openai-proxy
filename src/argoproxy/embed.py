@@ -69,7 +69,7 @@ async def proxy_request(request: web.Request, convert_to_openai=False):
     config: ArgoConfig = request.app["config"]
     try:
         # Retrieve the incoming JSON data
-        data = request.json
+        data = await request.json()
         if not data:
             raise ValueError("Invalid input. Expected JSON data.")
         if config.verbose:
