@@ -32,7 +32,6 @@ class ArgoConfig:
         "argo_embedding_url",
         "user",
         "num_workers",
-        "timeout",
     ]
 
     # Configuration fields with default values
@@ -48,7 +47,6 @@ class ArgoConfig:
     )
     verbose: bool = True
     num_workers: int = 5
-    timeout: int = 600
 
     @classmethod
     def from_dict(cls, config_dict: dict):
@@ -350,7 +348,6 @@ def create_config() -> ArgoConfig:
         user=_get_valid_username(),
         verbose=_get_yes_no_input(prompt="Enable verbose mode? [Y/n] "),
         num_workers=int(os.environ.get("NUM_WORKERS", 5)),
-        timeout=_get_valid_timeout(),
     )
 
     config_path = save_config(config_data)
@@ -358,21 +355,6 @@ def create_config() -> ArgoConfig:
 
     return config_data
 
-def _get_valid_timeout() -> int:
-    """Get a valid timeout value from the user."""
-    result = _get_yes_no_input(
-        prompt="Set timeout to [600] seconds? [Y/n/<timeout>] ",
-        default_choice="y",
-        accept_value={"port": int},
-    )
-
-    if result is True:
-        return 600
-    elif result is False:
-        raise ValueError("Timeout selection aborted by user")
-    else:  # port number
-        logger.info(f"Setting {result} as timeout.")
-        return result
 
 def _apply_env_overrides(config_data: ArgoConfig) -> ArgoConfig:
     """Apply environment variable overrides to the config"""

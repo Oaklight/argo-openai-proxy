@@ -19,9 +19,8 @@ async def proxy_argo_chat_directly(request: web.Request):
     logger.debug(data)
 
     stream = data.get("stream", False)
-    timeout = data.get("timeout", None)
     return await chat.proxy_request(
-        convert_to_openai=False, request=request, stream=stream, timeout=timeout
+        convert_to_openai=False, request=request, stream=stream
     )
 
 
@@ -31,9 +30,8 @@ async def proxy_openai_chat_compatible(request: web.Request):
     logger.debug(data)
 
     stream = data.get("stream", False)
-    timeout = data.get("timeout", None)
     return await chat.proxy_request(
-        convert_to_openai=True, request=request, stream=stream, timeout=timeout
+        convert_to_openai=True, request=request, stream=stream
     )
 
 
@@ -43,9 +41,8 @@ async def proxy_openai_legacy_completions_compatible(request: web.Request):
     logger.debug(data)
 
     stream = data.get("stream", False)
-    timeout = data.get("timeout", None)
     return await completions.proxy_request(
-        convert_to_openai=True, request=request, stream=stream, timeout=timeout
+        convert_to_openai=True, request=request, stream=stream
     )
 
 
