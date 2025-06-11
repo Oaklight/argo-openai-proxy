@@ -250,12 +250,10 @@ async def send_streaming_request(
 
         # Stream the response chunk by chunk
         async for chunk in upstream_resp.content.iter_any():
-            chunk_text = chunk.decode("utf-8")
-
             if convert_to_openai:
                 # Convert the chunk to OpenAI-compatible JSON
                 chunk_json = openai_compat_fn(
-                    json.dumps({"response": chunk_text}),
+                    json.dumps({"response": chunk.decode()}),
                     model_name=data["model"],
                     create_timestamp=created_timestamp,
                     prompt_tokens=prompt_tokens,
@@ -264,22 +262,19 @@ async def send_streaming_request(
                 )
                 # Wrap the JSON in SSE format
                 sse_chunk = f"data: {json.dumps(chunk_json)}\n\n"
+                await response.write(sse_chunk.encode())
             else:
                 # Return the chunk as-is (raw text)
-                sse_chunk = chunk_text
-
-            if response._payload_writer is not None:
-                await response.write(sse_chunk.encode("utf-8"))
+                await response.write(chunk)
 
         # Handle the final chunk for OpenAI-compatible mode
         if convert_to_openai:
             # Send the [DONE] marker
             sse_done_chunk = "data: [DONE]\n\n"
-            await response.write(sse_done_chunk.encode("utf-8"))
+            await response.write(sse_done_chunk.encode())
 
         # Ensure response is properly closed
-        if not response._eof_sent:
-            await response.write_eof()
+        await response.write_eof()
 
         return response
 
