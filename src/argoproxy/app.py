@@ -15,59 +15,43 @@ async def setup_config(app):
 
 async def proxy_argo_chat_directly(request: web.Request):
     logger.info("/v1/chat")
-    data = await request.json()
-    logger.debug(data)
 
-    stream = data.get("stream", False)
-    return await chat.proxy_request(
-        convert_to_openai=False, request=request, stream=stream
-    )
+    return await chat.proxy_request(request, convert_to_openai=False)
 
 
 async def proxy_openai_chat_compatible(request: web.Request):
     logger.info("/v1/chat/completions")
-    data = await request.json()
-    logger.debug(data)
 
-    stream = data.get("stream", False)
-    return await chat.proxy_request(
-        convert_to_openai=True, request=request, stream=stream
-    )
+    return await chat.proxy_request(request, convert_to_openai=True)
 
 
 async def proxy_openai_legacy_completions_compatible(request: web.Request):
     logger.info("/v1/completions")
-    data = await request.json()
-    logger.debug(data)
 
-    stream = data.get("stream", False)
-    return await completions.proxy_request(
-        convert_to_openai=True, request=request, stream=stream
-    )
+    return await completions.proxy_request(request, convert_to_openai=True)
 
 
 async def proxy_embedding_request(request: web.Request):
     logger.info("/v1/embeddings")
-    logger.debug(await request.json())
     return await embed.proxy_request(request, convert_to_openai=True)
 
 
-async def get_models():
+async def get_models(request: web.Request):
     logger.info("/v1/models")
     return extras.get_models()
 
 
-async def get_status():
+async def get_status(request: web.Request):
     logger.info("/v1/status")
     return await extras.get_status()
 
 
-async def docs():
+async def docs(request: web.Request):
     msg = "Documentation access: Please visit https://oaklight.github.io/argo-proxy for full documentation.\n"
     return web.Response(text=msg, status=200)
 
 
-async def health_check():
+async def health_check(request: web.Request):
     logger.info("/health")
     return web.json_response({"status": "healthy"}, status=200)
 

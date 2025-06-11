@@ -79,10 +79,9 @@ def make_it_openai_completions_compat(
 
 
 async def proxy_request(
+    request: web.Request,
+    *,
     convert_to_openai=False,
-    request: web.Request = None,
-    input_data=None,
-    stream=False,
 ):
     """Proxies the request to the upstream API, handling both streaming and non-streaming modes.
 
@@ -105,10 +104,8 @@ async def proxy_request(
     config: ArgoConfig = request.app["config"]
     try:
         # Retrieve the incoming JSON data from request if input_data is not provided
-        if input_data is None:
-            data = await request.json()
-        else:
-            data = input_data
+        data = await request.json()
+        stream = data.get("stream", False)
 
         if not data:
             raise ValueError("Invalid input. Expected JSON data.")

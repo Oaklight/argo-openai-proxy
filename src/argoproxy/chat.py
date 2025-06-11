@@ -3,7 +3,7 @@ import json
 import time
 import uuid
 from http import HTTPStatus
-from typing import Any, Callable, Dict, Optional
+from typing import Any, Callable, Dict
 
 import aiohttp
 from aiohttp import web
@@ -284,9 +284,7 @@ async def send_streaming_request(
         return response
 
 
-async def proxy_request(
-    convert_to_openai=False, request=None, input_data=None, stream=False
-):
+async def proxy_request(request: web.Request, *, convert_to_openai=False):
     """Proxies the request to the upstream API, handling both streaming and non-streaming modes.
 
     Args:
@@ -309,10 +307,9 @@ async def proxy_request(
 
     try:
         # Retrieve the incoming JSON data from request if input_data is not provided
-        if input_data is None:
-            data = await request.json()
-        else:
-            data = input_data
+
+        data = await request.json()
+        stream = data.get("stream", False)
 
         if not data:
             raise ValueError("Invalid input. Expected JSON data.")
