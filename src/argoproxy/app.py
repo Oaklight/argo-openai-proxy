@@ -47,8 +47,8 @@ async def get_status(request: web.Request):
 
 
 async def docs(request: web.Request):
-    msg = "Documentation access: Please visit https://oaklight.github.io/argo-proxy for full documentation.\n"
-    return web.Response(text=msg, status=200)
+    msg = "<html><body>Documentation access: Please visit <a href='https://oaklight.github.io/argo-openai-proxy'>here</a> for full documentation.</body></html>"
+    return web.Response(text=msg, status=200, content_type="text/html")
 
 
 async def health_check(request: web.Request):
