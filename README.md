@@ -84,7 +84,6 @@ argo_embedding_url: "https://apps.inside.anl.gov/argoapi/api/v1/resource/embed/"
 user: "your_username" # set during first-time setup
 verbose: true # can be changed during setup
 num_workers: 5
-timeout: 600 # in seconds
 ```
 
 ### Running the Application
@@ -124,7 +123,6 @@ Creating new configuration...
 Use port [52226]? [Y/n/<port>]:
 Enter your username: your_username
 Enable verbose mode? [Y/n]
-Set timeout to [600] seconds? [Y/n/<timeout>]
 Created new configuration at: /home/your_username/.config/argoproxy/config.yaml
 Using port 52226...
 Validating URL connectivity...
@@ -138,8 +136,7 @@ Current configuration:
     "argo_stream_url": "https://apps-dev.inside.anl.gov/argoapi/api/v1/resource/streamchat/",
     "argo_embedding_url": "https://apps.inside.anl.gov/argoapi/api/v1/resource/embed/",
     "verbose": true,
-    "num_workers": 5,
-    "timeout": 600
+    "num_workers": 5
 }
 --------------------------------------
 # ... proxy server starting info display ...
@@ -157,7 +154,6 @@ Current configuration:
 | `user`               | Your username                                                | (Set during setup) |
 | `verbose`            | Debug logging                                                | `true`             |
 | `num_workers`        | Worker processes                                             | `5`                |
-| `timeout`            | Request timeout (seconds)                                    | `600`              |
 
 ### `argo-proxy` CLI Available Options
 
@@ -230,7 +226,7 @@ These endpoints interact directly with the ARGO API and do not convert responses
 
 #### Timeout Override
 
-You can override the default timeout with a `timeout` parameter in your request.
+You can override the default timeout with a `timeout` parameter in your request. This parameter is optional for client request. Proxy server will keep the connection open until it finishes or client disconnects.
 
 Details of how to make such override in different query flavors: [Timeout Override Examples](timeout_examples.md)
 
