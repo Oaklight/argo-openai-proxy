@@ -1,7 +1,7 @@
 import os
 
+from loguru import logger
 from sanic import Sanic, response
-from sanic.log import logger
 
 from . import chat, completions, embed, extras
 from .config import load_config

@@ -3,8 +3,8 @@ import uuid
 from http import HTTPStatus
 
 import aiohttp
+from loguru import logger
 from sanic import response
-from sanic.log import logger
 
 from .chat import (
     DEFAULT_TIMEOUT_SECONDS,

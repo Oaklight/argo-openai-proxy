@@ -3,10 +3,9 @@ import socket
 from typing import Dict, List, Optional, Union
 
 import tiktoken
-from sanic.log import logger
+from loguru import logger
 
 from .constants import ALL_MODELS, TIKTOKEN_ENCODING_PREFIX_MAPPING
-
 
 
 def make_bar(message: str = "", bar_length=40) -> str:

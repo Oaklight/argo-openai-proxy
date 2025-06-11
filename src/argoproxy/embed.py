@@ -2,8 +2,8 @@ import json
 from http import HTTPStatus
 
 import aiohttp
+from loguru import logger
 from sanic import response
-from sanic.log import logger
 
 from .constants import EMBED_MODELS
 from .utils import count_tokens, make_bar, resolve_model_name

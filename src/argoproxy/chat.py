@@ -7,7 +7,7 @@ from typing import Any, Callable, Dict, Optional
 
 import aiohttp
 from sanic import response
-from sanic.log import logger
+from loguru import logger
 from sanic.response import HTTPResponse
 
 from .constants import CHAT_MODELS
