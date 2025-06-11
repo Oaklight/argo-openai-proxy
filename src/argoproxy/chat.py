@@ -243,6 +243,7 @@ async def send_streaming_request(
             status=upstream_resp.status,
             headers=response_headers,
         )
+        response.enable_chunked_encoding()
         await response.prepare(request)
 
         # Generate a unique ID and timestamp for the completion (if converting to OpenAI format)
@@ -273,13 +274,13 @@ async def send_streaming_request(
 
             # logger.debug(f"sse_chunk is {sse_chunk}")
             if response._payload_writer is not None:
-                await response.write(sse_chunk)
+                await response.write(sse_chunk.encode("utf-8"))
 
         # Handle the final chunk for OpenAI-compatible mode
         if convert_to_openai:
             # Send the [DONE] marker
             sse_done_chunk = "data: [DONE]\n\n"
-            await response.write(sse_done_chunk)
+            await response.write(sse_done_chunk.encode("utf-8"))
 
         # Ensure response is properly closed
         if not response._eof_sent:
