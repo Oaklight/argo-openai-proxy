@@ -226,6 +226,8 @@ async def send_streaming_request(
     # Set response headers based on the mode
     if convert_to_openai:
         response_headers = {"Content-Type": "text/event-stream"}
+        created_timestamp = int(time.time())
+        prompt_tokens = calculate_prompt_tokens(data, data["model"])
     else:
         response_headers = {"Content-Type": "text/plain; charset=utf-8"}
 
@@ -246,17 +248,11 @@ async def send_streaming_request(
         response.enable_chunked_encoding()
         await response.prepare(request)
 
-        # Generate a unique ID and timestamp for the completion (if converting to OpenAI format)
-        created_timestamp = int(time.time()) if convert_to_openai else None
-
         # Stream the response chunk by chunk
         async for chunk in upstream_resp.content.iter_any():
             chunk_text = chunk.decode("utf-8")
-            # logger.debug(f"Received chunk: {chunk_text}")
 
             if convert_to_openai:
-                # Calculate prompt tokens using the unified function
-                prompt_tokens = calculate_prompt_tokens(data, data["model"])
                 # Convert the chunk to OpenAI-compatible JSON
                 chunk_json = openai_compat_fn(
                     json.dumps({"response": chunk_text}),
@@ -272,7 +268,6 @@ async def send_streaming_request(
                 # Return the chunk as-is (raw text)
                 sse_chunk = chunk_text
 
-            # logger.debug(f"sse_chunk is {sse_chunk}")
             if response._payload_writer is not None:
                 await response.write(sse_chunk.encode("utf-8"))
 
