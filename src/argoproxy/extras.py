@@ -2,7 +2,7 @@ import json
 from datetime import datetime
 from typing import Any, Dict
 
-from sanic import response
+from aiohttp import web
 
 from .chat import proxy_request as chat_proxy_request
 from .constants import ALL_MODELS
@@ -29,7 +29,7 @@ def get_models():
     """
     Returns a list of available models in OpenAI-compatible format.
     """
-    return response.json(MODELS_DATA, status=200)
+    return web.json_response(MODELS_DATA, status=200)
 
 
 async def get_status():
@@ -48,4 +48,4 @@ async def get_status():
     json_data = response_data.body
 
     # Return the JSON data as a new JSONResponse
-    return response.json(json.loads(json_data), status=200)
+    return web.json_response(json.loads(json_data), status=200)

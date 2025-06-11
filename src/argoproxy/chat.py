@@ -6,12 +6,11 @@ from http import HTTPStatus
 from typing import Any, Callable, Dict, Optional
 
 import aiohttp
-from sanic import response
+from aiohttp import web
 from loguru import logger
-from sanic.response import HTTPResponse
 
+from .config import ArgoConfig
 from .constants import CHAT_MODELS
-
 from .utils import (
     calculate_prompt_tokens,
     count_tokens,
@@ -103,11 +102,11 @@ def make_it_openai_chat_completions_compat(
         return {"error": f"An error occurred: {err}"}
 
 
-def prepare_request_data(data, request):
+def prepare_request_data(data, request: web.Request):
     """
     Prepares the request data by adding the user and remapping the model.
     """
-    config = request.app.ctx.config
+    config: ArgoConfig = request.app["config"]
     # Automatically replace or insert the user
     data["user"] = config.user
 
@@ -149,25 +148,32 @@ async def send_non_streaming_request(
     convert_to_openai: bool = False,
     openai_compat_fn: Callable = make_it_openai_chat_completions_compat,
     timeout: Optional[aiohttp.ClientTimeout] = None,
-) -> HTTPResponse:
-    """
-    Sends a non-streaming request to the specified API URL and processes the response.
+) -> web.Response:
+    """Sends a non-streaming request to the specified API URL and processes the response.
 
-    :param session: The aiohttp ClientSession used to send the request.
-    :param api_url: The URL of the API endpoint to which the request is sent.
-    :param data: The JSON data to be sent in the request body.
-    :param convert_to_openai: A boolean flag indicating whether to convert the response to OpenAI-compatible format. Defaults to False.
-    :param openai_compat_fn: The function used to convert the response to OpenAI-compatible format. Defaults to `make_it_openai_chat_completions_compat`.
-    :param timeout: Optional timeout in seconds for the request. If not provided, the default timeout from the configuration is used.
+    Args:
+        session: The aiohttp ClientSession used to send the request.
+        api_url: The URL of the API endpoint to which the request is sent.
+        data: The JSON data to be sent in the request body.
+        convert_to_openai: Whether to convert the response to OpenAI-compatible format.
+            Defaults to False.
+        openai_compat_fn: Function to convert response to OpenAI-compatible format.
+            Defaults to `make_it_openai_chat_completions_compat`.
+        timeout: Optional timeout for the request. If None, uses default timeout.
 
-    :return: A Sanic response object containing the JSON response from the API, with the appropriate status code and content type.
+    Returns:
+        A web.Response object containing the JSON response from the API with appropriate
+        status code and content type.
+
+    Raises:
+        aiohttp.ClientError: If the request fails.
     """
     headers = {"Content-Type": "application/json"}
     async with session.post(
         api_url, headers=headers, json=data, timeout=timeout
-    ) as resp:
-        response_data = await resp.json()
-        resp.raise_for_status()
+    ) as upstream_resp:
+        response_data = await upstream_resp.json()
+        upstream_resp.raise_for_status()
 
         if convert_to_openai:
             # Calculate prompt tokens using the unified function
@@ -178,15 +184,15 @@ async def send_non_streaming_request(
                 create_timestamp=int(time.time()),
                 prompt_tokens=prompt_tokens,
             )
-            return response.json(
+            return web.json_response(
                 openai_response,
-                status=resp.status,
+                status=upstream_resp.status,
                 content_type="application/json",
             )
         else:
-            return response.json(
+            return web.json_response(
                 response_data,
-                status=resp.status,
+                status=upstream_resp.status,
                 content_type="application/json",
             )
 
@@ -200,18 +206,24 @@ async def send_streaming_request(
     openai_compat_fn: Callable = make_it_openai_chat_completions_compat,
     timeout: Optional[aiohttp.ClientTimeout] = None,
 ) -> None:
-    """
-    Sends a streaming request to the specified API URL and streams the response back to the client.
+    """Sends a streaming request to the specified API URL and streams the response back to the client.
 
-    :param session: The aiohttp ClientSession used to send the request.
-    :param api_url: The URL of the API endpoint to which the request is sent.
-    :param data: The JSON data to be sent in the request body.
-    :param request: The Sanic request object used to handle the streaming response.
-    :param convert_to_openai: A boolean flag indicating whether to convert the response to OpenAI-compatible format. Defaults to False.
-    :param openai_compat_fn: The function used to convert the response to OpenAI-compatible format. Defaults to `make_it_openai_chat_completions_compat`.
-    :param timeout: Optional timeout in seconds for the request. If not provided, the default timeout from the configuration is used.
+    Args:
+        session: The aiohttp ClientSession used to send the request.
+        api_url: The URL of the API endpoint to which the request is sent.
+        data: The JSON payload to send in the request body.
+        request: The web request object used to stream the response back to the client.
+        convert_to_openai: Whether to convert the response into OpenAI-compatible format.
+            Defaults to False.
+        openai_compat_fn: Function to convert response into OpenAI-compatible format.
+            Defaults to `make_it_openai_chat_completions_compat`.
+        timeout: Optional timeout for the request. If None, uses the default timeout.
 
-    :return: None, as the response is streamed back to the client in chunks.
+    Returns:
+        None. The streaming response is sent back to the client in chunks.
+
+    Raises:
+        aiohttp.ClientError: If the request fails.
     """
     headers = {
         "Content-Type": "application/json",
@@ -227,15 +239,27 @@ async def send_streaming_request(
 
     async with session.post(
         api_url, headers=headers, json=data, timeout=timeout
-    ) as resp:
+    ) as upstream_resp:
         # Initialize the streaming response
-        streaming_response = await request.respond(headers=response_headers)
+        response_headers.update(
+            {
+                k: v
+                for k, v in upstream_resp.headers.items()
+                if k.lower()
+                not in ("Content-Type", "content-encoding", "transfer-encoding")
+            }
+        )
+        response = web.StreamResponse(
+            status=upstream_resp.status,
+            headers=response_headers,
+        )
+        await response.prepare(request)
 
         # Generate a unique ID and timestamp for the completion (if converting to OpenAI format)
         created_timestamp = int(time.time()) if convert_to_openai else None
 
         # Stream the response chunk by chunk
-        async for chunk in resp.content.iter_chunked(1024):
+        async for chunk in upstream_resp.content.iter_any():
             chunk_text = chunk.decode("utf-8")
             # logger.debug(f"Received chunk: {chunk_text}")
 
@@ -258,34 +282,45 @@ async def send_streaming_request(
                 sse_chunk = chunk_text
 
             # logger.debug(f"sse_chunk is {sse_chunk}")
-            await streaming_response.send(sse_chunk)
+            if response._payload_writer is not None:
+                await response.write(sse_chunk)
 
         # Handle the final chunk for OpenAI-compatible mode
         if convert_to_openai:
             # Send the [DONE] marker
             sse_done_chunk = "data: [DONE]\n\n"
-            await streaming_response.send(sse_done_chunk)
+            await response.write(sse_done_chunk)
 
-    return None
+        return response
 
 
 async def proxy_request(
     convert_to_openai=False, request=None, input_data=None, stream=False, timeout=None
 ):
-    """
-    Proxies the request to the upstream API, handling both streaming and non-streaming modes.
+    """Proxies the request to the upstream API, handling both streaming and non-streaming modes.
 
-    :param convert_to_openai: Whether to convert the response to OpenAI-compatible format.
-    :param request: The Sanic request object.
-    :param input_data: Optional input data (used for testing).
-    :param stream: Whether to enable streaming mode.
-    :param timeout: Optional timeout in seconds for the request
-    :return: The response from the upstream API.
+    Args:
+        convert_to_openai: Whether to convert the response to OpenAI-compatible format.
+            Defaults to False.
+        request: The web request object containing incoming request data.
+        input_data: Optional input data (used for testing). If None, the request JSON
+            data will be used.
+        stream: Whether to enable streaming mode. Defaults to False.
+        timeout: Optional timeout for the API request. If None, the default
+            timeout from the configuration will be used.
+
+    Returns:
+        A web.Response object from the upstream API.
+
+    Raises:
+        ValueError: If the input data is invalid or missing.
+        aiohttp.ClientError: If the HTTP request fails.
+        Exception: For unexpected server or runtime errors.
     """
-    config = request.app.ctx.config
+    config: ArgoConfig = request.app["config"]
 
     try:
-        # Retrieve the incoming JSON data from Sanic request if input_data is not provided
+        # Retrieve the incoming JSON data from request if input_data is not provided
         if input_data is None:
             data = request.json
         else:
@@ -333,21 +368,21 @@ async def proxy_request(
                 )
 
     except ValueError as err:
-        return response.json(
+        return web.json_response(
             {"error": str(err)},
             status=HTTPStatus.BAD_REQUEST,
             content_type="application/json",
         )
     except aiohttp.ClientError as err:
         error_message = f"HTTP error occurred: {err}"
-        return response.json(
+        return web.json_response(
             {"error": error_message},
             status=HTTPStatus.SERVICE_UNAVAILABLE,
             content_type="application/json",
         )
     except Exception as err:
         error_message = f"An unexpected error occurred: {err}"
-        return response.json(
+        return web.json_response(
             {"error": error_message},
             status=HTTPStatus.INTERNAL_SERVER_ERROR,
             content_type="application/json",

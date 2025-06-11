@@ -6,10 +6,9 @@ import sys
 from typing import Optional
 
 from loguru import logger
-from sanic import Sanic
-from sanic.worker.loader import AppLoader
 
 from .__init__ import __version__
+from .app import run
 from .config import PATHS_TO_TRY, validate_config
 
 logger.remove()  # Remove default handlers
@@ -138,20 +137,12 @@ def main():
         if args.validate:
             logger.info("Configuration validation successful.")
             return
-        # Run the app with validated config
-        loader = AppLoader("argoproxy.app:app")
-        app = loader.load()
-        app.prepare(
-            host=args.host or config_instance.host,
-            port=args.port or config_instance.port,
-            workers=args.num_worker or config_instance.num_workers,
-        )
-        Sanic.serve(primary=app, app_loader=loader)
+        run(host=config_instance.host, port=config_instance.port)
     except KeyError:
         logger.error("Port not specified in configuration file.")
         sys.exit(1)
     except subprocess.CalledProcessError as e:
-        logger.error(f"Failed to start Sanic server: {e}")
+        logger.error(f"Failed to start ArgoProxy server: {e}")
         sys.exit(1)
     except Exception as e:
         logger.error(f"An error occurred while starting the server: {e}")

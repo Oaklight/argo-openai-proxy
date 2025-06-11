@@ -2,9 +2,10 @@ import json
 from http import HTTPStatus
 
 import aiohttp
+from aiohttp import web
 from loguru import logger
-from sanic import response
 
+from .config import ArgoConfig
 from .constants import EMBED_MODELS
 from .utils import count_tokens, make_bar, resolve_model_name
 
@@ -64,8 +65,8 @@ def make_it_openai_embeddings_compat(
         return {"error": f"An error occurred: {err}"}
 
 
-async def proxy_request(request, convert_to_openai=False):
-    config = request.app.ctx.config
+async def proxy_request(request: web.Request, convert_to_openai=False):
+    config: ArgoConfig = request.app["config"]
     try:
         # Retrieve the incoming JSON data
         data = request.json
@@ -118,34 +119,34 @@ async def proxy_request(request, convert_to_openai=False):
                         data["model"],
                         data["prompt"],
                     )
-                    return response.json(
+                    return web.json_response(
                         openai_response,
                         status=resp.status,
                         content_type="application/json",
                     )
                 else:
-                    return response.json(
+                    return web.json_response(
                         response_data,
                         status=resp.status,
                         content_type="application/json",
                     )
 
     except ValueError as err:
-        return response.json(
+        return web.json_response(
             {"error": str(err)},
             status=HTTPStatus.BAD_REQUEST,
             content_type="application/json",
         )
     except aiohttp.ClientError as err:
         error_message = f"HTTP error occurred: {err}"
-        return response.json(
+        return web.json_response(
             {"error": error_message},
             status=HTTPStatus.SERVICE_UNAVAILABLE,
             content_type="application/json",
         )
     except Exception as err:
         error_message = f"An unexpected error occurred: {err}"
-        return response.json(
+        return web.json_response(
             {"error": error_message},
             status=HTTPStatus.INTERNAL_SERVER_ERROR,
             content_type="application/json",

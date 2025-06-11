@@ -3,8 +3,8 @@ import uuid
 from http import HTTPStatus
 
 import aiohttp
+from aiohttp import web
 from loguru import logger
-from sanic import response
 
 from .chat import (
     DEFAULT_TIMEOUT_SECONDS,
@@ -12,6 +12,7 @@ from .chat import (
     send_non_streaming_request,
     send_streaming_request,
 )
+from .config import ArgoConfig
 from .utils import make_bar
 
 # Configuration variables
@@ -79,20 +80,35 @@ def make_it_openai_completions_compat(
 
 
 async def proxy_request(
-    convert_to_openai=False, request=None, input_data=None, stream=False, timeout=None
+    convert_to_openai=False,
+    request: web.Request = None,
+    input_data=None,
+    stream=False,
+    timeout=None,
 ):
-    """
-    Proxies the request to the upstream API, handling both streaming and non-streaming modes.
+    """Proxies the request to the upstream API, handling both streaming and non-streaming modes.
 
-    :param convert_to_openai: Whether to convert the response to OpenAI-compatible format.
-    :param request: The Sanic request object.
-    :param input_data: Optional input data (used for testing).
-    :param stream: Whether to enable streaming mode.
-    :return: The response from the upstream API.
+    Args:
+        convert_to_openai: Whether to convert the response to OpenAI-compatible format.
+            Defaults to False.
+        request: The web request object containing incoming request data.
+        input_data: Optional input data (used for testing). If None, the request JSON
+            data will be used.
+        stream: Whether to enable streaming mode. Defaults to False.
+        timeout: Optional timeout for the API request. If None, the default
+            timeout from the configuration will be used.
+
+    Returns:
+        A web.Response object from the upstream API.
+
+    Raises:
+        ValueError: If the input data is invalid or missing.
+        aiohttp.ClientError: If the HTTP request fails.
+        Exception: For unexpected server or runtime errors.
     """
-    config = request.app.ctx.config
+    config: ArgoConfig = request.app["config"]
     try:
-        # Retrieve the incoming JSON data from Sanic request if input_data is not provided
+        # Retrieve the incoming JSON data from request if input_data is not provided
         if input_data is None:
             data = request.json
         else:
@@ -138,21 +154,21 @@ async def proxy_request(
                 )
 
     except ValueError as err:
-        return response.json(
+        return web.json_response(
             {"error": str(err)},
             status=HTTPStatus.BAD_REQUEST,
             content_type="application/json",
         )
     except aiohttp.ClientError as err:
         error_message = f"HTTP error occurred: {err}"
-        return response.json(
+        return web.json_response(
             {"error": error_message},
             status=HTTPStatus.SERVICE_UNAVAILABLE,
             content_type="application/json",
         )
     except Exception as err:
         error_message = f"An unexpected error occurred: {err}"
-        return response.json(
+        return web.json_response(
             {"error": error_message},
             status=HTTPStatus.INTERNAL_SERVER_ERROR,
             content_type="application/json",
