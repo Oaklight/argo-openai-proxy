@@ -1,6 +1,7 @@
 import json
 import uuid
 from http import HTTPStatus
+from typing import Any, Dict, Optional, Union
 
 import aiohttp
 from aiohttp import web
@@ -15,25 +16,29 @@ from .config import ArgoConfig
 from .types import Completion, CompletionChoice, CompletionUsage
 from .utils import make_bar
 
-# Configuration variables
+DEFAULT_STREAM = False
 
 
 def make_it_openai_completions_compat(
-    custom_response,
-    model_name,
-    create_timestamp,
-    prompt_tokens,
-    is_streaming=False,
-    finish_reason=None,
-):
-    """
-    Converts the custom API response to an OpenAI compatible API response.
+    custom_response: Union[str, Dict[str, Any]],
+    model_name: str,
+    create_timestamp: int,
+    prompt_tokens: int,
+    is_streaming: bool = False,
+    finish_reason: Optional[str] = None,
+) -> Union[Dict[str, Any], str]:
+    """Converts a custom API response to an OpenAI-compatible completion API response.
 
-    :param custom_response: JSON response from the custom API.
-    :param model_name: The model used for the completion.
-    :param create_timestamp: Timestamp for the completion.
-    :param prompt_tokens: The input prompt token count used in the request.
-    :return: OpenAI compatible JSON response.
+    Args:
+        custom_response (Union[str, Dict[str, Any]]): The custom API response in JSON format.
+        model_name (str): The model name used for generating the completion.
+        create_timestamp (int): Timestamp indicating when the completion was created.
+        prompt_tokens (int): Number of tokens in the input prompt.
+        is_streaming (bool, optional): Indicates if the response is in streaming mode. Defaults to False.
+        finish_reason (str, optional): Reason for the completion stop. Defaults to None.
+
+    Returns:
+        Union[Dict[str, Any], str]: OpenAI-compatible JSON response or an error message.
     """
     try:
         # Parse the custom response
@@ -43,12 +48,12 @@ def make_it_openai_completions_compat(
             custom_response_dict = custom_response
 
         # Extract the response text
-        response_text = custom_response_dict.get("response", "")
+        response_text: str = custom_response_dict.get("response", "")
 
         # Calculate token counts (simplified example, actual tokenization may differ)
         if not is_streaming:
-            completion_tokens = len(response_text.split())
-            total_tokens = prompt_tokens + completion_tokens
+            completion_tokens: int = len(response_text.split())
+            total_tokens: int = prompt_tokens + completion_tokens
             usage = CompletionUsage(
                 prompt_tokens=prompt_tokens,
                 completion_tokens=completion_tokens,
@@ -63,7 +68,7 @@ def make_it_openai_completions_compat(
                 CompletionChoice(
                     text=response_text,
                     index=0,
-                    finish_reason="stop",
+                    finish_reason=finish_reason or "stop",
                 )
             ],
             usage=usage
@@ -82,31 +87,27 @@ def make_it_openai_completions_compat(
 async def proxy_request(
     request: web.Request,
     *,
-    convert_to_openai=False,
-):
-    """Proxies the request to the upstream API, handling both streaming and non-streaming modes.
+    convert_to_openai: bool = False,
+) -> web.Response:
+    """Proxies incoming requests to the upstream API and processes responses.
 
     Args:
-        convert_to_openai: Whether to convert the response to OpenAI-compatible format.
-            Defaults to False.
-        request: The web request object containing incoming request data.
-        input_data: Optional input data (used for testing). If None, the request JSON
-            data will be used.
-        stream: Whether to enable streaming mode. Defaults to False.
+        request (web.Request): The incoming HTTP request object.
+        convert_to_openai (bool, optional): Whether to convert the response to OpenAI-compatible format. Defaults to False.
 
     Returns:
-        A web.Response object from the upstream API.
+        web.Response: The HTTP response sent back to the client.
 
     Raises:
-        ValueError: If the input data is invalid or missing.
-        aiohttp.ClientError: If the HTTP request fails.
-        Exception: For unexpected server or runtime errors.
+        ValueError: Raised when the request data is invalid or missing.
+        aiohttp.ClientError: Raised when there is an HTTP client error.
+        Exception: Raised for unexpected runtime errors.
     """
     config: ArgoConfig = request.app["config"]
     try:
-        # Retrieve the incoming JSON data from request if input_data is not provided
-        data = await request.json()
-        stream = data.get("stream", False)
+        # Retrieve the incoming JSON data
+        data: Dict[str, Any] = await request.json()
+        stream: bool = data.get("stream", DEFAULT_STREAM)
 
         if not data:
             raise ValueError("Invalid input. Expected JSON data.")
@@ -119,7 +120,7 @@ async def proxy_request(
         data = prepare_request_data(data, request)
 
         # Determine the API URL based on whether streaming is enabled
-        api_url = config.argo_stream_url if stream else config.argo_url
+        api_url: str = config.argo_stream_url if stream else config.argo_url
 
         # Forward the modified request to the actual API using aiohttp
         async with aiohttp.ClientSession() as session:
