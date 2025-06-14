@@ -12,6 +12,7 @@ from .chat import (
     send_streaming_request,
 )
 from .config import ArgoConfig
+from .types import Completion, CompletionChoice, CompletionUsage
 from .utils import make_bar
 
 # Configuration variables
@@ -48,29 +49,29 @@ def make_it_openai_completions_compat(
         if not is_streaming:
             completion_tokens = len(response_text.split())
             total_tokens = prompt_tokens + completion_tokens
+            usage = CompletionUsage(
+                prompt_tokens=prompt_tokens,
+                completion_tokens=completion_tokens,
+                total_tokens=total_tokens,
+            )
 
-        # Construct the OpenAI compatible response
-        openai_response = {
-            "id": f"cmpl-{uuid.uuid4().hex}",  # Unique ID
-            "object": "text_completion",  # Object type
-            "created": create_timestamp,  # Current timestamp
-            "model": model_name,  # Model name
-            "choices": [
-                {
-                    "text": response_text,
-                    "index": 0,
-                    "logprobs": None,
-                    "finish_reason": "stop",  # TODO: stop or length or ""/None
-                }
+        openai_response = Completion(
+            id=f"cmpl-{uuid.uuid4().hex}",
+            created=create_timestamp,
+            model=model_name,
+            choices=[
+                CompletionChoice(
+                    text=response_text,
+                    index=0,
+                    finish_reason="stop",
+                )
             ],
-        }
-        if not is_streaming:
-            openai_response["usage"] = {
-                "prompt_tokens": prompt_tokens,
-                "completion_tokens": completion_tokens,
-                "total_tokens": total_tokens,
-            }
-        return openai_response
+            usage=usage
+            if not is_streaming
+            else None,  # Usage is not provided in streaming mode
+        )
+
+        return openai_response.model_dump()
 
     except json.JSONDecodeError as err:
         return {"error": f"Error decoding JSON: {err}"}

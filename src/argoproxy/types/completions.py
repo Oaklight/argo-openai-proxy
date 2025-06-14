@@ -23,7 +23,7 @@ class Completion(BaseModel):
     model: str
     """The model used for completion."""
 
-    object: Literal["text_completion"]
+    object: Literal["text_completion"] = "text_completion"
     """The object type, which is always "text_completion" """
 
     system_fingerprint: Optional[str] = None
