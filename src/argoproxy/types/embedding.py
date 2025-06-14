@@ -1,7 +1,7 @@
 from typing import List
 
 from pydantic import BaseModel
-from typing_extensions import Literal
+from typing import Literal
 
 
 class Usage(BaseModel):
