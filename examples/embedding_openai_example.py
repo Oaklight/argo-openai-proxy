@@ -4,7 +4,7 @@ MODEL = "argo:text-embedding-3-small"
 
 client = openai.OpenAI(
     api_key="whatever+random",
-    base_url="http://localhost:44498/v1",
+    base_url="http://localhost:44500/v1",
 )
 
 
