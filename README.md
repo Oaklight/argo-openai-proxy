@@ -273,7 +273,7 @@ For examples of how to use the `/v1/chat/completions`, `/v1/completions`, and `/
 
 #### Embedding Example
 
-- [embedding_example.py](examples/embedding_example.py)
+- [embedding_http_example.py](examples/embedding_http_example.py)
 
 #### o1 Chat Example
 
@@ -298,7 +298,7 @@ $ tree -I "__pycache__|*.egg-info|dist|dev_scripts|config.yaml"
 │   ├── chat_example_stream.py
 │   ├── completions_example.py
 │   ├── completions_example_stream.py
-│   ├── embedding_example.py
+│   ├── embedding_http_example.py
 │   ├── o1_chat_example.py
 │   └── o3_chat_example_pyclient.py
 ├── LICENSE
