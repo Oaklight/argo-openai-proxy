@@ -274,6 +274,7 @@ For examples of how to use the `/v1/chat/completions`, `/v1/completions`, and `/
 #### Embedding Example
 
 - [embedding_http_example.py](examples/embedding_http_example.py)
+- [embedding_openai_example.py](examples/embedding_openai_example.py)
 
 #### o1 Chat Example
 
