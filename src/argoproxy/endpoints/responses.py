@@ -155,17 +155,19 @@ def prepare_request_data(
     else:
         data["model"] = DEFAULT_MODEL
 
+    # obtain messages from input
     messages = data.get("input", [])
-    instructions = data.get("instructions", "")
-    if instructions:
+    # Insert instructions as a system message
+    if instructions := data.get("instructions", ""):
         messages.insert(0, {"role": "system", "content": instructions})
-    max_tokens = data.get("max_output_tokens", None)
+        del data["instructions"]
+    # replace input with messages
     data["messages"] = messages
-    if max_tokens:
-        data["max_tokens"] = max_tokens
     del data["input"]
-    del data["instructions"]
-    del data["max_output_tokens"]
+
+    if max_tokens := data.get("max_output_tokens", None):
+        data["max_tokens"] = max_tokens
+        del data["max_output_tokens"]
 
     # Convert system message to user message for specific models
     if data["model"] in NO_SYS_MSG:
