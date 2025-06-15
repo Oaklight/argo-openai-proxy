@@ -231,7 +231,7 @@ class ResponseCreatedEvent(BaseModel):
     sequence_number: int
     """The sequence number for this event."""
 
-    type: Literal["response.created"]
+    type: Literal["response.created"] = "response.created"
     """The type of the event. Always `response.created`."""
 
 
@@ -242,7 +242,7 @@ class ResponseInProgressEvent(BaseModel):
     sequence_number: int
     """The sequence number of this event."""
 
-    type: Literal["response.in_progress"]
+    type: Literal["response.in_progress"] = "response.in_progress"
     """The type of the event. Always `response.in_progress`."""
 
 
@@ -272,7 +272,7 @@ class ResponseOutputItemAddedEvent(BaseModel):
     sequence_number: int
     """The sequence number of this event."""
 
-    type: Literal["response.output_item.added"]
+    type: Literal["response.output_item.added"] = "response.output_item.added"
     """The type of the event. Always `response.output_item.added`."""
 
 
@@ -286,7 +286,7 @@ class ResponseOutputItemDoneEvent(BaseModel):
     sequence_number: int
     """The sequence number of this event."""
 
-    type: Literal["response.output_item.done"]
+    type: Literal["response.output_item.done"] = "response.output_item.done"
     """The type of the event. Always `response.output_item.done`."""
 
 
@@ -312,7 +312,7 @@ class ResponseContentPartAddedEvent(BaseModel):
     sequence_number: int
     """The sequence number of this event."""
 
-    type: Literal["response.content_part.added"]
+    type: Literal["response.content_part.added"] = "response.content_part.added"
     """The type of the event. Always `response.content_part.added`."""
 
 
@@ -332,7 +332,7 @@ class ResponseContentPartDoneEvent(BaseModel):
     sequence_number: int
     """The sequence number of this event."""
 
-    type: Literal["response.content_part.done"]
+    type: Literal["response.content_part.done"] = "response.content_part.done"
     """The type of the event. Always `response.content_part.done`."""
 
 
@@ -352,7 +352,7 @@ class ResponseTextDeltaEvent(BaseModel):
     sequence_number: int
     """The sequence number for this event."""
 
-    type: Literal["response.output_text.delta"]
+    type: Literal["response.output_text.delta"] = "response.output_text.delta"
     """The type of the event. Always `response.output_text.delta`."""
 
 
@@ -372,7 +372,7 @@ class ResponseTextDoneEvent(BaseModel):
     text: str
     """The text content that is finalized."""
 
-    type: Literal["response.output_text.done"]
+    type: Literal["response.output_text.done"] = "response.output_text.done"
     """The type of the event. Always `response.output_text.done`."""
 
 
@@ -383,5 +383,5 @@ class ResponseCompletedEvent(BaseModel):
     sequence_number: int
     """The sequence number for this event."""
 
-    type: Literal["response.completed"]
+    type: Literal["response.completed"] = "response.completed"
     """The type of the event. Always `response.completed`."""
