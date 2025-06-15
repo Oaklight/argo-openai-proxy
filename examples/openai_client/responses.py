@@ -22,12 +22,14 @@ def stream_chat_test():
             "content": "Tell me something interesting about quantum mechanics.",
         },
     ]
+    max_tokens = 5
 
     try:
         response = client.responses.create(
             model=MODEL,
             instructions="Talk like a pirate.",
             input=messages,
+            max_output_tokens=max_tokens,
         )
         print("Streaming Response:")
         print(response)
