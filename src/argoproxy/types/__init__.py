@@ -1,5 +1,6 @@
 from .embedding import CreateEmbeddingResponse, Embedding, Usage
 from .completions import Completion, CompletionChoice, CompletionUsage
+from .chat_completion import ChatCompletionChunk
 
 __all__ = [
     # Embedding-related types
@@ -10,4 +11,6 @@ __all__ = [
     "Completion",
     "CompletionChoice",
     "CompletionUsage",
+    # Chat completion-related types
+    "ChatCompletionChunk",
 ]

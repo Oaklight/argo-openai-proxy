@@ -17,6 +17,7 @@ from .utils import (
     make_bar,
     resolve_model_name,
 )
+from .types import CompletionUsage, ChatCompletionChunk
 
 DEFAULT_MODEL = "gpt4o"
 
@@ -67,31 +68,50 @@ def make_it_openai_chat_completions_compat(
             # Calculate token counts (simplified example, actual tokenization may differ)
             completion_tokens = count_tokens(response_text, model_name)
             total_tokens = prompt_tokens + completion_tokens
+            usage = CompletionUsage(
+                prompt_tokens=prompt_tokens,
+                completion_tokens=completion_tokens,
+                total_tokens=total_tokens,
+            ).model_dump()
 
-        # Construct the base OpenAI compatible response
-        openai_response = {
-            "id": str(uuid.uuid4().hex),
-            "object": "chat.completion.chunk" if is_streaming else "chat.completion",
-            "created": create_timestamp,
-            "model": model_name,
-            "choices": [
-                {
-                    "index": 0,
-                    "finish_reason": finish_reason,
-                    "delta" if is_streaming else "message": {
-                        "role": "assistant",
-                        "content": response_text,
+        if is_streaming:
+            openai_response = {
+                "id": str(uuid.uuid4().hex),
+                "object": "chat.completion.chunk",
+                "created": create_timestamp,
+                "model": model_name,
+                "choices": [
+                    {
+                        "index": 0,
+                        "delta": {
+                            "role": "assistant",
+                            "content": response_text,
+                        },
+                        "finish_reason": finish_reason,
                     },
-                }
-            ],
-            "system_fingerprint": "",
-        }
-        if not is_streaming:
-            openai_response["usage"] = {
-                "prompt_tokens": prompt_tokens,
-                "completion_tokens": completion_tokens,
-                "total_tokens": total_tokens,
+                ],
+                "system_fingerprint": "",
             }
+        else:
+            openai_response = {
+                "id": str(uuid.uuid4().hex),
+                "object": "chat.completion",
+                "created": create_timestamp,
+                "model": model_name,
+                "choices": [
+                    {
+                        "index": 0,
+                        "message": {
+                            "role": "assistant",
+                            "content": response_text,
+                        },
+                        "finish_reason": finish_reason,
+                    },
+                ],
+                "usage": usage,
+                "system_fingerprint": "",
+            }
+
         return openai_response
 
     except json.JSONDecodeError as err:
