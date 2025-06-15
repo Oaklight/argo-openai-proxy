@@ -86,8 +86,6 @@ def make_it_openai_completions_compat(
 
 async def proxy_request(
     request: web.Request,
-    *,
-    convert_to_openai: bool = False,
 ) -> web.Response:
     """Proxies incoming requests to the upstream API and processes responses.
 
@@ -130,7 +128,7 @@ async def proxy_request(
                     api_url,
                     data,
                     request,
-                    convert_to_openai,
+                    convert_to_openai=True,
                     openai_compat_fn=make_it_openai_completions_compat,
                 )
             else:
@@ -138,7 +136,7 @@ async def proxy_request(
                     session,
                     api_url,
                     data,
-                    convert_to_openai,
+                    convert_to_openai=True,
                     openai_compat_fn=make_it_openai_completions_compat,
                 )
 

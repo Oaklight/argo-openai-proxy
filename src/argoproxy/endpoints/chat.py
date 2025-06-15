@@ -308,7 +308,7 @@ async def send_streaming_request(
 async def proxy_request(
     request: web.Request,
     *,
-    convert_to_openai: bool = False,
+    convert_to_openai: bool = True,
 ) -> web.Response:
     """Proxies the client's request to an upstream API, handling response streaming and conversion.
 
