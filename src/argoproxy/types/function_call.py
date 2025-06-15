@@ -23,5 +23,5 @@ class ChatCompletionMessageToolCall(BaseModel):
     function: Function
     """The function that the model called."""
 
-    type: Literal["function"]
+    type: Literal["function"] = "function"
     """The type of the tool. Currently, only `function` is supported."""
