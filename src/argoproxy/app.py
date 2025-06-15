@@ -4,7 +4,7 @@ from aiohttp import web
 from loguru import logger
 
 from .config import load_config
-from .endpoints import chat, completions, embed, extras
+from .endpoints import chat, completions, embed, extras, responses
 
 
 async def setup_config(app):
@@ -29,6 +29,11 @@ async def proxy_openai_legacy_completions_compatible(request: web.Request):
     logger.info("/v1/completions")
 
     return await completions.proxy_request(request, convert_to_openai=True)
+
+
+async def proxy_responses_request(request: web.Request):
+    logger.info("/v1/responses")
+    return await responses.proxy_request(request, convert_to_openai=True)
 
 
 async def proxy_embedding_request(request: web.Request):
@@ -62,6 +67,7 @@ app.on_startup.append(setup_config)
 app.router.add_post("/v1/chat", proxy_argo_chat_directly)
 app.router.add_post("/v1/chat/completions", proxy_openai_chat_compatible)
 app.router.add_post("/v1/completions", proxy_openai_legacy_completions_compatible)
+app.router.add_post("/v1/responses", proxy_responses_request)
 app.router.add_post("/v1/embeddings", proxy_embedding_request)
 app.router.add_get("/v1/models", get_models)
 app.router.add_get("/v1/status", get_status)
