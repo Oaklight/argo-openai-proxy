@@ -129,8 +129,10 @@ def transform_non_streaming_response(
         return openai_response.model_dump()
 
     except json.JSONDecodeError as err:
+        logger.error(f"Error decoding JSON: {err}")
         return {"error": f"Error decoding JSON: {err}"}
     except Exception as err:
+        logger.error(f"An error occurred: {err}")
         return {"error": f"An error occurred: {err}"}
 
 
@@ -171,8 +173,10 @@ def transform_streaming_response(
         return openai_response.model_dump()
 
     except json.JSONDecodeError as err:
+        logger.error(f"Error decoding JSON: {err}")
         return {"error": f"Error decoding JSON: {err}"}
     except Exception as err:
+        logger.error(f"An error occurred: {err}")
         return {"error": f"An error occurred: {err}"}
 
 
