@@ -11,10 +11,25 @@ from .constants import ALL_MODELS, TIKTOKEN_ENCODING_PREFIX_MAPPING
 
 
 async def send_off_sse(
-    response: web.StreamResponse, chunk_json: Dict[str, Any]
+    response: web.StreamResponse, chunk_json: Union[Dict[str, Any], str]
 ) -> None:
+    """
+    Sends a chunk of data as a Server-Sent Events (SSE) event.
+
+    Args:
+        response (web.StreamResponse): The response object used to send the SSE event.
+        chunk_json (Union[Dict[str, Any], str]): The chunk of data to be sent as an SSE event.
+            It can be either a dictionary (which will be converted to a JSON string) or a preformatted JSON string.
+
+    Returns:
+        None
+    """
     # Send the chunk as an SSE event
-    sse_chunk = f"data: {json.dumps(chunk_json)}\n\n"
+    if isinstance(chunk_json, str):
+        sse_chunk = chunk_json
+    else:
+        # Convert the chunk to OpenAI-compatible JSON
+        sse_chunk = f"data: {json.dumps(chunk_json)}\n\n"
     await response.write(sse_chunk.encode())
 
 
