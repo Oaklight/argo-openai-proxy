@@ -50,7 +50,6 @@ INCOMPATIBLE_INPUT_FIELDS = {
     "tool_choice",
     "tools",
     "truncation",
-    "user",
 }
 
 
