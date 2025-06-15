@@ -25,6 +25,7 @@ from ..utils import (
     count_tokens,
     make_bar,
     resolve_model_name,
+    send_off_sse,
 )
 
 DEFAULT_MODEL = "gpt4o"
@@ -287,17 +288,16 @@ async def send_streaming_request(
                     finish_reason=None,  # Ongoing chunk
                 )
                 # Wrap the JSON in SSE format
-                sse_chunk = f"data: {json.dumps(chunk_json)}\n\n"
-                await response.write(sse_chunk.encode())
+                await send_off_sse(response, chunk_json)
             else:
                 # Return the chunk as-is (raw text)
-                await response.write(chunk)
+                await send_off_sse(response, chunk)
 
         # Handle the final chunk for OpenAI-compatible mode
         if convert_to_openai:
             # Send the [DONE] marker
             sse_done_chunk = "data: [DONE]\n\n"
-            await response.write(sse_done_chunk.encode())
+            await send_off_sse(response, sse_done_chunk)
 
         # Ensure response is properly closed
         await response.write_eof()
