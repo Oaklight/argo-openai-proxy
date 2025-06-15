@@ -9,9 +9,9 @@ import aiohttp
 from aiohttp import web
 from loguru import logger
 
-from .config import ArgoConfig
-from .constants import CHAT_MODELS
-from .types import (
+from ..config import ArgoConfig
+from ..constants import CHAT_MODELS
+from ..types import (
     ChatCompletion,
     ChatCompletionChunk,
     ChatCompletionMessage,
@@ -20,7 +20,7 @@ from .types import (
     NonStreamChoice,
     StreamChoice,
 )
-from .utils import (
+from ..utils import (
     calculate_prompt_tokens,
     count_tokens,
     make_bar,

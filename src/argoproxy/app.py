@@ -3,8 +3,8 @@ import os
 from aiohttp import web
 from loguru import logger
 
-from . import chat, completions, embed, extras
 from .config import load_config
+from .endpoints import chat, completions, embed, extras
 
 
 async def setup_config(app):

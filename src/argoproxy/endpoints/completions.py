@@ -12,9 +12,9 @@ from .chat import (
     send_non_streaming_request,
     send_streaming_request,
 )
-from .config import ArgoConfig
-from .types import Completion, CompletionChoice, CompletionUsage
-from .utils import make_bar
+from ..config import ArgoConfig
+from ..types import Completion, CompletionChoice, CompletionUsage
+from ..utils import make_bar
 
 DEFAULT_STREAM = False
 
