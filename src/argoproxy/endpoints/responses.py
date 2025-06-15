@@ -263,6 +263,16 @@ async def send_streaming_request(
     prompt_tokens = calculate_prompt_tokens(data, data["model"])
 
     async with session.post(api_url, headers=headers, json=data) as upstream_resp:
+        if upstream_resp.status != 200:
+            # Read error content from upstream response
+            error_text = await upstream_resp.text()
+            # Return JSON error response to client
+            return web.json_response(
+                {"error": f"Upstream API error: {upstream_resp.status} {error_text}"},
+                status=upstream_resp.status,
+                content_type="application/json",
+            )
+
         # Initialize the streaming response
         response_headers.update(
             {
