@@ -363,6 +363,7 @@ async def send_streaming_request(
             # Wrap the JSON in SSE format
             await send_off_sse(response, text_delta)
 
+        logger.warning(f"cumulated_response: {cumulated_response}")
         # =======================================
         # ResponseTextDoneEvent, signal the end of the text stream
         sequence_number += 1
