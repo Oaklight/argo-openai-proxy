@@ -1,9 +1,13 @@
 from .chat_completion import (
-    ChatCompletionChunk,
-    ChatCompletionMessage,
-    ChoiceDelta,
-    NonStreamChoice,
-    StreamChoice,
+    # response type
+    ChatCompletion,  # non-streaming
+    ChatCompletionChunk,  # streaming
+    # message type
+    ChatCompletionMessage,  # non-streaming
+    ChoiceDelta,  # streaming
+    # choice type
+    NonStreamChoice,  # non-streaming
+    StreamChoice,  # streaming
 )
 from .completions import Completion, CompletionChoice, CompletionUsage
 from .embedding import CreateEmbeddingResponse, Embedding, Usage
@@ -18,6 +22,7 @@ __all__ = [
     "CompletionChoice",
     "CompletionUsage",
     # Chat completion-related types
+    "ChatCompletion",
     "ChatCompletionChunk",
     "ChatCompletionMessage",
     "ChoiceDelta",
