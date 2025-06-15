@@ -214,9 +214,10 @@ argo-proxy --show  # Show config at startup
 
 These endpoints convert responses from the ARGO API to be compatible with OpenAI's format:
 
-- **`/v1/chat/completions`**: Converts ARGO chat/completions responses to OpenAI-compatible format.
-- **`/v1/completions`**: Legacy API for conversions to OpenAI format.
-- **`/v1/embeddings`**: Accesses ARGO Embedding API with response conversion.
+- **`/v1/responses`**: Available from v2.7.0. Response API.
+- **`/v1/chat/completions`**: Chat Completions API.
+- **`/v1/completions`**: Legacy Completions API.
+- **`/v1/embeddings`**: Embedding API.
 - **`/v1/models`**: Lists available models in OpenAI-compatible format.
 
 #### Not OpenAI Compatible
@@ -224,7 +225,8 @@ These endpoints convert responses from the ARGO API to be compatible with OpenAI
 These endpoints interact directly with the ARGO API and do not convert responses to OpenAI's format:
 
 - **`/v1/chat`**: Proxies requests to the ARGO API without conversion.
-- **`/v1/status`**: Responds with a simple "hello" from GPT-4o, knowing it is alive.
+- **`/v1/embed`**: Proxies requests to the ARGO Embedding API without conversion.
+- **`/v1/status`**: Responds with a simple "hello" from GPT-4o, knowing argoproxy is alive.
 
 #### Timeout Override
 
@@ -264,14 +266,20 @@ Details of how to make such override in different query flavors: [Timeout Overri
 
 For examples of how to use the raw request utilities (e.g., `httpx`, `requests`), refer to:
 
-- **Chat Completion Example**: [argo_chat.py](examples/raw_requests/argo_chat.py)
-- **Chat Completion Stream Example**: [argo_chat_stream.py](examples/raw_requests/argo_chat_stream.py)
+##### Direct Access to ARGO
+
+- **Direct Chat Example**: [argo_chat.py](examples/raw_requests/argo_chat.py)
+- **Direct Chat Stream Example**: [argo_chat_stream.py](examples/raw_requests/argo_chat_stream.py)
+- **Direct Embedding Example**: [argo_embed.py](examples/raw_requests/argo_embed.py)
+
+##### OpenAI Compatible Requests
+
 - **Chat Completions Example**: [chat_completions.py](examples/raw_requests/chat_completions.py)
 - **Chat Completions Stream Example**: [chat_completions_stream.py](examples/raw_requests/chat_completions_stream.py)
+- **Legacy Completions Example**: [legacy_completions.py](examples/raw_requests/legacy_completions.py)
+- **Legacy Completions Stream Example**: [legacy_completions_stream.py](examples/raw_requests/legacy_completions_stream.py)
 - **Embedding Example**: [embedding.py](examples/raw_requests/embedding.py)
 - **o1 Mini Chat Completions Example**: [o1_mini_chat_completions.py](examples/raw_requests/o1_mini_chat_completions.py)
-- **Raw requests to Argo Chat**: [argo_chat.py](examples/raw_requests/argo_chat.py)
-- **Raw requests to Argo Chat Stream**: [argo_chat_stream.py](examples/raw_requests/argo_chat_stream.py)
 
 #### OpenAI Client
 
@@ -281,6 +289,8 @@ For examples demonstrating the use case of the OpenAI client (`openai.OpenAI`), 
 - **Chat Completions Stream Example**: [chat_completions_stream.py](examples/openai_client/chat_completions_stream.py)
 - **Legacy Completions Example**: [legacy_completions.py](examples/openai_client/legacy_completions.py)
 - **Legacy Completions Stream Example**: [legacy_completions_stream.py](examples/openai_client/legacy_completions_stream.py)
+- **Responses Example**: [responses.py](examples/openai_client/responses.py)
+- **Responses Stream Example**: [responses_stream.py](examples/openai_client/responses_stream.py)
 - **Embedding Example**: [embedding.py](examples/openai_client/embedding.py)
 - **O3 Mini Simple Chatbot Example**: [o3_mini_simple_chatbot.py](examples/openai_client/o3_mini_simple_chatbot.py)
 
@@ -305,6 +315,7 @@ $ tree -I "__pycache__|*.egg-info|dist|dev_scripts|config.yaml"
 │   └── raw_requests
 │       ├── argo_chat.py
 │       ├── argo_chat_stream.py
+│       ├── argo_embed.py
 │       ├── chat_completions.py
 │       ├── chat_completions_stream.py
 │       ├── embedding.py
@@ -326,7 +337,8 @@ $ tree -I "__pycache__|*.egg-info|dist|dev_scripts|config.yaml"
 │       │   ├── chat.py
 │       │   ├── completions.py
 │       │   ├── embed.py
-│       │   └── extras.py
+│       │   ├── extras.py
+│       │   └── responses.py
 │       ├── __init__.py
 │       ├── py.typed
 │       ├── types
@@ -339,9 +351,9 @@ $ tree -I "__pycache__|*.egg-info|dist|dev_scripts|config.yaml"
 │       └── utils.py
 └── timeout_examples.md
 
-8 directories, 40 files
+8 directories, 42 files
 ```
 
 ## Bug Reports and Contributions
 
-This project was developed in my spare time. Bugs and issues may exist. If you encounter any or have suggestions for improvements, please [open an issue](https://github.com/Oaklight/argo-proxy/issues/new) or [submit a pull request](https://github.com/Oaklight/argo-proxy/compare). Your contributions are highly appreciated!
+This project is developed in my spare time. Bugs and issues may exist. If you encounter any or have suggestions for improvements, please [open an issue](https://github.com/Oaklight/argo-proxy/issues/new) or [submit a pull request](https://github.com/Oaklight/argo-proxy/compare). Your contributions are highly appreciated!
