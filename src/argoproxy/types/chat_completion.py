@@ -147,3 +147,6 @@ class ChatCompletionChunk(ChatCompletion):
     Can contain more than one elements if `n` is greater than 1. Can also be empty
     for the last chunk if you set `stream_options: {"include_usage": true}`.
     """
+
+    object: Literal["chat.completion.chunk"] = "chat.completion.chunk"
+    """The object type, which is always `chat.completion.chunk`."""
