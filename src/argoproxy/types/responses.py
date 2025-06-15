@@ -1,9 +1,12 @@
-from typing import List, Optional, Union
+from typing import Annotated, List, Optional, TypeAlias, Union
 
 from pydantic import BaseModel
 from typing_extensions import Literal
 
 from argoproxy.types.function_call import FunctionTool
+
+
+# ==================== Non-Streaming ====================
 
 
 class ResponseError(BaseModel):
@@ -216,3 +219,169 @@ class Response(BaseModel):
     Represents token usage details including input tokens, output tokens, a
     breakdown of output tokens, and the total tokens used.
     """
+
+
+# ==================== Streaming ====================
+
+
+class ResponseCreatedEvent(BaseModel):
+    response: Response
+    """The response that was created."""
+
+    sequence_number: int
+    """The sequence number for this event."""
+
+    type: Literal["response.created"]
+    """The type of the event. Always `response.created`."""
+
+
+class ResponseInProgressEvent(BaseModel):
+    response: Response
+    """The response that is in progress."""
+
+    sequence_number: int
+    """The sequence number of this event."""
+
+    type: Literal["response.in_progress"]
+    """The type of the event. Always `response.in_progress`."""
+
+
+ResponseOutputItem: TypeAlias = Union[
+    ResponseOutputMessage,
+    # ResponseFileSearchToolCall,
+    # ResponseFunctionToolCall,
+    # ResponseFunctionWebSearch,
+    # ResponseComputerToolCall,
+    # ResponseReasoningItem,
+    # ImageGenerationCall,
+    # ResponseCodeInterpreterToolCall,
+    # LocalShellCall,
+    # McpCall,
+    # McpListTools,
+    # McpApprovalRequest,
+]
+
+
+class ResponseOutputItemAddedEvent(BaseModel):
+    item: ResponseOutputItem
+    """The output item that was added."""
+
+    output_index: int
+    """The index of the output item that was added."""
+
+    sequence_number: int
+    """The sequence number of this event."""
+
+    type: Literal["response.output_item.added"]
+    """The type of the event. Always `response.output_item.added`."""
+
+
+class ResponseOutputItemDoneEvent(BaseModel):
+    item: ResponseOutputItem
+    """The output item that was marked done."""
+
+    output_index: int
+    """The index of the output item that was marked done."""
+
+    sequence_number: int
+    """The sequence number of this event."""
+
+    type: Literal["response.output_item.done"]
+    """The type of the event. Always `response.output_item.done`."""
+
+
+Part: TypeAlias = Union[
+    ResponseOutputText,
+    # ResponseOutputRefusal,
+]
+
+
+class ResponseContentPartAddedEvent(BaseModel):
+    content_index: int
+    """The index of the content part that was added."""
+
+    item_id: str
+    """The ID of the output item that the content part was added to."""
+
+    output_index: int
+    """The index of the output item that the content part was added to."""
+
+    part: Part
+    """The content part that was added."""
+
+    sequence_number: int
+    """The sequence number of this event."""
+
+    type: Literal["response.content_part.added"]
+    """The type of the event. Always `response.content_part.added`."""
+
+
+class ResponseContentPartDoneEvent(BaseModel):
+    content_index: int
+    """The index of the content part that is done."""
+
+    item_id: str
+    """The ID of the output item that the content part was added to."""
+
+    output_index: int
+    """The index of the output item that the content part was added to."""
+
+    part: Part
+    """The content part that is done."""
+
+    sequence_number: int
+    """The sequence number of this event."""
+
+    type: Literal["response.content_part.done"]
+    """The type of the event. Always `response.content_part.done`."""
+
+
+class ResponseTextDeltaEvent(BaseModel):
+    content_index: int
+    """The index of the content part that the text delta was added to."""
+
+    delta: str
+    """The text delta that was added."""
+
+    item_id: str
+    """The ID of the output item that the text delta was added to."""
+
+    output_index: int
+    """The index of the output item that the text delta was added to."""
+
+    sequence_number: int
+    """The sequence number for this event."""
+
+    type: Literal["response.output_text.delta"]
+    """The type of the event. Always `response.output_text.delta`."""
+
+
+class ResponseTextDoneEvent(BaseModel):
+    content_index: int
+    """The index of the content part that the text content is finalized."""
+
+    item_id: str
+    """The ID of the output item that the text content is finalized."""
+
+    output_index: int
+    """The index of the output item that the text content is finalized."""
+
+    sequence_number: int
+    """The sequence number for this event."""
+
+    text: str
+    """The text content that is finalized."""
+
+    type: Literal["response.output_text.done"]
+    """The type of the event. Always `response.output_text.done`."""
+
+
+class ResponseCompletedEvent(BaseModel):
+    response: Response
+    """Properties of the completed response."""
+
+    sequence_number: int
+    """The sequence number for this event."""
+
+    type: Literal["response.completed"]
+    """The type of the event. Always `response.completed`."""
