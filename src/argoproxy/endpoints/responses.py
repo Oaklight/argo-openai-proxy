@@ -12,13 +12,10 @@ from loguru import logger
 from ..config import ArgoConfig
 from ..constants import CHAT_MODELS
 from ..types import (
-    ChatCompletion,
-    ChatCompletionChunk,
-    ChatCompletionMessage,
-    ChoiceDelta,
-    CompletionUsage,
-    NonStreamChoice,
-    StreamChoice,
+    Response,
+    ResponseOutputMessage,
+    ResponseOutputText,
+    ResponseUsage,
 )
 from ..utils import (
     calculate_prompt_tokens,
@@ -40,6 +37,21 @@ NO_SYS_MSG = [
     for model in CHAT_MODELS
     if any(fnmatch.fnmatch(model, pattern) for pattern in NO_SYS_MSG_PATTERNS)
 ]
+
+INCOMPATIBLE_INPUT_FIELDS = {
+    "include",
+    "metadata",
+    "parallel_tool_calls",
+    "previous_response_id",
+    "reasoning",
+    "service_tier",
+    "store",
+    "text",
+    "tool_choice",
+    "tools",
+    "truncation",
+    "user",
+}
 
 
 def make_it_openai_responses_compat(
@@ -79,41 +91,32 @@ def make_it_openai_responses_compat(
             # Calculate token counts (simplified example, actual tokenization may differ)
             completion_tokens = count_tokens(response_text, model_name)
             total_tokens = prompt_tokens + completion_tokens
-            usage = CompletionUsage(
-                prompt_tokens=prompt_tokens,
-                completion_tokens=completion_tokens,
+            usage = ResponseUsage(
+                input_tokens=prompt_tokens,
+                output_tokens=completion_tokens,
                 total_tokens=total_tokens,
             )
 
         if is_streaming:
-            openai_response = ChatCompletionChunk(
-                id=str(uuid.uuid4().hex),
-                created=create_timestamp,
-                model=model_name,
-                choices=[
-                    StreamChoice(
-                        index=0,
-                        delta=ChoiceDelta(
-                            content=response_text,
-                        ),
-                        finish_reason=finish_reason or "stop",
-                    )
-                ],
-            )
+            raise NotImplementedError("Streaming is not implemented yet.")
         else:
-            openai_response = ChatCompletion(
-                id=str(uuid.uuid4().hex),
-                created=create_timestamp,
+            id = str(uuid.uuid4().hex)
+            openai_response = Response(
+                id=f"resp_{id}",
+                created_at=create_timestamp,
                 model=model_name,
-                choices=[
-                    NonStreamChoice(
-                        index=0,
-                        message=ChatCompletionMessage(
-                            content=response_text,
-                        ),
-                        finish_reason=finish_reason or "stop",
+                output=[
+                    ResponseOutputMessage(
+                        id=f"msg_{id}",
+                        status="completed",
+                        content=[
+                            ResponseOutputText(
+                                text=response_text,
+                            )
+                        ],
                     )
                 ],
+                status="completed",
                 usage=usage,
             )
 
@@ -152,9 +155,17 @@ def prepare_request_data(
     else:
         data["model"] = DEFAULT_MODEL
 
-    # Convert prompt to list if it's not already
-    if "prompt" in data and not isinstance(data["prompt"], list):
-        data["prompt"] = [data["prompt"]]
+    messages = data.get("input", [])
+    instructions = data.get("instructions", "")
+    if instructions:
+        messages.insert(0, {"role": "system", "content": instructions})
+    max_tokens = data.get("max_output_tokens", None)
+    data["messages"] = messages
+    if max_tokens:
+        data["max_tokens"] = max_tokens
+    del data["input"]
+    del data["instructions"]
+    del data["max_output_tokens"]
 
     # Convert system message to user message for specific models
     if data["model"] in NO_SYS_MSG:
@@ -162,16 +173,11 @@ def prepare_request_data(
             for message in data["messages"]:
                 if message["role"] == "system":
                     message["role"] = "user"
-        if "system" in data:
-            if isinstance(data["system"], str):
-                data["system"] = [data["system"]]
-            elif not isinstance(data["system"], list):
-                raise ValueError("System prompt must be a string or list")
-            data["prompt"] = data["system"] + data["prompt"]
-            del data["system"]
-            if config.verbose:
-                logger.info(f"New data is {data}")
 
+    # drop other unsupported fields
+    for key in list(data.keys()):
+        if key in INCOMPATIBLE_INPUT_FIELDS:
+            del data[key]
     return data
 
 
@@ -261,29 +267,29 @@ async def proxy_request(
             logger.info(json.dumps(data, indent=4))
             logger.info(make_bar())
 
-        # # Prepare the request data
-        # data = prepare_request_data(data, request)
+        # Prepare the request data
+        data = prepare_request_data(data, request)
 
-        # # Determine the API URL based on whether streaming is enabled
-        # api_url = config.argo_stream_url if stream else config.argo_url
+        # Determine the API URL based on whether streaming is enabled
+        api_url = config.argo_stream_url if stream else config.argo_url
 
-        # # Forward the modified request to the actual API using aiohttp
-        # async with aiohttp.ClientSession() as session:
-        #     if stream:
-        #         return await send_streaming_request(
-        #             session,
-        #             api_url,
-        #             data,
-        #             request,
-        #             convert_to_openai,
-        #         )
-        #     else:
-        #         return await send_non_streaming_request(
-        #             session,
-        #             api_url,
-        #             data,
-        #             convert_to_openai,
-        #         )
+        # Forward the modified request to the actual API using aiohttp
+        async with aiohttp.ClientSession() as session:
+            if stream:
+                return await send_streaming_request(
+                    session,
+                    api_url,
+                    data,
+                    request,
+                    convert_to_openai,
+                )
+            else:
+                return await send_non_streaming_request(
+                    session,
+                    api_url,
+                    data,
+                    convert_to_openai,
+                )
 
     except ValueError as err:
         return web.json_response(
