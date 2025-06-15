@@ -163,7 +163,7 @@ def transform_streaming_response(
         id = kwargs.get("id", f"msg_{str(uuid.uuid4().hex)}")
 
         openai_response = ResponseTextDeltaEvent(
-            content_index,
+            context_index=content_index,
             delta=response_text,
             item_id=id,
             output_index=output_index,
