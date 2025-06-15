@@ -1,11 +1,11 @@
 # File generated from our OpenAPI spec by Stainless. See CONTRIBUTING.md for details.
 
-from typing import List, Optional
-from typing import Literal
+from typing import List, Literal, Optional
 
 from pydantic import BaseModel
-from .completion_usage import CompletionUsage
+
 from .completion_choice import CompletionChoice
+from .completion_usage import CompletionUsage
 
 __all__ = ["Completion"]
 
