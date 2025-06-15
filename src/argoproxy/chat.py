@@ -11,11 +11,12 @@ from loguru import logger
 
 from .config import ArgoConfig
 from .constants import CHAT_MODELS
-from .types import ChatCompletion, CompletionUsage
-from .types.chat_completion import (
+from .types import (
+    ChatCompletion,
     ChatCompletionChunk,
     ChatCompletionMessage,
     ChoiceDelta,
+    CompletionUsage,
     NonStreamChoice,
     StreamChoice,
 )
