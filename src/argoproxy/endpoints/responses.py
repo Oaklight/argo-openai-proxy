@@ -33,6 +33,7 @@ from ..utils import (
     count_tokens,
     make_bar,
     resolve_model_name,
+    send_off_sse,
 )
 from .chat import send_non_streaming_request
 
@@ -63,14 +64,6 @@ INCOMPATIBLE_INPUT_FIELDS = {
     "tools",
     "truncation",
 }
-
-
-async def send_off_sse(
-    response: web.StreamResponse, chunk_json: Dict[str, Any]
-) -> None:
-    # Send the chunk as an SSE event
-    sse_chunk = f"data: {json.dumps(chunk_json)}\n\n"
-    await response.write(sse_chunk.encode())
 
 
 def transform_non_streaming_response(
