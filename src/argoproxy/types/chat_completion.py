@@ -56,10 +56,10 @@ class ChoiceCore(BaseModel):
 # ==================== Non Streaming Response ====================
 
 
-class Choice(ChoiceCore):
+class NonStreamChoice(ChoiceCore):
     finish_reason: Literal[
         "stop", "length", "tool_calls", "content_filter", "function_call"
-    ]
+    ] = "stop"
     """The reason the model stopped generating tokens.
 
     This will be `stop` if the model hit a natural stop point or a provided stop
@@ -77,7 +77,7 @@ class ChatCompletion(BaseModel):
     id: str
     """A unique identifier for the chat completion."""
 
-    choices: List[Choice]
+    choices: List[NonStreamChoice]
     """A list of chat completion choices.
 
     Can be more than one if `n` is greater than 1.
