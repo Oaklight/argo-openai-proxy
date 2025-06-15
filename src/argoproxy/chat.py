@@ -11,13 +11,14 @@ from loguru import logger
 
 from .config import ArgoConfig
 from .constants import CHAT_MODELS
+from .types import ChatCompletion, CompletionUsage
+from .types.chat_completion import ChatCompletionMessage, Choice
 from .utils import (
     calculate_prompt_tokens,
     count_tokens,
     make_bar,
     resolve_model_name,
 )
-from .types import CompletionUsage, ChatCompletionChunk
 
 DEFAULT_MODEL = "gpt4o"
 
@@ -93,24 +94,21 @@ def make_it_openai_chat_completions_compat(
                 "system_fingerprint": "",
             }
         else:
-            openai_response = {
-                "id": str(uuid.uuid4().hex),
-                "object": "chat.completion",
-                "created": create_timestamp,
-                "model": model_name,
-                "choices": [
-                    {
-                        "index": 0,
-                        "message": {
-                            "role": "assistant",
-                            "content": response_text,
-                        },
-                        "finish_reason": finish_reason,
-                    },
+            openai_response = ChatCompletion(
+                id=str(uuid.uuid4().hex),
+                created=create_timestamp,
+                model=model_name,
+                choices=[
+                    Choice(
+                        index=0,
+                        message=ChatCompletionMessage(
+                            content=response_text,
+                        ),
+                        finish_reason=finish_reason,
+                    )
                 ],
-                "usage": usage,
-                "system_fingerprint": "",
-            }
+                usage=usage,
+            ).model_dump()
 
         return openai_response
 
