@@ -299,7 +299,9 @@ $ tree -I "__pycache__|*.egg-info|dist|dev_scripts|config.yaml"
 │   │   ├── embedding.py
 │   │   ├── legacy_completions.py
 │   │   ├── legacy_completions_stream.py
-│   │   └── o3_mini_simple_chatbot.py
+│   │   ├── o3_mini_simple_chatbot.py
+│   │   ├── responses.py
+│   │   └── responses_stream.py
 │   └── raw_requests
 │       ├── argo_chat.py
 │       ├── argo_chat_stream.py
@@ -317,13 +319,14 @@ $ tree -I "__pycache__|*.egg-info|dist|dev_scripts|config.yaml"
 ├── src
 │   └── argoproxy
 │       ├── app.py
-│       ├── chat.py
 │       ├── cli.py
-│       ├── completions.py
 │       ├── config.py
 │       ├── constants.py
-│       ├── embed.py
-│       ├── extras.py
+│       ├── endpoints
+│       │   ├── chat.py
+│       │   ├── completions.py
+│       │   ├── embed.py
+│       │   └── extras.py
 │       ├── __init__.py
 │       ├── py.typed
 │       ├── types
@@ -331,11 +334,12 @@ $ tree -I "__pycache__|*.egg-info|dist|dev_scripts|config.yaml"
 │       │   ├── completions.py
 │       │   ├── embedding.py
 │       │   ├── function_call.py
-│       │   └── __init__.py
+│       │   ├── __init__.py
+│       │   └── responses.py
 │       └── utils.py
 └── timeout_examples.md
 
-7 directories, 37 files
+8 directories, 40 files
 ```
 
 ## Bug Reports and Contributions
