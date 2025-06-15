@@ -1,11 +1,21 @@
+import json
 import random
 import socket
-from typing import Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 
 import tiktoken
+from aiohttp import web
 from loguru import logger
 
 from .constants import ALL_MODELS, TIKTOKEN_ENCODING_PREFIX_MAPPING
+
+
+async def send_off_sse(
+    response: web.StreamResponse, chunk_json: Dict[str, Any]
+) -> None:
+    # Send the chunk as an SSE event
+    sse_chunk = f"data: {json.dumps(chunk_json)}\n\n"
+    await response.write(sse_chunk.encode())
 
 
 def make_bar(message: str = "", bar_length=40) -> str:
