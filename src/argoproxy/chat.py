@@ -12,7 +12,13 @@ from loguru import logger
 from .config import ArgoConfig
 from .constants import CHAT_MODELS
 from .types import ChatCompletion, CompletionUsage
-from .types.chat_completion import ChatCompletionMessage, Choice
+from .types.chat_completion import (
+    ChatCompletionChunk,
+    ChatCompletionMessage,
+    ChoiceDelta,
+    NonStreamChoice,
+    StreamChoice,
+)
 from .utils import (
     calculate_prompt_tokens,
     count_tokens,
@@ -76,35 +82,32 @@ def make_it_openai_chat_completions_compat(
             ).model_dump()
 
         if is_streaming:
-            openai_response = {
-                "id": str(uuid.uuid4().hex),
-                "object": "chat.completion.chunk",
-                "created": create_timestamp,
-                "model": model_name,
-                "choices": [
-                    {
-                        "index": 0,
-                        "delta": {
-                            "role": "assistant",
-                            "content": response_text,
-                        },
-                        "finish_reason": finish_reason,
-                    },
+            openai_response = ChatCompletionChunk(
+                id=str(uuid.uuid4().hex),
+                created=create_timestamp,
+                model=model_name,
+                choices=[
+                    StreamChoice(
+                        index=0,
+                        delta=ChoiceDelta(
+                            content=response_text,
+                        ),
+                        finish_reason=finish_reason,
+                    )
                 ],
-                "system_fingerprint": "",
-            }
+            ).model_dump()
         else:
             openai_response = ChatCompletion(
                 id=str(uuid.uuid4().hex),
                 created=create_timestamp,
                 model=model_name,
                 choices=[
-                    Choice(
+                    NonStreamChoice(
                         index=0,
                         message=ChatCompletionMessage(
                             content=response_text,
                         ),
-                        finish_reason=finish_reason or "stop",
+                        finish_reason=finish_reason,
                     )
                 ],
                 usage=usage,
