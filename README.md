@@ -278,6 +278,8 @@ For examples of how to use the raw request utilities (e.g., `httpx`, `requests`)
 - **Chat Completions Stream Example**: [chat_completions_stream.py](examples/raw_requests/chat_completions_stream.py)
 - **Legacy Completions Example**: [legacy_completions.py](examples/raw_requests/legacy_completions.py)
 - **Legacy Completions Stream Example**: [legacy_completions_stream.py](examples/raw_requests/legacy_completions_stream.py)
+- **Responses Example**: [responses.py](examples/raw_requests/responses.py)
+- **Responses Stream Example**: [responses_stream.py](examples/raw_requests/responses_stream.py)
 - **Embedding Example**: [embedding.py](examples/raw_requests/embedding.py)
 - **o1 Mini Chat Completions Example**: [o1_mini_chat_completions.py](examples/raw_requests/o1_mini_chat_completions.py)
 
@@ -321,7 +323,9 @@ $ tree -I "__pycache__|*.egg-info|dist|dev_scripts|config.yaml"
 │       ├── embedding.py
 │       ├── legacy_completions.py
 │       ├── legacy_completions_stream.py
-│       └── o1_mini_chat_completions.py
+│       ├── o1_mini_chat_completions.py
+│       ├── responses.py
+│       └── responses_stream.py
 ├── LICENSE
 ├── Makefile
 ├── pyproject.toml
@@ -351,7 +355,7 @@ $ tree -I "__pycache__|*.egg-info|dist|dev_scripts|config.yaml"
 │       └── utils.py
 └── timeout_examples.md
 
-8 directories, 42 files
+8 directories, 44 files
 ```
 
 ## Bug Reports and Contributions
