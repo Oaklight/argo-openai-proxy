@@ -11,6 +11,12 @@ from .chat_completion import (
 )
 from .completions import Completion, CompletionChoice, CompletionUsage
 from .embedding import CreateEmbeddingResponse, Embedding, Usage
+from .responses import (
+    Response,
+    ResponseOutputMessage,
+    ResponseOutputText,
+    ResponseUsage,
+)
 
 __all__ = [
     # Embedding-related types
@@ -28,4 +34,9 @@ __all__ = [
     "ChoiceDelta",
     "NonStreamChoice",
     "StreamChoice",
+    # Response-related types
+    "Response",
+    "ResponseOutputMessage",
+    "ResponseOutputText",
+    "ResponseUsage",
 ]
