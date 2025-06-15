@@ -347,8 +347,8 @@ async def send_streaming_request(
         # =======================================
         # ResponseTextDeltaEvent, stream the response chunk by chunk
         cumulated_response = ""
-        sequence_number += 1
         async for chunk in upstream_resp.content.iter_any():
+            sequence_number += 1
             chunk_text = chunk.decode()
             cumulated_response += chunk_text  # for ResponseTextDoneEvent
 
