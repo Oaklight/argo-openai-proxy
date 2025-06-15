@@ -79,7 +79,7 @@ def make_it_openai_chat_completions_compat(
                 prompt_tokens=prompt_tokens,
                 completion_tokens=completion_tokens,
                 total_tokens=total_tokens,
-            ).model_dump()
+            )
 
         if is_streaming:
             openai_response = ChatCompletionChunk(
@@ -95,7 +95,7 @@ def make_it_openai_chat_completions_compat(
                         finish_reason=finish_reason or "stop",
                     )
                 ],
-            ).model_dump()
+            )
         else:
             openai_response = ChatCompletion(
                 id=str(uuid.uuid4().hex),
@@ -111,9 +111,9 @@ def make_it_openai_chat_completions_compat(
                     )
                 ],
                 usage=usage,
-            ).model_dump()
+            )
 
-        return openai_response
+        return openai_response.model_dump()
 
     except json.JSONDecodeError as err:
         return {"error": f"Error decoding JSON: {err}"}
