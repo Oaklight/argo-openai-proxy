@@ -42,23 +42,26 @@ NO_SYS_MSG = [
 
 
 def make_it_openai_chat_completions_compat(
-    custom_response,
-    model_name,
-    create_timestamp,
-    prompt_tokens,
-    is_streaming=False,
-    finish_reason=None,
-):
+    custom_response: Any,
+    model_name: str,
+    create_timestamp: int,
+    prompt_tokens: int,
+    is_streaming: bool = False,
+    finish_reason: str = None,
+) -> Dict[str, Any]:
     """
-    Converts the custom API response to an OpenAI compatible API response.
+    Transforms the custom API response into a format compatible with OpenAI's API.
 
-    :param custom_response: JSON response from the custom API.
-    :param model_name: The model used for the completion.
-    :param create_timestamp: Timestamp for the completion.
-    :param prompt_tokens: The input prompt token count used in the request.
-    :param is_streaming: Whether the response is for streaming mode.
-    :param finish_reason: Reason for completion (e.g., "stop" or None).
-    :return: OpenAI compatible JSON response.
+    Args:
+        custom_response: The response obtained from the custom API.
+        model_name: The name of the model that generated the completion.
+        create_timestamp: The creation timestamp of the completion.
+        prompt_tokens: The number of tokens in the input prompt.
+        is_streaming: Boolean indicating if the response is streaming.
+        finish_reason: The reason for response completion, e.g., "stop".
+
+    Returns:
+        A dictionary representing the OpenAI-compatible JSON response.
     """
     try:
         # Parse the custom response
@@ -121,9 +124,20 @@ def make_it_openai_chat_completions_compat(
         return {"error": f"An error occurred: {err}"}
 
 
-def prepare_request_data(data, request: web.Request):
+def prepare_request_data(
+    data: Dict[str, Any],
+    request: web.Request,
+) -> Dict[str, Any]:
     """
-    Prepares the request data by adding the user and remapping the model.
+    Modifies and prepares the incoming request data by adding user information
+    and remapping the model according to configurations.
+
+    Args:
+        data: The original request data.
+        request: The incoming web request object.
+
+    Returns:
+        The modified and prepared request data.
     """
     config: ArgoConfig = request.app["config"]
     # Automatically replace or insert the user
@@ -165,25 +179,21 @@ async def send_non_streaming_request(
     api_url: str,
     data: Dict[str, Any],
     convert_to_openai: bool = False,
-    openai_compat_fn: Callable = make_it_openai_chat_completions_compat,
+    openai_compat_fn: Callable[
+        ..., Dict[str, Any]
+    ] = make_it_openai_chat_completions_compat,
 ) -> web.Response:
-    """Sends a non-streaming request to the specified API URL and processes the response.
+    """Sends a non-streaming request to an API and processes the response.
 
     Args:
-        session: The aiohttp ClientSession used to send the request.
-        api_url: The URL of the API endpoint to which the request is sent.
-        data: The JSON data to be sent in the request body.
-        convert_to_openai: Whether to convert the response to OpenAI-compatible format.
-            Defaults to False.
-        openai_compat_fn: Function to convert response to OpenAI-compatible format.
-            Defaults to `make_it_openai_chat_completions_compat`.
+        session: The client session for making the request.
+        api_url: URL of the API endpoint.
+        data: The JSON payload of the request.
+        convert_to_openai: If True, converts the response to OpenAI format.
+        openai_compat_fn: Function for conversion to OpenAI-compatible format.
 
     Returns:
-        A web.Response object containing the JSON response from the API with appropriate
-        status code and content type.
-
-    Raises:
-        aiohttp.ClientError: If the request fails.
+        A web.Response with the processed JSON data.
     """
     headers = {"Content-Type": "application/json"}
     async with session.post(api_url, headers=headers, json=data) as upstream_resp:
@@ -216,27 +226,21 @@ async def send_streaming_request(
     session: aiohttp.ClientSession,
     api_url: str,
     data: Dict[str, Any],
-    request: Any,
+    request: web.Request,
     convert_to_openai: bool = False,
-    openai_compat_fn: Callable = make_it_openai_chat_completions_compat,
+    openai_compat_fn: Callable[
+        ..., Dict[str, Any]
+    ] = make_it_openai_chat_completions_compat,
 ) -> None:
-    """Sends a streaming request to the specified API URL and streams the response back to the client.
+    """Sends a streaming request to an API and streams the response to the client.
 
     Args:
-        session: The aiohttp ClientSession used to send the request.
-        api_url: The URL of the API endpoint to which the request is sent.
-        data: The JSON payload to send in the request body.
-        request: The web request object used to stream the response back to the client.
-        convert_to_openai: Whether to convert the response into OpenAI-compatible format.
-            Defaults to False.
-        openai_compat_fn: Function to convert response into OpenAI-compatible format.
-            Defaults to `make_it_openai_chat_completions_compat`.
-
-    Returns:
-        None. The streaming response is sent back to the client in chunks.
-
-    Raises:
-        aiohttp.ClientError: If the request fails.
+        session: The client session for making the request.
+        api_url: URL of the API endpoint.
+        data: The JSON payload of the request.
+        request: The web request used for streaming responses.
+        convert_to_openai: If True, converts the response to OpenAI format.
+        openai_compat_fn: Function for conversion to OpenAI-compatible format.
     """
     headers = {
         "Content-Type": "application/json",
@@ -300,24 +304,19 @@ async def send_streaming_request(
         return response
 
 
-async def proxy_request(request: web.Request, *, convert_to_openai=False):
-    """Proxies the request to the upstream API, handling both streaming and non-streaming modes.
+async def proxy_request(
+    request: web.Request,
+    *,
+    convert_to_openai: bool = False,
+) -> web.Response:
+    """Proxies the client's request to an upstream API, handling response streaming and conversion.
 
     Args:
-        convert_to_openai: Whether to convert the response to OpenAI-compatible format.
-            Defaults to False.
-        request: The web request object containing incoming request data.
-        input_data: Optional input data (used for testing). If None, the request JSON
-            data will be used.
-        stream: Whether to enable streaming mode. Defaults to False.
+        request: The client's web request object.
+        convert_to_openai: If True, translates the response to an OpenAI-compatible format.
 
     Returns:
-        A web.Response object from the upstream API.
-
-    Raises:
-        ValueError: If the input data is invalid or missing.
-        aiohttp.ClientError: If the HTTP request fails.
-        Exception: For unexpected server or runtime errors.
+        A web.Response with the final response from the upstream API.
     """
     config: ArgoConfig = request.app["config"]
 
