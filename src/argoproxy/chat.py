@@ -92,7 +92,7 @@ def make_it_openai_chat_completions_compat(
                         delta=ChoiceDelta(
                             content=response_text,
                         ),
-                        finish_reason=finish_reason,
+                        finish_reason=finish_reason or "stop",
                     )
                 ],
             ).model_dump()
@@ -107,7 +107,7 @@ def make_it_openai_chat_completions_compat(
                         message=ChatCompletionMessage(
                             content=response_text,
                         ),
-                        finish_reason=finish_reason,
+                        finish_reason=finish_reason or "stop",
                     )
                 ],
                 usage=usage,
