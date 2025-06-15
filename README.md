@@ -22,6 +22,8 @@ The machine or server making API calls to Argo must be connected to the Argonne 
   - [Running the Application](#running-the-application)
   - [First-Time Setup](#first-time-setup)
   - [Configuration Options Reference](#configuration-options-reference)
+  - [`argo-proxy` CLI Available Options](#argo-proxy-cli-available-options)
+  - [Management Utilities](#management-utilities)
 - [Usage](#usage)
   - [Endpoints](#endpoints)
     - [OpenAI Compatible](#openai-compatible)
@@ -31,10 +33,8 @@ The machine or server making API calls to Argo must be connected to the Argonne 
     - [Chat Models](#chat-models)
     - [Embedding Models](#embedding-models)
   - [Examples](#examples)
-    - [Chat Completion Example](#chat-completion-example)
-    - [Embedding Example](#embedding-example)
-    - [o1 Chat Example](#o1-chat-example)
-    - [OpenAI Client Example](#openai-client-example)
+    - [Raw Requests](#raw-requests)
+    - [OpenAI Client](#openai-client)
 - [Folder Structure](#folder-structure)
 - [Bug Reports and Contributions](#bug-reports-and-contributions)
 
@@ -260,48 +260,55 @@ Details of how to make such override in different query flavors: [Timeout Overri
 
 ### Examples
 
-#### Chat Completion Example
+#### Raw Requests
 
-For examples of how to use the `/v1/chat/completions`, `/v1/completions`, and `/v1/chat` endpoints, see the following:
+For examples of how to use the raw request utilities (e.g., `httpx`, `requests`), refer to:
 
-- [chat_completions_example.py](examples/chat_completions_example.py)
-- [chat_completions_example_stream.py](examples/chat_completions_example_stream.py)
-- [completions_example.py](examples/completions_example.py)
-- [completions_example_stream.py](examples/completions_example_stream.py)
-- [chat_example.py](examples/chat_example.py)
-- [chat_example_stream.py](examples/chat_example_stream.py)
+- **Chat Completion Example**: [argo_chat.py](examples/raw_requests/argo_chat.py)
+- **Chat Completion Stream Example**: [argo_chat_stream.py](examples/raw_requests/argo_chat_stream.py)
+- **Chat Completions Example**: [chat_completions.py](examples/raw_requests/chat_completions.py)
+- **Chat Completions Stream Example**: [chat_completions_stream.py](examples/raw_requests/chat_completions_stream.py)
+- **Embedding Example**: [embedding.py](examples/raw_requests/embedding.py)
+- **o1 Mini Chat Completions Example**: [o1_mini_chat_completions.py](examples/raw_requests/o1_mini_chat_completions.py)
+- **Raw requests to Argo Chat**: [argo_chat.py](examples/raw_requests/argo_chat.py)
+- **Raw requests to Argo Chat Stream**: [argo_chat_stream.py](examples/raw_requests/argo_chat_stream.py)
 
-#### Embedding Example
+#### OpenAI Client
 
-- [embedding_http_example.py](examples/embedding_http_example.py)
-- [embedding_openai_example.py](examples/embedding_openai_example.py)
+For examples demonstrating the use case of the OpenAI client (`openai.OpenAI`), refer to:
 
-#### o1 Chat Example
-
-- [o1_chat_example.py](examples/o1_chat_example.py)
-
-#### OpenAI Client Example
-
-- [openai_o3_chat_example.py](examples/o3_chat_example_pyclient.py)
+- **Chat Completions Example**: [chat_completions.py](examples/openai_client/chat_completions.py)
+- **Chat Completions Stream Example**: [chat_completions_stream.py](examples/openai_client/chat_completions_stream.py)
+- **Legacy Completions Example**: [legacy_completions.py](examples/openai_client/legacy_completions.py)
+- **Legacy Completions Stream Example**: [legacy_completions_stream.py](examples/openai_client/legacy_completions_stream.py)
+- **Embedding Example**: [embedding.py](examples/openai_client/embedding.py)
+- **O3 Mini Simple Chatbot Example**: [o3_mini_simple_chatbot.py](examples/openai_client/o3_mini_simple_chatbot.py)
 
 ## Folder Structure
 
 The following is an overview of the project's directory structure:
 
-```
+```bash
 $ tree -I "__pycache__|*.egg-info|dist|dev_scripts|config.yaml"
 .
 ├── config.sample.yaml
 ├── examples
-│   ├── chat_completions_example.py
-│   ├── chat_completions_example_stream.py
-│   ├── chat_example.py
-│   ├── chat_example_stream.py
-│   ├── completions_example.py
-│   ├── completions_example_stream.py
-│   ├── embedding_http_example.py
-│   ├── o1_chat_example.py
-│   └── o3_chat_example_pyclient.py
+│   ├── openai_client
+│   │   ├── chat_completions.py
+│   │   ├── chat_completions_stream.py
+│   │   ├── embedding.py
+│   │   ├── legacy_completions.py
+│   │   ├── legacy_completions_stream.py
+│   │   └── o3_mini_simple_chatbot.py
+│   └── raw_requests
+│       ├── argo_chat.py
+│       ├── argo_chat_stream.py
+│       ├── chat_completions.py
+│       ├── chat_completions_stream.py
+│       ├── embedding.py
+│       ├── legacy_completions.py
+│       ├── legacy_completions_stream.py
+│       └── o1_mini_chat_completions.py
 ├── LICENSE
 ├── Makefile
 ├── pyproject.toml
@@ -319,10 +326,16 @@ $ tree -I "__pycache__|*.egg-info|dist|dev_scripts|config.yaml"
 │       ├── extras.py
 │       ├── __init__.py
 │       ├── py.typed
+│       ├── types
+│       │   ├── chat_completion.py
+│       │   ├── completions.py
+│       │   ├── embedding.py
+│       │   ├── function_call.py
+│       │   └── __init__.py
 │       └── utils.py
 └── timeout_examples.md
 
-4 directories, 27 files
+7 directories, 37 files
 ```
 
 ## Bug Reports and Contributions
