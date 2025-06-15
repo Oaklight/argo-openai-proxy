@@ -4,21 +4,11 @@ from typing import List, Literal, Optional
 
 from pydantic import BaseModel
 
-from .chat_completion_token_logprob import ChatCompletionTokenLogprob
-from .completion_usage import CompletionUsage
+from .completions import CompletionUsage
 from .function_call import ChatCompletionMessageToolCall
 
+
 # ==================== Shared Models ====================
-
-
-class ChoiceLogprobs(BaseModel):
-    content: Optional[List[ChatCompletionTokenLogprob]] = None
-    """A list of message content tokens with log probability information."""
-
-    refusal: Optional[List[ChatCompletionTokenLogprob]] = None
-    """A list of message refusal tokens with log probability information."""
-
-
 class ChatCompletionMessage(BaseModel):
     content: Optional[str] = None
     """The contents of the message."""
@@ -48,9 +38,6 @@ class ChoiceCore(BaseModel):
 
     index: int
     """The index of the choice in the list of choices."""
-
-    logprobs: Optional[ChoiceLogprobs] = None
-    """Log probability information for the choice."""
 
 
 # ==================== Non Streaming Response ====================

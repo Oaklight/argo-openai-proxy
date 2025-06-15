@@ -1,6 +1,12 @@
-from .embedding import CreateEmbeddingResponse, Embedding, Usage
+from .chat_completion import (
+    ChatCompletionChunk,
+    ChatCompletionMessage,
+    ChoiceDelta,
+    NonStreamChoice,
+    StreamChoice,
+)
 from .completions import Completion, CompletionChoice, CompletionUsage
-from .chat_completion import ChatCompletion
+from .embedding import CreateEmbeddingResponse, Embedding, Usage
 
 __all__ = [
     # Embedding-related types
@@ -12,5 +18,9 @@ __all__ = [
     "CompletionChoice",
     "CompletionUsage",
     # Chat completion-related types
-    "ChatCompletion",
+    "ChatCompletionChunk",
+    "ChatCompletionMessage",
+    "ChoiceDelta",
+    "NonStreamChoice",
+    "StreamChoice",
 ]

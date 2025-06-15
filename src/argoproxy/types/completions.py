@@ -4,10 +4,31 @@ from typing import List, Literal, Optional
 
 from pydantic import BaseModel
 
-from .completion_choice import CompletionChoice
-from .completion_usage import CompletionUsage
 
-__all__ = ["Completion"]
+class CompletionUsage(BaseModel):
+    completion_tokens: int
+    """Number of tokens in the generated completion."""
+
+    prompt_tokens: int
+    """Number of tokens in the prompt."""
+
+    total_tokens: int
+    """Total number of tokens used in the request (prompt + completion)."""
+
+
+class CompletionChoice(BaseModel):
+    finish_reason: Literal["stop", "length", "content_filter"]
+    """The reason the model stopped generating tokens.
+
+    This will be `stop` if the model hit a natural stop point or a provided stop
+    sequence, `length` if the maximum number of tokens specified in the request was
+    reached, or `content_filter` if content was omitted due to a flag from our
+    content filters.
+    """
+
+    index: int
+
+    text: str
 
 
 class Completion(BaseModel):
