@@ -26,7 +26,10 @@ def stream_chat_test():
         response = client.responses.create(model=MODEL, input=messages, stream=True)
         print("Streaming Response:")
         for event in response:
-            print(event)
+            if event.type == "response.output_text.delta":
+                print(event.delta, end="", flush=True)
+            # else:
+            #     print(event)
     except Exception as e:
         print("\nError:", e)
 
