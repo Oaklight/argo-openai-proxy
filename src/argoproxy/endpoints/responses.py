@@ -18,11 +18,11 @@ from ..types import (
     ResponseUsage,
 )
 from ..utils import (
-    calculate_prompt_tokens,
     count_tokens,
     make_bar,
     resolve_model_name,
 )
+from .chat import send_non_streaming_request
 
 DEFAULT_MODEL = "gpt4o"
 
@@ -182,50 +182,6 @@ def prepare_request_data(
     return data
 
 
-async def send_non_streaming_request(
-    session: aiohttp.ClientSession,
-    api_url: str,
-    data: Dict[str, Any],
-    convert_to_openai: bool = False,
-    openai_compat_fn: Callable[..., Dict[str, Any]] = make_it_openai_responses_compat,
-) -> web.Response:
-    """Sends a non-streaming request to an API and processes the response.
-
-    Args:
-        session: The client session for making the request.
-        api_url: URL of the API endpoint.
-        data: The JSON payload of the request.
-        convert_to_openai: If True, converts the response to OpenAI format.
-        openai_compat_fn: Function for conversion to OpenAI-compatible format.
-
-    Returns:
-        A web.Response with the processed JSON data.
-    """
-    headers = {"Content-Type": "application/json"}
-    async with session.post(api_url, headers=headers, json=data) as upstream_resp:
-        response_data = await upstream_resp.json()
-        upstream_resp.raise_for_status()
-
-        if convert_to_openai:
-            # Calculate prompt tokens using the unified function
-            prompt_tokens = calculate_prompt_tokens(data, data["model"])
-            openai_response = openai_compat_fn(
-                json.dumps(response_data),
-                model_name=data.get("model"),
-                create_timestamp=int(time.time()),
-                prompt_tokens=prompt_tokens,
-            )
-            return web.json_response(
-                openai_response,
-                status=upstream_resp.status,
-                content_type="application/json",
-            )
-        else:
-            return web.json_response(
-                response_data,
-                status=upstream_resp.status,
-                content_type="application/json",
-            )
 
 
 async def send_streaming_request(
@@ -290,6 +246,7 @@ async def proxy_request(
                     api_url,
                     data,
                     convert_to_openai,
+                    openai_compat_fn=make_it_openai_responses_compat,
                 )
 
     except ValueError as err:
