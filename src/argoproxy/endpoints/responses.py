@@ -26,6 +26,7 @@ from ..types.responses import (
     ResponseOutputItemAddedEvent,
     ResponseOutputItemDoneEvent,
     ResponseTextDeltaEvent,
+    ResponseTextDoneEvent,
 )
 from ..utils import (
     calculate_prompt_tokens,
@@ -367,13 +368,12 @@ async def send_streaming_request(
         # =======================================
         # ResponseTextDoneEvent, signal the end of the text stream
         sequence_number += 1
-        text_done = transform_streaming_response(
-            json.dumps({"response": cumulated_response}),
-            model_name=data["model"],
+        text_done = ResponseTextDoneEvent(
             content_index=content_part.content_index,
+            item_id=output_msg.id,
             output_index=output_item.output_index,
             sequence_number=sequence_number,
-            id=output_msg.id,
+            text=cumulated_response,  # Use the cumulated response tex
         )
         await send_off_sse(response, text_done.model_dump())
 
