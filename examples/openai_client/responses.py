@@ -16,6 +16,7 @@ def stream_chat_test():
     print("Running Chat Test with Streaming")
 
     messages = [
+        {"role": "system", "content": "You are a helpful assistant."},
         {
             "role": "user",
             "content": "Tell me something interesting about quantum mechanics.",
@@ -23,7 +24,11 @@ def stream_chat_test():
     ]
 
     try:
-        response = client.responses.create(model=MODEL, input=messages)
+        response = client.responses.create(
+            model=MODEL,
+            instructions="Talk like a pirate.",
+            input=messages,
+        )
         print("Streaming Response:")
         print(response)
     except Exception as e:
