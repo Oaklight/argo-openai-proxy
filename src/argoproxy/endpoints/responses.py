@@ -3,7 +3,7 @@ import json
 import time
 import uuid
 from http import HTTPStatus
-from typing import Any, Callable, Dict
+from typing import Any, Dict
 
 import aiohttp
 from aiohttp import web
@@ -17,7 +17,18 @@ from ..types import (
     ResponseOutputText,
     ResponseUsage,
 )
+from ..types.responses import (
+    ResponseCompletedEvent,
+    ResponseContentPartAddedEvent,
+    ResponseContentPartDoneEvent,
+    ResponseCreatedEvent,
+    ResponseInProgressEvent,
+    ResponseOutputItemAddedEvent,
+    ResponseOutputItemDoneEvent,
+    ResponseTextDeltaEvent,
+)
 from ..utils import (
+    calculate_prompt_tokens,
     count_tokens,
     make_bar,
     resolve_model_name,
@@ -53,71 +64,109 @@ INCOMPATIBLE_INPUT_FIELDS = {
 }
 
 
-def make_it_openai_responses_compat(
+async def send_off_sse(
+    response: web.StreamResponse, chunk_json: Dict[str, Any]
+) -> None:
+    # Send the chunk as an SSE event
+    sse_chunk = f"data: {json.dumps(chunk_json)}\n\n"
+    await response.write(sse_chunk.encode())
+
+
+def transform_non_streaming_response(
     custom_response: Any,
     model_name: str,
     create_timestamp: int,
     prompt_tokens: int,
-    is_streaming: bool = False,
-    finish_reason: str = None,
+    **kwargs,
 ) -> Dict[str, Any]:
     """
-    Transforms the custom API response into a format compatible with OpenAI's API.
+    Transforms a non-streaming custom API response into a format compatible with OpenAI's API.
 
     Args:
         custom_response: The response obtained from the custom API.
         model_name: The name of the model that generated the completion.
         create_timestamp: The creation timestamp of the completion.
         prompt_tokens: The number of tokens in the input prompt.
-        is_streaming: Boolean indicating if the response is streaming.
-        finish_reason: The reason for response completion, e.g., "stop".
 
     Returns:
         A dictionary representing the OpenAI-compatible JSON response.
     """
     try:
-        # Parse the custom response
         if isinstance(custom_response, str):
             custom_response_dict = json.loads(custom_response)
         else:
             custom_response_dict = custom_response
 
-        # Extract the response text
         response_text = custom_response_dict.get("response", "")
+        completion_tokens = count_tokens(response_text, model_name)
+        total_tokens = prompt_tokens + completion_tokens
+        usage = ResponseUsage(
+            input_tokens=prompt_tokens,
+            output_tokens=completion_tokens,
+            total_tokens=total_tokens,
+        )
 
-        if not is_streaming:
-            # only count usage if not stream
-            # Calculate token counts (simplified example, actual tokenization may differ)
-            completion_tokens = count_tokens(response_text, model_name)
-            total_tokens = prompt_tokens + completion_tokens
-            usage = ResponseUsage(
-                input_tokens=prompt_tokens,
-                output_tokens=completion_tokens,
-                total_tokens=total_tokens,
-            )
+        id = str(uuid.uuid4().hex)
+        openai_response = Response(
+            id=f"resp_{id}",
+            created_at=create_timestamp,
+            model=model_name,
+            output=[
+                ResponseOutputMessage(
+                    id=f"msg_{id}",
+                    status="completed",
+                    content=[
+                        ResponseOutputText(
+                            text=response_text,
+                        )
+                    ],
+                )
+            ],
+            status="completed",
+            usage=usage,
+        )
 
-        if is_streaming:
-            raise NotImplementedError("Streaming is not implemented yet.")
+        return openai_response.model_dump()
+
+    except json.JSONDecodeError as err:
+        return {"error": f"Error decoding JSON: {err}"}
+    except Exception as err:
+        return {"error": f"An error occurred: {err}"}
+
+
+def transform_streaming_response(
+    custom_response: Any,
+    **kwargs,
+) -> Dict[str, Any]:
+    """
+    Transforms a streaming custom API response into a format compatible with OpenAI's API.
+
+    Args:
+        custom_response: The response obtained from the custom API.
+        model_name: The name of the model that generated the completion.
+
+    Returns:
+        A dictionary representing the OpenAI-compatible JSON response.
+    """
+    try:
+        if isinstance(custom_response, str):
+            custom_response_dict = json.loads(custom_response)
         else:
-            id = str(uuid.uuid4().hex)
-            openai_response = Response(
-                id=f"resp_{id}",
-                created_at=create_timestamp,
-                model=model_name,
-                output=[
-                    ResponseOutputMessage(
-                        id=f"msg_{id}",
-                        status="completed",
-                        content=[
-                            ResponseOutputText(
-                                text=response_text,
-                            )
-                        ],
-                    )
-                ],
-                status="completed",
-                usage=usage,
-            )
+            custom_response_dict = custom_response
+
+        response_text = custom_response_dict.get("response", "")
+        content_index = kwargs.get("content_index", 0)
+        output_index = kwargs.get("output_index", 0)
+        sequence_number = kwargs.get("sequence_number", 0)
+        id = kwargs.get("id", f"msg_{str(uuid.uuid4().hex)}")
+
+        openai_response = ResponseTextDeltaEvent(
+            content_index,
+            delta=response_text,
+            item_id=id,
+            output_index=output_index,
+            sequence_number=sequence_number,
+        )
 
         return openai_response.model_dump()
 
@@ -182,17 +231,186 @@ def prepare_request_data(
     return data
 
 
-
-
 async def send_streaming_request(
     session: aiohttp.ClientSession,
     api_url: str,
     data: Dict[str, Any],
     request: web.Request,
-    convert_to_openai: bool = False,
-    openai_compat_fn: Callable[..., Dict[str, Any]] = make_it_openai_responses_compat,
 ) -> None:
-    raise NotImplementedError("Streaming requests are not yet supported.")
+    """Sends a streaming request to an API and streams the response to the client.
+
+    Args:
+        session: The client session for making the request.
+        api_url: URL of the API endpoint.
+        data: The JSON payload of the request.
+        request: The web request used for streaming responses.
+        convert_to_openai: If True, converts the response to OpenAI format.
+        openai_compat_fn: Function for conversion to OpenAI-compatible format.
+    """
+    headers = {
+        "Content-Type": "application/json",
+        "Accept": "text/plain",
+        "Accept-Encoding": "identity",
+    }
+
+    # Set response headers based on the mode
+    response_headers = {"Content-Type": "text/event-stream"}
+    created_timestamp = int(time.time())
+    prompt_tokens = calculate_prompt_tokens(data, data["model"])
+
+    async with session.post(api_url, headers=headers, json=data) as upstream_resp:
+        # Initialize the streaming response
+        response_headers.update(
+            {
+                k: v
+                for k, v in upstream_resp.headers.items()
+                if k.lower()
+                not in ("Content-Type", "content-encoding", "transfer-encoding")
+            }
+        )
+        response = web.StreamResponse(
+            status=upstream_resp.status,
+            headers=response_headers,
+        )
+        response.enable_chunked_encoding()
+        await response.prepare(request)
+
+        # =======================================
+        # Start event flow with ResponseCreatedEvent
+        sequence_number = 0
+        id = str(uuid.uuid4().hex)  # Generate a unique ID for the response
+
+        onset_response = Response(
+            id=f"resp_{id}",
+            created_at=created_timestamp,
+            model=data["model"],
+            output=[],
+            status="in_progress",
+        )
+        created_event = ResponseCreatedEvent(
+            response=onset_response,
+            sequence_number=sequence_number,
+        )
+        await send_off_sse(response, created_event.model_dump())
+
+        # =======================================
+        # ResponseInProgressEvent, start streaming the response
+        sequence_number += 1
+        in_progress_event = ResponseInProgressEvent(
+            response=onset_response,
+            sequence_number=sequence_number,
+        )
+        await send_off_sse(response, in_progress_event.model_dump())
+
+        # =======================================
+        # ResponseOutputItemAddedEvent, add the output item
+        sequence_number += 1
+        output_msg = ResponseOutputMessage(
+            id=f"msg_{id}",
+            content=[],
+            status="in_progress",
+        )
+        output_item = ResponseOutputItemAddedEvent(
+            item=output_msg,
+            output_index=0,
+            sequence_number=sequence_number,
+        )
+        await send_off_sse(response, output_item.model_dump())
+
+        # =======================================
+        # ResponseContentPartAddedEvent, add the content part
+        sequence_number += 1
+        content_index = 0
+        content_part = ResponseContentPartAddedEvent(
+            content_index=content_index,
+            item_id=output_msg.id,
+            output_index=output_item.output_index,
+            part=ResponseOutputText(text=""),
+            sequence_number=sequence_number,
+        )
+        await send_off_sse(response, content_part.model_dump())
+
+        # =======================================
+        # ResponseTextDeltaEvent, stream the response chunk by chunk
+        cumulated_response = ""
+        sequence_number += 1
+        async for chunk in upstream_resp.content.iter_any():
+            chunk_text = chunk.decode()
+            cumulated_response += chunk_text  # for ResponseTextDoneEvent
+
+            # Convert the chunk to OpenAI-compatible JSON
+            text_delta = transform_streaming_response(
+                json.dumps({"response": chunk_text}),
+                content_index=content_part.content_index,
+                output_index=output_item.output_index,
+                sequence_number=sequence_number,
+                id=str(uuid.uuid4().hex),
+            )
+            # Wrap the JSON in SSE format
+            await send_off_sse(response, text_delta)
+
+        # =======================================
+        # ResponseTextDoneEvent, signal the end of the text stream
+        sequence_number += 1
+        text_done = transform_streaming_response(
+            json.dumps({"response": cumulated_response}),
+            model_name=data["model"],
+            content_index=content_part.content_index,
+            output_index=output_item.output_index,
+            sequence_number=sequence_number,
+            id=str(uuid.uuid4().hex),
+        )
+        await send_off_sse(response, text_done.model_dump())
+
+        # =======================================
+        # ResponseContentPartDoneEvent, signal the end of the content part
+        sequence_number += 1
+        output_text = ResponseOutputText(text=cumulated_response)
+        content_part_done = ResponseContentPartDoneEvent(
+            content_index=content_part.content_index,
+            item_id=output_msg.id,
+            output_index=output_item.output_index,
+            part=output_text,
+            sequence_number=sequence_number,
+        )
+        await send_off_sse(response, content_part_done.model_dump())
+
+        # =======================================
+        # ResponseOutputItemDoneEvent, signal the end of the output item
+        sequence_number += 1
+        output_msg.content = [output_text]
+        output_msg.status = "completed"
+
+        output_item_done = ResponseOutputItemDoneEvent(
+            item=output_msg,
+            output_index=output_item.output_index,
+            sequence_number=sequence_number,
+        )
+        await send_off_sse(response, output_item_done.model_dump())
+
+        # =======================================
+        # ResponseCompletedEvent, signal the end of the response
+        sequence_number += 1
+        onset_response.output.append(output_msg)
+        onset_response.status = "completed"
+        output_tokens = count_tokens(cumulated_response, data["model"])
+        onset_response.usage = ResponseUsage(
+            input_tokens=prompt_tokens,
+            output_tokens=output_tokens,
+            total_tokens=prompt_tokens + output_tokens,
+        )
+        completed_event = ResponseCompletedEvent(
+            response=onset_response,
+            sequence_number=sequence_number,
+        )
+        await send_off_sse(response, completed_event.model_dump())
+
+        # =======================================
+        # Ensure response is properly closed
+
+        await response.write_eof()
+
+        return response
 
 
 async def proxy_request(
@@ -220,7 +438,7 @@ async def proxy_request(
         if not data:
             raise ValueError("Invalid input. Expected JSON data.")
         if config.verbose:
-            logger.info(make_bar("[chat] input"))
+            logger.info(make_bar("[response] input"))
             logger.info(json.dumps(data, indent=4))
             logger.info(make_bar())
 
@@ -238,15 +456,14 @@ async def proxy_request(
                     api_url,
                     data,
                     request,
-                    convert_to_openai,
                 )
             else:
                 return await send_non_streaming_request(
                     session,
                     api_url,
                     data,
-                    convert_to_openai,
-                    openai_compat_fn=make_it_openai_responses_compat,
+                    convert_to_openai=True,
+                    openai_compat_fn=transform_non_streaming_response,
                 )
 
     except ValueError as err:
