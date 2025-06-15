@@ -348,7 +348,7 @@ async def send_streaming_request(
                 content_index=content_part.content_index,
                 output_index=output_item.output_index,
                 sequence_number=sequence_number,
-                id=str(uuid.uuid4().hex),
+                id=output_msg.id,
             )
             # Wrap the JSON in SSE format
             await send_off_sse(response, text_delta)
@@ -362,7 +362,7 @@ async def send_streaming_request(
             content_index=content_part.content_index,
             output_index=output_item.output_index,
             sequence_number=sequence_number,
-            id=str(uuid.uuid4().hex),
+            id=output_msg.id,
         )
         await send_off_sse(response, text_done.model_dump())
 
