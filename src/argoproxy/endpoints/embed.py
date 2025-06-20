@@ -63,6 +63,41 @@ def make_it_openai_embeddings_compat(
         return {"error": f"An error occurred: {err}"}
 
 
+def prepare_request_data(
+    data: Dict[str, Any],
+    request: web.Request,
+) -> Dict[str, Any]:
+    """
+    Modifies and prepares the incoming request data by adding user information
+    and remapping the model according to configurations.
+
+    Args:
+        data: The original request data.
+        request: The incoming web request object.
+
+    Returns:
+        The modified and prepared request data.
+    """
+    config: ArgoConfig = request.app["config"]
+    # Automatically replace or insert the user
+    data["user"] = config.user
+    # Remap the model using EMBED_MODELS
+    if "model" in data:
+        data["model"] = resolve_model_name(
+            data["model"], DEFAULT_MODEL, avail_models=EMBED_MODELS
+        )
+    else:
+        data["model"] = DEFAULT_MODEL  # Default model if not provided
+
+    # Transform the incoming payload to match the destination API format
+    data["prompt"] = (
+        [data["input"]] if not isinstance(data["input"], list) else data["input"]
+    )
+    del data["input"]
+
+    return data
+
+
 async def proxy_request(
     request: web.Request, convert_to_openai: bool = False
 ) -> web.Response:
@@ -86,23 +121,7 @@ async def proxy_request(
             logger.info(json.dumps(data, indent=4))
             logger.info(make_bar())
 
-        # Remap the model using EMBED_MODELS
-        if "model" in data:
-            data["model"] = resolve_model_name(
-                data["model"], DEFAULT_MODEL, avail_models=EMBED_MODELS
-            )
-        else:
-            data["model"] = DEFAULT_MODEL  # Default model if not provided
-
-        # Transform the incoming payload to match the destination API format
-        data["user"] = config.user
-        if 'prompt' not in data: # argo-API uses prompt, openAI-API uses input
-            if 'input' not in data:
-                raise ValueError("No 'input' (openAI) or 'prompt' (Argo) field present in the input data.")
-            data["prompt"] = (
-                [data["input"]] if not isinstance(data["input"], list) else data["input"]
-            )
-            del data["input"]
+        data = prepare_request_data(data, request)
 
         headers: Dict[str, str] = {"Content-Type": "application/json"}
 
