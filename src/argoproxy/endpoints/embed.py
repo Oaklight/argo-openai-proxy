@@ -90,10 +90,15 @@ def prepare_request_data(
         data["model"] = DEFAULT_MODEL  # Default model if not provided
 
     # Transform the incoming payload to match the destination API format
-    data["prompt"] = (
-        [data["input"]] if not isinstance(data["input"], list) else data["input"]
-    )
-    del data["input"]
+    if "prompt" not in data:  # argo-API uses prompt, openAI-API uses input
+        if "input" not in data:
+            raise ValueError(
+                "Invalid input. Expected 'input' (openAI) or 'prompt' (argo) field."
+            )
+        data["prompt"] = (
+            [data["input"]] if not isinstance(data["input"], list) else data["input"]
+        )
+        del data["input"]
 
     return data
 
