@@ -140,7 +140,15 @@ async def proxy_request(
 
                 if config.verbose:
                     logger.info(make_bar("[embed] fwd. response"))
-                    logger.info(json.dumps(response_data, indent=4))
+                    # Create a new dict with copied lists to avoid modifying the original
+                    log_data = {
+                        "embedding": [
+                            emb[:3]
+                            + ["......", f"{len(emb) - 3} elements omitted", "......"]
+                            for emb in response_data["embedding"]
+                        ]
+                    }
+                    logger.info(json.dumps(log_data, indent=4))
                     logger.info(make_bar())
 
                 if convert_to_openai:
