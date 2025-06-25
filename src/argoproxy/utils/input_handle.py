@@ -15,7 +15,8 @@ def handle_option_2_input(data: Dict[str, Any]) -> Dict[str, Any]:
         system_messages = [
             msg["content"] for msg in data["messages"] if msg["role"] == "system"
         ]
-        data["system"] = "\n\n".join(system_messages) if system_messages else ""
+        if system_messages:
+            data["system"] = "\n\n".join(system_messages).strip()
 
         prompt_messages = []
         for msg in data["messages"]:
@@ -24,13 +25,12 @@ def handle_option_2_input(data: Dict[str, Any]) -> Dict[str, Any]:
                 if isinstance(content, list):
                     # Extract text from content parts
                     texts = [
-                        part["text"] for part in content if part.get("type") == "text"
+                        part["text"].strip()
+                        for part in content
+                        if part.get("type") == "text"
                     ]
                     # Join texts with double newline and add role prefix
-                    prefixed_texts = f"{msg['role']}: " + "\n\n".join(texts)
-                    # if trailing newline, remove it
-                    if prefixed_texts.endswith("\n"):
-                        prefixed_texts = prefixed_texts[:-1]
+                    prefixed_texts = f"{msg['role']}: " + "\n\n".join(texts).strip()
                     prompt_messages.append(prefixed_texts)
                 else:
                     prompt_messages.append(f"{msg['role']}: {content}")
