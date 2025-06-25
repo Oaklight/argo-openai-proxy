@@ -21,7 +21,7 @@ from ..types import (
     StreamChoice,
 )
 from ..utils.tokens import calculate_prompt_tokens, count_tokens
-from ..utils.transport import send_off_sse
+from ..utils.transports import send_off_sse
 from ..utils.utils import (
     make_bar,
     resolve_model_name,
