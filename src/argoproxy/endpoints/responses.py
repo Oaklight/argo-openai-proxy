@@ -1,4 +1,3 @@
-import fnmatch
 import json
 import time
 import uuid
@@ -10,7 +9,6 @@ from aiohttp import web
 from loguru import logger
 
 from ..config import ArgoConfig
-from ..models import CHAT_MODELS
 from ..types import (
     Response,
     ResponseCompletedEvent,
@@ -39,18 +37,6 @@ from ..utils.utils import (
 from .chat import send_non_streaming_request
 
 DEFAULT_MODEL = "gpt4o"
-
-NO_SYS_MSG_PATTERNS = {
-    "^argo:gpt-o.*$",
-    "^argo:o.*$",
-    "^gpto.*$",
-}
-
-NO_SYS_MSG = [
-    model
-    for model in CHAT_MODELS
-    if any(fnmatch.fnmatch(model, pattern) for pattern in NO_SYS_MSG_PATTERNS)
-]
 
 INCOMPATIBLE_INPUT_FIELDS = {
     "include",

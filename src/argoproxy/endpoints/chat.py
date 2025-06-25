@@ -1,4 +1,3 @@
-import fnmatch
 import json
 import time
 import uuid
@@ -10,7 +9,7 @@ from aiohttp import web
 from loguru import logger
 
 from ..config import ArgoConfig
-from ..models import CHAT_MODELS
+from ..models import CHAT_MODELS, NO_SYS_MSG, OPTION_2_INPUT
 from ..types import (
     ChatCompletion,
     ChatCompletionChunk,
@@ -26,30 +25,6 @@ from ..utils.tokens import calculate_prompt_tokens, count_tokens
 from ..utils.transports import send_off_sse
 
 DEFAULT_MODEL = "gpt4o"
-
-NO_SYS_MSG_PATTERNS = {
-    "^argo:gpt-o.*$",
-    "^argo:o.*$",
-    "^gpto.*$",
-}
-
-NO_SYS_MSG = [
-    model
-    for model in CHAT_MODELS
-    if any(fnmatch.fnmatch(model, pattern) for pattern in NO_SYS_MSG_PATTERNS)
-]
-
-# any models that only able to handle single system prompt and
-OPTION_2_INPUT_PATTERNS = {
-    "^gemini.*$",
-    "^claude.*$",
-}
-
-OPTION_2_INPUT = [
-    model
-    for model in CHAT_MODELS
-    if any(fnmatch.fnmatch(model, pattern) for pattern in OPTION_2_INPUT_PATTERNS)
-]
 
 
 def make_it_openai_chat_completions_compat(
