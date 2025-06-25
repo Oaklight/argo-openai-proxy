@@ -42,6 +42,18 @@ NO_SYS_MSG = [
     if any(fnmatch.fnmatch(model, pattern) for pattern in NO_SYS_MSG_PATTERNS)
 ]
 
+# any models that only able to handle single system prompt and
+OPTION_2_INPUT_PATTERNS = {
+    "^gemini.*$",
+    "^claude.*$",
+}
+
+OPTION_2_INPUT = [
+    model
+    for model in CHAT_MODELS
+    if any(fnmatch.fnmatch(model, pattern) for pattern in OPTION_2_INPUT_PATTERNS)
+]
+
 
 def make_it_openai_chat_completions_compat(
     custom_response: Any,
@@ -172,6 +184,29 @@ def prepare_request_data(
             del data["system"]
             if config.verbose:
                 logger.info(f"New data is {data}")
+
+    # Temporary fix for models that require `system` and `prompt` structure
+    if data["model"] in OPTION_2_INPUT:
+        if "messages" in data:
+            # Extract system message (combine if multiple system messages exist)
+            system_messages = [
+                msg["content"] for msg in data["messages"] if msg["role"] == "system"
+            ]
+            system_message = "\n\n".join(system_messages) if system_messages else ""
+
+            # Combine user and assistant messages into the prompt
+            prompt_messages = [
+                msg["content"]
+                for msg in data["messages"]
+                if msg["role"] in ("user", "assistant")
+            ]
+
+            # Ensure `system` is singular and `prompt` is a list
+            data["system"] = system_message
+            data["prompt"] = prompt_messages
+            del data["messages"]
+        if config.verbose:
+            logger.info(f"Transformed data for OPTION_2_INPUT model: {data}")
 
     return data
 
