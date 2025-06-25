@@ -9,7 +9,8 @@ from loguru import logger
 from ..config import ArgoConfig
 from ..models import EMBED_MODELS
 from ..types import CreateEmbeddingResponse, Embedding, Usage
-from ..utils import count_tokens, make_bar, resolve_model_name
+from ..utils.tokens import count_tokens
+from ..utils.utils import make_bar, resolve_model_name
 
 DEFAULT_MODEL = "v3small"
 
