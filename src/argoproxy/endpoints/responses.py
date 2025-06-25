@@ -26,12 +26,13 @@ from ..types import (
     ResponseTextDoneEvent,
     ResponseUsage,
 )
-from ..utils import (
+from ..utils.transport import send_off_sse
+from ..utils.utils import (
     calculate_prompt_tokens,
     count_tokens,
     make_bar,
     resolve_model_name,
-    send_off_sse,
+)
 )
 from .chat import send_non_streaming_request
 
