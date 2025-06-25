@@ -11,6 +11,14 @@ _CHAT_MODELS = {
     "gpto3mini": ["argo:gpt-o3-mini", "argo:o3-mini"],
     "gpto1": ["argo:gpt-o1", "argo:o1"],
     "gpto1preview": ["argo:gpt-o1-preview", "argo:o1-preview"],
+    # gemini
+    "gemini25pro": "argo:gemini-2.5-pro",
+    "gemini25flash": "argo:gemini-2.5-flash",
+    # claude
+    "claudeopus4": "argo:claude-opus-4",
+    "claudesonnet4": "argo:claude-sonnet-4",
+    "claudesonnet37": "argo:claude-sonnet-3.7",
+    "claudesonnet35v2": "argo:claude-sonnet-3.5-v2",
 }
 
 _EMBED_MODELS = {
