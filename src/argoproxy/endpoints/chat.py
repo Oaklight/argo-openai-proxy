@@ -20,12 +20,10 @@ from ..types import (
     NonStreamChoice,
     StreamChoice,
 )
+from ..utils.models import resolve_model_name
 from ..utils.tokens import calculate_prompt_tokens, count_tokens
 from ..utils.transports import send_off_sse
-from ..utils.utils import (
-    make_bar,
-    resolve_model_name,
-)
+from ..utils.utils import make_bar
 
 DEFAULT_MODEL = "gpt4o"
 
