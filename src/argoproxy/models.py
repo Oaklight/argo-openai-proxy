@@ -1,4 +1,6 @@
 # Model definitions with primary names as keys and aliases as strings or lists
+import fnmatch
+
 _CHAT_MODELS = {
     "gpt35": "argo:gpt-3.5-turbo",
     "gpt35large": "argo:gpt-3.5-turbo-16k",
@@ -27,6 +29,7 @@ _EMBED_MODELS = {
     "v3large": "argo:text-embedding-3-large",
 }
 
+
 # Create flattened mappings for lookup
 def flatten_mapping(mapping):
     flat = {}
@@ -52,3 +55,27 @@ TIKTOKEN_ENCODING_PREFIX_MAPPING = {
     "ada002": "cl100k_base",  # embedding
     "v3": "cl100k_base",  # embedding
 }
+
+NO_SYS_MSG_PATTERNS = {
+    "^argo:gpt-o.*$",
+    "^argo:o.*$",
+    "^gpto.*$",
+}
+
+NO_SYS_MSG = [
+    model
+    for model in CHAT_MODELS
+    if any(fnmatch.fnmatch(model, pattern) for pattern in NO_SYS_MSG_PATTERNS)
+]
+
+# any models that only able to handle single system prompt and
+OPTION_2_INPUT_PATTERNS = {
+    "^gemini.*$",
+    "^claude.*$",
+}
+
+OPTION_2_INPUT = [
+    model
+    for model in CHAT_MODELS
+    if any(fnmatch.fnmatch(model, pattern) for pattern in OPTION_2_INPUT_PATTERNS)
+]
