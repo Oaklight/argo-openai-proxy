@@ -1,14 +1,16 @@
-import openai
 import os
+
+import openai
 from dotenv import load_dotenv
 
-load_dotenv()  # Load environment variables from .env file if n
+load_dotenv()
 
-MODEL = os.getenv("MODEL", "argo:gpt-4o")  # Default to "ar"argo:gpt-4o"
+MODEL = os.getenv("MODEL", "argo:gpt-4o")
+BASE_URL = os.getenv("BASE_URL", "http://localhost:44498")
 
 client = openai.OpenAI(
-    api_key=os.getenv("API_KEY", "whatever+random"),
-    base_url=os.getenv("BASE_URL", "http://localhost:44498/v1"),
+    api_key="whatever+random",
+    base_url=f"{BASE_URL}/v1",
 )
 
 
