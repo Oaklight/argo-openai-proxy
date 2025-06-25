@@ -1,6 +1,11 @@
-import openai
+import os
 
-MODEL = "argo:gpt-4o"
+import openai
+from dotenv import load_dotenv
+
+load_dotenv()
+
+MODEL = os.getenv("MODEL", "argo:gpt-4o")
 
 client = openai.OpenAI(
     api_key="whatever+random",
