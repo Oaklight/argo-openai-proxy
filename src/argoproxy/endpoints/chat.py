@@ -19,6 +19,7 @@ from ..types import (
     NonStreamChoice,
     StreamChoice,
 )
+from ..utils.input_handle import handle_no_sys_msg, handle_option_2_input
 from ..utils.misc import make_bar
 from ..utils.models import resolve_model_name
 from ..utils.tokens import calculate_prompt_tokens, count_tokens
@@ -110,26 +111,23 @@ def make_it_openai_chat_completions_compat(
         return {"error": f"An error occurred: {err}"}
 
 
-def prepare_request_data(
-    data: Dict[str, Any],
-    request: web.Request,
+def prepare_chat_request_data(
+    data: Dict[str, Any], config: ArgoConfig
 ) -> Dict[str, Any]:
     """
-    Modifies and prepares the incoming request data by adding user information
-    and remapping the model according to configurations.
+    Prepares chat request data for upstream APIs based on model type.
 
     Args:
-        data: The original request data.
-        request: The incoming web request object.
+        data: The incoming request data.
+        config: Application configuration.
 
     Returns:
-        The modified and prepared request data.
+        The modified request data.
     """
-    config: ArgoConfig = request.app["config"]
-    # Automatically replace or insert the user
+    # Automatically replace or insert user information
     data["user"] = config.user
 
-    # Remap the model using MODEL_AVAIL
+    # Remap the model name
     if "model" in data:
         data["model"] = resolve_model_name(
             data["model"], DEFAULT_MODEL, avail_models=CHAT_MODELS
@@ -137,48 +135,15 @@ def prepare_request_data(
     else:
         data["model"] = DEFAULT_MODEL
 
-    # Convert prompt to list if it's not already
+    # Convert prompt to list if necessary
     if "prompt" in data and not isinstance(data["prompt"], list):
         data["prompt"] = [data["prompt"]]
 
-    # Convert system message to user message for specific models
-    if data["model"] in NO_SYS_MSG:
-        if "messages" in data:
-            for message in data["messages"]:
-                if message["role"] == "system":
-                    message["role"] = "user"
-        if "system" in data:
-            if isinstance(data["system"], str):
-                data["system"] = [data["system"]]
-            elif not isinstance(data["system"], list):
-                raise ValueError("System prompt must be a string or list")
-            data["prompt"] = data["system"] + data["prompt"]
-            del data["system"]
-            if config.verbose:
-                logger.info(f"New data is {data}")
-
-    # Temporary fix for models that require `system` and `prompt` structure
+    # Apply transformations based on model type
     if data["model"] in OPTION_2_INPUT:
-        if "messages" in data:
-            # Extract system message (combine if multiple system messages exist)
-            system_messages = [
-                msg["content"] for msg in data["messages"] if msg["role"] == "system"
-            ]
-            system_message = "\n\n".join(system_messages) if system_messages else ""
-
-            # Combine user and assistant messages into the prompt
-            prompt_messages = [
-                msg["content"]
-                for msg in data["messages"]
-                if msg["role"] in ("user", "assistant")
-            ]
-
-            # Ensure `system` is singular and `prompt` is a list
-            data["system"] = system_message
-            data["prompt"] = prompt_messages
-            del data["messages"]
-        if config.verbose:
-            logger.info(f"Transformed data for OPTION_2_INPUT model: {data}")
+        data = handle_option_2_input(data)
+    elif data["model"] in NO_SYS_MSG:
+        data = handle_no_sys_msg(data)
 
     return data
 
@@ -336,7 +301,7 @@ async def proxy_request(
             logger.info(make_bar())
 
         # Prepare the request data
-        data = prepare_request_data(data, request)
+        data = prepare_chat_request_data(data, config)
 
         # Determine the API URL based on whether streaming is enabled
         api_url = config.argo_stream_url if stream else config.argo_url

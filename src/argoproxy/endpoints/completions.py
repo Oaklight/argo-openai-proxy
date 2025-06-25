@@ -11,7 +11,7 @@ from ..config import ArgoConfig
 from ..types import Completion, CompletionChoice, CompletionUsage
 from ..utils.misc import make_bar
 from .chat import (
-    prepare_request_data,
+    prepare_chat_request_data,
     send_non_streaming_request,
     send_streaming_request,
 )
@@ -115,7 +115,7 @@ async def proxy_request(
             logger.info(make_bar())
 
         # Prepare the request data
-        data = prepare_request_data(data, request)
+        data = prepare_chat_request_data(data, config)
 
         # Determine the API URL based on whether streaming is enabled
         api_url: str = config.argo_stream_url if stream else config.argo_url
