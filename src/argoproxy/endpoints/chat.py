@@ -10,7 +10,7 @@ from aiohttp import web
 from loguru import logger
 
 from ..config import ArgoConfig
-from ..constants import CHAT_MODELS
+from ..models import CHAT_MODELS
 from ..types import (
     ChatCompletion,
     ChatCompletionChunk,

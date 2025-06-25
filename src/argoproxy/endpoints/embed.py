@@ -7,7 +7,7 @@ from aiohttp import web
 from loguru import logger
 
 from ..config import ArgoConfig
-from ..constants import EMBED_MODELS
+from ..models import EMBED_MODELS
 from ..types import CreateEmbeddingResponse, Embedding, Usage
 from ..utils import count_tokens, make_bar, resolve_model_name
 

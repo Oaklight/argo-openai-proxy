@@ -4,7 +4,7 @@ from typing import Any, Dict, Optional
 import aiohttp
 from aiohttp import web
 
-from ..constants import ALL_MODELS
+from ..models import ALL_MODELS
 
 # Mock data for available models
 MODELS_DATA: Dict[str, Any] = {"object": "list", "data": []}  # type: ignore

@@ -1,6 +1,6 @@
 import os
 
-from argoproxy.constants import CHAT_MODELS
+from argoproxy.models import CHAT_MODELS
 from argoproxy.utils import resolve_model_name
 
 MODEL = os.getenv("MODEL", "argo:gpt-4o")

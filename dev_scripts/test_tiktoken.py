@@ -1,7 +1,7 @@
 from argoproxy.utils import get_tiktoken_encoding_model
 
 if __name__ == "__main__":
-    from argoproxy.constants import CHAT_MODELS, EMBED_MODELS
+    from argoproxy.models import CHAT_MODELS, EMBED_MODELS
 
     models = dict()
     models.update(EMBED_MODELS)
