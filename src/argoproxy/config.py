@@ -9,7 +9,7 @@ from typing import Any, Optional, Tuple, Union
 import yaml  # type: ignore
 from loguru import logger
 
-from .utils import get_random_port, is_port_available, make_bar
+from .utils.misc import get_random_port, is_port_available, make_bar
 
 PATHS_TO_TRY = [
     "./config.yaml",

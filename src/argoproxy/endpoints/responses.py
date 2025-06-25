@@ -26,6 +26,7 @@ from ..types import (
     ResponseTextDoneEvent,
     ResponseUsage,
 )
+from ..utils.misc import make_bar
 from ..utils.models import resolve_model_name
 from ..utils.tokens import calculate_prompt_tokens, count_tokens
 from ..utils.transports import send_off_sse

@@ -7,14 +7,14 @@ import aiohttp
 from aiohttp import web
 from loguru import logger
 
+from ..config import ArgoConfig
+from ..types import Completion, CompletionChoice, CompletionUsage
+from ..utils.misc import make_bar
 from .chat import (
     prepare_request_data,
     send_non_streaming_request,
     send_streaming_request,
 )
-from ..config import ArgoConfig
-from ..types import Completion, CompletionChoice, CompletionUsage
-from ..utils import make_bar
 
 DEFAULT_STREAM = False
 
