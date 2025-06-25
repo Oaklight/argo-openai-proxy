@@ -19,7 +19,11 @@ from ..types import (
     NonStreamChoice,
     StreamChoice,
 )
-from ..utils.input_handle import handle_no_sys_msg, handle_option_2_input
+from ..utils.input_handle import (
+    handle_no_sys_msg,
+    handle_non_stream_only,
+    handle_option_2_input,
+)
 from ..utils.misc import make_bar
 from ..utils.models import resolve_model_name
 from ..utils.tokens import calculate_prompt_tokens, count_tokens
@@ -141,12 +145,20 @@ def prepare_chat_request_data(
 
     # Apply transformations based on model type
     if data["model"] in OPTION_2_INPUT:
+        # temporary fix for non-streaming only models
+        data = handle_non_stream_only(data)
+
+        # Transform data for models requiring `system` and `prompt` structure only
         data = handle_option_2_input(data)
         if config.verbose:
             logger.info("Transformed data: ")
             logger.info(f"{json.dumps(data, indent=2)}")
+
     if data["model"] in NO_SYS_MSG:
         data = handle_no_sys_msg(data)
+        if config.verbose:
+            logger.info("Transformed data: ")
+            logger.info(f"{json.dumps(data, indent=2)}")
 
     return data
 
