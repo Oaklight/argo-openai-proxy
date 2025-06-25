@@ -56,26 +56,36 @@ TIKTOKEN_ENCODING_PREFIX_MAPPING = {
     "v3": "cl100k_base",  # embedding
 }
 
+# any models that unable to handle system prompt
 NO_SYS_MSG_PATTERNS = {
-    "^argo:gpt-o.*$",
-    "^argo:o.*$",
-    "^gpto.*$",
+    "argo:*o1-*",  # Matches any model name starting with 'argo:gpt-o1*' or 'argo:o1*'
+    "gpto1preview",  # Explicitly matches gpto1preview
+    "gpto1mini",  # Explicitly matches gpto1mini
+    # Removed the broad "gpto1*" pattern
 }
 
 NO_SYS_MSG = [
     model
     for model in CHAT_MODELS
     if any(fnmatch.fnmatch(model, pattern) for pattern in NO_SYS_MSG_PATTERNS)
+] + [
+    short_name
+    for short_name in _CHAT_MODELS.keys()
+    if any(fnmatch.fnmatch(short_name, pattern) for pattern in NO_SYS_MSG_PATTERNS)
 ]
 
-# any models that only able to handle single system prompt and
+# any models that only able to handle single system prompt and no system prompt at all
 OPTION_2_INPUT_PATTERNS = {
-    "^gemini.*$",
-    "^claude.*$",
+    "*gemini*",  # Matches any model name starting with 'gemini'
+    "*claude*",  # Matches any model name starting with 'claude'
 }
 
 OPTION_2_INPUT = [
     model
     for model in CHAT_MODELS
     if any(fnmatch.fnmatch(model, pattern) for pattern in OPTION_2_INPUT_PATTERNS)
+] + [
+    short_name
+    for short_name in _CHAT_MODELS.keys()
+    if any(fnmatch.fnmatch(short_name, pattern) for pattern in OPTION_2_INPUT_PATTERNS)
 ]
