@@ -142,7 +142,10 @@ def prepare_chat_request_data(
     # Apply transformations based on model type
     if data["model"] in OPTION_2_INPUT:
         data = handle_option_2_input(data)
-    elif data["model"] in NO_SYS_MSG:
+        if config.verbose:
+            logger.info("Transformed data: ")
+            logger.info(f"{json.dumps(data, indent=2)}")
+    if data["model"] in NO_SYS_MSG:
         data = handle_no_sys_msg(data)
 
     return data
