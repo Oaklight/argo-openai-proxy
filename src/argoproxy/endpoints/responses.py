@@ -25,16 +25,12 @@ from ..types import (
     ResponseUsage,
 )
 from ..utils.misc import make_bar
-from ..utils.models import resolve_model_name
 from ..utils.tokens import calculate_prompt_tokens, count_tokens
 from ..utils.transports import send_off_sse
-from ..utils.utils import make_bar
-from ..utils.utils import (
-    make_bar,
-    resolve_model_name,
+from .chat import (
+    prepare_chat_request_data,
+    send_non_streaming_request,
 )
-)
-from .chat import send_non_streaming_request
 
 DEFAULT_MODEL = "gpt4o"
 
@@ -161,40 +157,22 @@ def transform_streaming_response(
         return {"error": f"An error occurred: {err}"}
 
 
-def prepare_request_data(
-    data: Dict[str, Any],
-    request: web.Request,
-) -> Dict[str, Any]:
+def prepare_request_data(data: Dict[str, Any], config: ArgoConfig) -> Dict[str, Any]:
     """
-    Modifies and prepares the incoming request data by adding user information
-    and remapping the model according to configurations.
+    Prepares the incoming request data for response models.
 
     Args:
         data: The original request data.
-        request: The incoming web request object.
+        config: Application configuration.
 
     Returns:
         The modified and prepared request data.
     """
-    config: ArgoConfig = request.app["config"]
-    # Automatically replace or insert the user
-    data["user"] = config.user
-
-    # Remap the model using MODEL_AVAIL
-    if "model" in data:
-        data["model"] = resolve_model_name(
-            data["model"], DEFAULT_MODEL, avail_models=CHAT_MODELS
-        )
-    else:
-        data["model"] = DEFAULT_MODEL
-
-    # obtain messages from input
+    # Insert instructions and format messages from input
     messages = data.get("input", [])
-    # Insert instructions as a system message
     if instructions := data.get("instructions", ""):
         messages.insert(0, {"role": "system", "content": instructions})
         del data["instructions"]
-    # replace input with messages
     data["messages"] = messages
     del data["input"]
 
@@ -202,17 +180,14 @@ def prepare_request_data(
         data["max_tokens"] = max_tokens
         del data["max_output_tokens"]
 
-    # Convert system message to user message for specific models
-    if data["model"] in NO_SYS_MSG:
-        if "messages" in data:
-            for message in data["messages"]:
-                if message["role"] == "system":
-                    message["role"] = "user"
+    # Use shared chat request preparation logic
+    data = prepare_chat_request_data(data, config)
 
-    # drop other unsupported fields
+    # Drop unsupported fields
     for key in list(data.keys()):
         if key in INCOMPATIBLE_INPUT_FIELDS:
             del data[key]
+
     return data
 
 
@@ -435,7 +410,7 @@ async def proxy_request(
             logger.info(make_bar())
 
         # Prepare the request data
-        data = prepare_request_data(data, request)
+        data = prepare_request_data(data, config)
 
         # Determine the API URL based on whether streaming is enabled
         api_url = config.argo_stream_url if stream else config.argo_url
