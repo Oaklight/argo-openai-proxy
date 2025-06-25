@@ -5,9 +5,11 @@ from dotenv import load_dotenv
 
 load_dotenv()  # Load environment variables from .env file if n
 
-MODEL = os.getenv("MODEL", "argo:gpt-4o")  # Default to "argo:gpt-4o"
 BASE_URL = os.getenv("BASE_URL", "http://localhost:44498")
+MODEL = os.getenv("MODEL", "argo:gpt-4o")
+
 CHAT_ENDPOINT = f"{BASE_URL}/v1/chat/completions"
+
 
 def stream_chat_test():
     print("Running Chat Test with Streaming")
@@ -24,7 +26,7 @@ def stream_chat_test():
     }
     headers = {
         "Content-Type": "application/json",
-        "Authorization": f"Bearer {os.getenv('API_KEY', 'whatever+random')}"
+        "Authorization": f"Bearer {os.getenv('API_KEY', 'whatever+random')}",
     }
 
     try:

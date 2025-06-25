@@ -1,14 +1,15 @@
 import json
+import os
 
 import requests
+from dotenv import load_dotenv
 
-# API endpoint to POST
-# url = "https://apps-dev.inside.anl.gov/argoapi/api/v1/resource/embed/"
+load_dotenv()
 
+BASE_URL = os.getenv("BASE_URL", "http://localhost:44498")
+MODEL = os.getenv("MODEL", "argo:text-embedding-3-small")
 
-BASE_URL = "http://localhost:44498"  # Update if your server is running on a different host/port
 EMBED_ENDPOINT = f"{BASE_URL}/v1/embeddings"
-MODEL = "argo:text-embedding-3-small"
 
 
 def embed_test():

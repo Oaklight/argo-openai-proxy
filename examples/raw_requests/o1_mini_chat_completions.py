@@ -1,9 +1,14 @@
-import httpx
+import os
 
-# Configuration
-BASE_URL = "http://localhost:44498"  # Update if your server is running on a different host/port
+import httpx
+from dotenv import load_dotenv
+
+load_dotenv()
+
+BASE_URL = os.getenv("BASE_URL", "http://localhost:44498")
+MODEL = os.getenv("MODEL", "argo:o1-mini")
+
 CHAT_ENDPOINT = f"{BASE_URL}/v1/chat"
-MODEL = "argo:gpt-o1-mini"
 
 # system_prompt = (
 #     "You are a super smart and helpful AI. You always answer truthfully and provide "

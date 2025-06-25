@@ -5,9 +5,11 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-MODEL = os.getenv("MODEL", "argo:gpt-4o")
 BASE_URL = os.getenv("BASE_URL", "http://localhost:44498")
+MODEL = os.getenv("MODEL", "argo:gpt-4o")
+
 RESPONSES_ENDPOINT = f"{BASE_URL}/v1/completions"
+
 
 def make_response_request():
     print("Running Single Response Request")
@@ -23,11 +25,13 @@ def make_response_request():
     }
     headers = {
         "Content-Type": "application/json",
-        "Authorization": f"Bearer {os.getenv('API_KEY', 'whatever+random')}"
+        "Authorization": f"Bearer {os.getenv('API_KEY', 'whatever+random')}",
     }
 
     try:
-        response = httpx.post(RESPONSES_ENDPOINT, json=payload, headers=headers, timeout=60.0)
+        response = httpx.post(
+            RESPONSES_ENDPOINT, json=payload, headers=headers, timeout=60.0
+        )
         print("Status Code:", response.status_code)
         print("Response JSON:", response.json())
     except Exception as e:

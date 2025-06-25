@@ -6,9 +6,10 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Configuration
-BASE_URL = "http://localhost:44498"  # Update if your server is running on a different host/port
-CHAT_ENDPOINT = f"{BASE_URL}/v1/chat"
+BASE_URL = os.getenv("BASE_URL", "http://localhost:44498")
 MODEL = os.getenv("MODEL", "argo:gpt-4o")
+
+CHAT_ENDPOINT = f"{BASE_URL}/v1/chat"
 
 
 print("Running Chat Test with Messages")

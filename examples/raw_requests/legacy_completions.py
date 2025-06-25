@@ -1,12 +1,15 @@
 import json
+import os
 
 import requests
+from dotenv import load_dotenv
 
-# Configuration
-BASE_URL = "http://localhost:44498"  # Update if your server is running on a different host/port
+load_dotenv()
+
+BASE_URL = os.getenv("BASE_URL", "http://localhost:44498")
+MODEL = os.getenv("MODEL", "argo:gpt-4o")
+
 CHAT_ENDPOINT = f"{BASE_URL}/v1/completions"
-MODEL = "argo:gpt-4o"
-
 
 # Test Case: Successful Chat Request with Messages
 print("Running Chat Test with Messages")
