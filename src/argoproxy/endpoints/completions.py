@@ -102,6 +102,7 @@ async def proxy_request(
         Exception: Raised for unexpected runtime errors.
     """
     config: ArgoConfig = request.app["config"]
+
     try:
         # Retrieve the incoming JSON data
         data: Dict[str, Any] = await request.json()
@@ -116,9 +117,11 @@ async def proxy_request(
 
         # Prepare the request data
         data = prepare_chat_request_data(data, config)
+        # this is the stream flag sent to upstream API
+        upstream_stream = data.get("stream", False)
 
         # Determine the API URL based on whether streaming is enabled
-        api_url: str = config.argo_stream_url if stream else config.argo_url
+        api_url: str = config.argo_stream_url if upstream_stream else config.argo_url
 
         # Forward the modified request to the actual API using aiohttp
         async with aiohttp.ClientSession() as session:
@@ -130,6 +133,7 @@ async def proxy_request(
                     request,
                     convert_to_openai=True,
                     openai_compat_fn=make_it_openai_completions_compat,
+                    fake_stream=(stream != upstream_stream),
                 )
             else:
                 return await send_non_streaming_request(

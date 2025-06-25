@@ -196,6 +196,8 @@ async def send_streaming_request(
     api_url: str,
     data: Dict[str, Any],
     request: web.Request,
+    *,
+    fake_stream: bool = False,
 ) -> web.StreamResponse:
     """Sends a streaming request to an API and streams the response to the client.
 
@@ -205,7 +207,7 @@ async def send_streaming_request(
         data: The JSON payload of the request.
         request: The web request used for streaming responses.
         convert_to_openai: If True, converts the response to OpenAI format.
-        openai_compat_fn: Function for conversion to OpenAI-compatible format.
+        fake_stream: If True, simulates streaming even if the upstream does not support it.
     """
     headers = {
         "Content-Type": "application/json",
@@ -303,7 +305,11 @@ async def send_streaming_request(
         # =======================================
         # ResponseTextDeltaEvent, stream the response chunk by chunk
         cumulated_response = ""
-        async for chunk in upstream_resp.content.iter_any():
+        if fake_stream:
+            chunk_iterator = upstream_resp.content.iter_chunked(512)
+        else:
+            chunk_iterator = upstream_resp.content.iter_any()
+        async for chunk in chunk_iterator:
             sequence_number += 1
             chunk_text = chunk.decode()
             cumulated_response += chunk_text  # for ResponseTextDoneEvent

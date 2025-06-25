@@ -217,6 +217,7 @@ async def send_streaming_request(
     data: Dict[str, Any],
     request: web.Request,
     convert_to_openai: bool = False,
+    *,
     openai_compat_fn: Callable[
         ..., Dict[str, Any]
     ] = make_it_openai_chat_completions_compat,
@@ -338,6 +339,7 @@ async def proxy_request(
                     data,
                     request,
                     convert_to_openai,
+                    fake_stream=(stream != upstream_stream),
                 )
             else:
                 return await send_non_streaming_request(
