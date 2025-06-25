@@ -64,3 +64,16 @@ def handle_no_sys_msg(data: Dict[str, Any]) -> Dict[str, Any]:
         del data["system"]
 
     return data
+
+def handle_non_stream_only(data: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Handles non-streaming only models by setting stream to False.
+
+    Args:
+        data: The incoming request data.
+
+    Returns:
+        The modified request data with stream set to False.
+    """
+    data["stream"] = False
+    return data
