@@ -7,7 +7,7 @@ import tiktoken
 from aiohttp import web
 from loguru import logger
 
-from .models import ALL_MODELS, TIKTOKEN_ENCODING_PREFIX_MAPPING
+from ..models import ALL_MODELS, TIKTOKEN_ENCODING_PREFIX_MAPPING
 
 
 async def send_off_sse(
