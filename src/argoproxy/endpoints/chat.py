@@ -9,7 +9,7 @@ from aiohttp import web
 from loguru import logger
 
 from ..config import ArgoConfig
-from ..models import CHAT_MODELS, NO_SYS_MSG, OPTION_2_INPUT
+from ..models import CHAT_MODELS, NO_STREAM, NO_SYS_MSG, OPTION_2_INPUT
 from ..types import (
     ChatCompletion,
     ChatCompletionChunk,
@@ -145,9 +145,6 @@ def prepare_chat_request_data(
 
     # Apply transformations based on model type
     if data["model"] in OPTION_2_INPUT:
-        # temporary fix for non-streaming only models
-        data = handle_non_stream_only(data)
-
         # Transform data for models requiring `system` and `prompt` structure only
         data = handle_option_2_input(data)
         if config.verbose:
@@ -159,6 +156,9 @@ def prepare_chat_request_data(
         if config.verbose:
             logger.info("Transformed data: ")
             logger.info(f"{json.dumps(data, indent=2)}")
+
+    if data["model"] in NO_STREAM:
+        data = handle_non_stream_only(data)
 
     return data
 
@@ -220,6 +220,7 @@ async def send_streaming_request(
     openai_compat_fn: Callable[
         ..., Dict[str, Any]
     ] = make_it_openai_chat_completions_compat,
+    fake_stream: bool = False,
 ) -> web.StreamResponse:
     """Sends a streaming request to an API and streams the response to the client.
 
@@ -230,6 +231,7 @@ async def send_streaming_request(
         request: The web request used for streaming responses.
         convert_to_openai: If True, converts the response to OpenAI format.
         openai_compat_fn: Function for conversion to OpenAI-compatible format.
+        fake_stream: If True, simulates streaming by sending the response in chunks.
     """
     headers = {
         "Content-Type": "application/json",
@@ -263,7 +265,11 @@ async def send_streaming_request(
         await response.prepare(request)
 
         # Stream the response chunk by chunk
-        async for chunk in upstream_resp.content.iter_any():
+        if fake_stream:
+            chunk_iterator = upstream_resp.content.iter_chunked(512)
+        else:
+            chunk_iterator = upstream_resp.content.iter_any()
+        async for chunk in chunk_iterator:
             if convert_to_openai:
                 # Convert the chunk to OpenAI-compatible JSON
                 chunk_json = openai_compat_fn(
@@ -317,9 +323,11 @@ async def proxy_request(
 
         # Prepare the request data
         data = prepare_chat_request_data(data, config)
+        # this is the stream flag sent to upstream API
+        upstream_stream = data.get("stream", False)
 
         # Determine the API URL based on whether streaming is enabled
-        api_url = config.argo_stream_url if stream else config.argo_url
+        api_url = config.argo_stream_url if upstream_stream else config.argo_url
 
         # Forward the modified request to the actual API using aiohttp
         async with aiohttp.ClientSession() as session:

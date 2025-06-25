@@ -89,3 +89,5 @@ OPTION_2_INPUT = [
     for short_name in _CHAT_MODELS.keys()
     if any(fnmatch.fnmatch(short_name, pattern) for pattern in OPTION_2_INPUT_PATTERNS)
 ]
+
+NO_STREAM = OPTION_2_INPUT
