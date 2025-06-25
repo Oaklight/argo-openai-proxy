@@ -1,3 +1,4 @@
+import asyncio
 import json
 import time
 import uuid
@@ -262,30 +263,54 @@ async def send_streaming_request(
             status=upstream_resp.status,
             headers=response_headers,
         )
-        response.enable_chunked_encoding()
+
+        if not fake_stream:
+            response.enable_chunked_encoding()
         await response.prepare(request)
 
         # Stream the response chunk by chunk
         if fake_stream:
-            chunk_iterator = upstream_resp.content.iter_chunked(512)
+            # Get full response first
+            response_data = await upstream_resp.json()
+            response_text = response_data.get("response", "")
+
+            # Split into chunks of ~10 characters to simulate streaming
+            chunk_size = 10
+            for i in range(0, len(response_text), chunk_size):
+                chunk = response_text[i : i + chunk_size]
+                if convert_to_openai:
+                    chunk_json = openai_compat_fn(
+                        json.dumps({"response": chunk}),
+                        model_name=data["model"],
+                        create_timestamp=created_timestamp,
+                        prompt_tokens=prompt_tokens,
+                        is_streaming=True,
+                        finish_reason=None
+                        if i + chunk_size < len(response_text)
+                        else "stop",
+                    )
+                    await send_off_sse(response, chunk_json)
+                else:
+                    await send_off_sse(response, chunk.encode())
+                await asyncio.sleep(0.05)  # Small delay between chunks
         else:
             chunk_iterator = upstream_resp.content.iter_any()
-        async for chunk in chunk_iterator:
-            if convert_to_openai:
-                # Convert the chunk to OpenAI-compatible JSON
-                chunk_json = openai_compat_fn(
-                    json.dumps({"response": chunk.decode()}),
-                    model_name=data["model"],
-                    create_timestamp=created_timestamp,
-                    prompt_tokens=prompt_tokens,
-                    is_streaming=True,
-                    finish_reason=None,  # Ongoing chunk
-                )
-                # Wrap the JSON in SSE format
-                await send_off_sse(response, chunk_json)
-            else:
-                # Return the chunk as-is (raw text)
-                await send_off_sse(response, chunk)
+            async for chunk in chunk_iterator:
+                if convert_to_openai:
+                    # Convert the chunk to OpenAI-compatible JSON
+                    chunk_json = openai_compat_fn(
+                        json.dumps({"response": chunk.decode()}),
+                        model_name=data["model"],
+                        create_timestamp=created_timestamp,
+                        prompt_tokens=prompt_tokens,
+                        is_streaming=True,
+                        finish_reason=None,  # Ongoing chunk
+                    )
+                    # Wrap the JSON in SSE format
+                    await send_off_sse(response, chunk_json)
+                else:
+                    # Return the chunk as-is (raw text)
+                    await send_off_sse(response, chunk)
 
         # Ensure response is properly closed
         await response.write_eof()
