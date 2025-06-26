@@ -31,7 +31,7 @@ def handle_multiple_entries_prompt(data: Dict[str, Any]) -> Dict[str, Any]:
 
     if "prompt" in data:
         if isinstance(data["prompt"], list):
-            data["prompt"] = deduplicate_and_concatenate(data["prompt"])
+            data["prompt"] = [deduplicate_and_concatenate(data["prompt"])]
 
     return data
 
