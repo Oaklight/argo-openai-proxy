@@ -1,17 +1,17 @@
 import argparse
+import asyncio
 import fnmatch
 import json
-import time
 import urllib.request
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Tuple
 
+from httpx import stream
 from loguru import logger
 from pydantic import BaseModel
 
-from ..utils.transports import validate_api
-
 from ..config import validate_config
 from ..models import CHAT_MODELS
+from ..utils.transports import validate_api
 from .misc import make_bar
 
 
@@ -82,25 +82,67 @@ def get_upstream_model_list(url: str) -> Dict[str, Any]:
         return CHAT_MODELS
 
 
-def streamable_list(stream_url: str, non_stream_url: str, user: str) -> bool:
+async def validate_api_async(stream_url, user, payload, timeout):
+    # Wrap your validate_api call for async behavior, assuming validate_api runs synchronously
+    return await asyncio.to_thread(
+        validate_api, stream_url, user, payload, timeout=timeout
+    )
+
+
+async def streamable_list_async(
+    stream_url: str, non_stream_url: str, user: str
+) -> Tuple[List[str], List[str]]:
     """
-    Checks if the model is streamable.
+    Asynchronously checks which models are streamable.
     Args:
-        model_name (str): The name of the model.
+        stream_url (str): The streaming URL.
+        non_stream_url (str): The non-streaming URL used as a fallback.
+        user (str): The user identifier.
     Returns:
-        bool: True if the model is streamable, False otherwise.
+        tuple: (list of streamable model names, list of unavailable model names)
     """
     payload = {
         "model": None,
         "messages": [{"role": "user", "content": "What are you?"}],
     }
-    for model_name, model_id in CHAT_MODELS.items():
-        payload["model"] = model_id
+
+    async def check_model(model_name, model_id):
+        payload_copy = payload.copy()
+        payload_copy["model"] = model_id
+        # Try streaming
         try:
-            validate_api(stream_url, user, payload, timeout=15)
+            await validate_api_async(stream_url, user, payload_copy, timeout=15)
             logger.info(f"Streamable model: {model_name}")
-        except Exception as e:
-            logger.error(f"Error validating streamable model {model_name}: {e}")
+            return (model_name, True)
+        except Exception as e_stream:
+            logger.warning(f"Streaming check failed for {model_name}: {e_stream}")
+            # Try non-stream as fallback
+            try:
+                await validate_api_async(non_stream_url, user, payload_copy, timeout=15)
+                logger.info(f"Non-streamable but available: {model_name}")
+                return (model_name, False)
+            except Exception as e_non_stream:
+                logger.error(
+                    f"Both streaming and non-stream checks failed for {model_name}: {e_non_stream}"
+                )
+                return (model_name, None)
+
+    tasks = [
+        check_model(model_name, model_id)
+        for model_name, model_id in CHAT_MODELS.items()
+    ]
+    results = await asyncio.gather(*tasks)
+
+    streamable = []
+    unavailable = []
+    for model_name, status in results:
+        if status is True:
+            streamable.append(model_name)
+        elif status is None:
+            unavailable.append(model_name)
+        # Non-streamable but available: do nothing per requirements
+
+    return streamable, unavailable
 
 
 if __name__ == "__main__":
@@ -124,8 +166,14 @@ if __name__ == "__main__":
     else:
         logger.warning("CHAT_MODELS and model_list are different")
 
-    streamable_list(
-        config_instance.argo_stream_url,
-        config_instance.argo_url,
-        config_instance.user,
-    )
+    async def check_models():
+        streamable_models = await streamable_list_async(
+            config_instance.argo_stream_url,
+            config_instance.argo_url,
+            config_instance.user,
+        )
+        print("Streamable models:", streamable_models)
+
+    streamable, unavailable = asyncio.run(check_models())
+    logger.info(f"Streamable models: {streamable}")
+    logger.info(f"Unavailable models: {unavailable}")
