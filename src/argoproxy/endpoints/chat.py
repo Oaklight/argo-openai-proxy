@@ -30,7 +30,7 @@ from ..utils.models import resolve_model_name
 from ..utils.tokens import calculate_prompt_tokens, count_tokens
 from ..utils.transports import send_off_sse
 
-DEFAULT_MODEL = "gpt4o"
+DEFAULT_MODEL = "argo:gpt-4o"
 
 
 def make_it_openai_chat_completions_compat(
@@ -133,12 +133,11 @@ def prepare_chat_request_data(
     data["user"] = config.user
 
     # Remap the model name
-    if "model" in data:
-        data["model"] = resolve_model_name(
-            data["model"], DEFAULT_MODEL, avail_models=CHAT_MODELS
-        )
-    else:
+    if "model" not in data:
         data["model"] = DEFAULT_MODEL
+    data["model"] = resolve_model_name(
+        data["model"], DEFAULT_MODEL, avail_models=CHAT_MODELS
+    )
 
     # Convert prompt to list if necessary
     if "prompt" in data and not isinstance(data["prompt"], list):

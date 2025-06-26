@@ -13,7 +13,7 @@ from ..utils.misc import make_bar
 from ..utils.models import resolve_model_name
 from ..utils.tokens import count_tokens
 
-DEFAULT_MODEL = "v3small"
+DEFAULT_MODEL = "argo:text-embedding-3-small"
 
 
 def make_it_openai_embeddings_compat(
@@ -84,12 +84,11 @@ def prepare_request_data(
     # Automatically replace or insert the user
     data["user"] = config.user
     # Remap the model using EMBED_MODELS
-    if "model" in data:
-        data["model"] = resolve_model_name(
-            data["model"], DEFAULT_MODEL, avail_models=EMBED_MODELS
-        )
-    else:
+    if "model" not in data:
         data["model"] = DEFAULT_MODEL  # Default model if not provided
+    data["model"] = resolve_model_name(
+        data["model"], DEFAULT_MODEL, avail_models=EMBED_MODELS
+    )
 
     # Transform the incoming payload to match the destination API format
     if "prompt" not in data:  # argo-API uses prompt, openAI-API uses input

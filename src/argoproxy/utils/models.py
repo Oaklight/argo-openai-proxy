@@ -1,11 +1,11 @@
-from typing import Dict, Optional
+from typing import Dict, Literal, Optional
 
 from ..models import ALL_MODELS
 
 
 def resolve_model_name(
     model_name: str,
-    default_model: str,
+    default_model: Literal["argo:gpt-4o", "argo:text-embedding-3-small"],
     avail_models: Optional[Dict[str, str]] = None,
 ) -> str:
     """

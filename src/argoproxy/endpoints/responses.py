@@ -33,8 +33,6 @@ from .chat import (
     send_non_streaming_request,
 )
 
-DEFAULT_MODEL = "gpt4o"
-
 INCOMPATIBLE_INPUT_FIELDS = {
     "include",
     "metadata",
