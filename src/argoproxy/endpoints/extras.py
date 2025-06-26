@@ -35,7 +35,12 @@ async def get_latest_pypi_version() -> Optional[str]:
     try:
         async with aiohttp.ClientSession() as session:
             async with session.get(
-                "https://pypi.org/pypi/argo-proxy/json", timeout=5
+                "https://pypi.org/pypi/argo-proxy/json",
+                headers={
+                    "Cache-Control": "no-cache",
+                    "Pragma": "no-cache",
+                },  # Add these headers
+                timeout=5,
             ) as response:
                 response.raise_for_status()
                 data = await response.json()
