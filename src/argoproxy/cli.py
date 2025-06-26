@@ -4,6 +4,7 @@ import asyncio
 import os
 import subprocess
 import sys
+from argparse import RawTextHelpFormatter
 from typing import Optional
 
 from loguru import logger
@@ -23,7 +24,10 @@ logger.add(
 
 
 def parsing_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Argo Proxy CLI")
+    parser = argparse.ArgumentParser(
+        description="Argo Proxy CLI",
+        formatter_class=RawTextHelpFormatter,
+    )
     parser.add_argument(
         "config",
         type=str,
@@ -81,7 +85,9 @@ def parsing_args() -> argparse.Namespace:
     parser.add_argument(
         "--version",
         "-V",
-        action="store_true",  # Changed from 'version' to 'store_true'
+        # action="store_true",  # Changed from 'version' to 'store_true'
+        action="version",
+        version=f"%(prog)s {version_check()}",
         help="Show the version and check for updates",
     )
 
@@ -124,14 +130,20 @@ def open_in_editor(config_path: Optional[str] = None):
     sys.exit(1)
 
 
-def version_check():
+def version_check() -> str:
+    ver_content = [__version__]
     latest = asyncio.run(get_latest_pypi_version())
-    logger.info(f"Argo-Proxy version: {__version__}")
+    # logger.info(f"Argo-Proxy version: {__version__}")
+
     if latest and latest != __version__:
-        logger.warning(
-            f"New version available: {latest} (you have {__version__}). "
-            "Run 'pip install --upgrade argo-proxy' to update."
+        ver_content.extend(
+            [
+                f"New version available: {latest}",
+                "Update with `pip install --upgrade argo-proxy`",
+            ]
         )
+
+    return "\n".join(ver_content)
 
 
 def main():
@@ -140,15 +152,12 @@ def main():
     if args.edit:
         open_in_editor(args.config)
         return
-    if args.version:  # Add version check when --version is used
-        version_check()
-        return
 
     set_config_envs(args)
 
     try:
         # Validate config in main process only
-        version_check()
+        logger.warning(f"Running Argo-Proxy {version_check()}")
         config_instance = validate_config(args.config, args.show)
         if args.validate:
             logger.info("Configuration validation successful.")
