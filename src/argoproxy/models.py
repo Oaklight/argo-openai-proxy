@@ -2,6 +2,7 @@
 import fnmatch
 
 _CHAT_MODELS = {
+    # openai
     "gpt35": "argo:gpt-3.5-turbo",
     "gpt35large": "argo:gpt-3.5-turbo-16k",
     "gpt4": "argo:gpt-4",
@@ -12,7 +13,12 @@ _CHAT_MODELS = {
     "gpto1mini": ["argo:gpt-o1-mini", "argo:o1-mini"],
     "gpto3mini": ["argo:gpt-o3-mini", "argo:o3-mini"],
     "gpto1": ["argo:gpt-o1", "argo:o1"],
-    "gpto1preview": ["argo:gpt-o1-preview", "argo:o1-preview"],
+    "gpto1preview": ["argo:gpt-o1-preview", "argo:o1-preview"],  # about to retire
+    "gpto3": ["argo:gpt-o3", "argo:o3"],
+    "gpto4mini": ["argo:gpt-o4-mini", "argo:o4-mini"],
+    "gpt41": "argo:gpt-4.1",
+    "gpt41mini": "argo:gpt-4.1-mini",
+    "gpt41nano": "argo:gpt-4.1-nano",
     # gemini
     "gemini25pro": "argo:gemini-2.5-pro",
     "gemini25flash": "argo:gemini-2.5-flash",
