@@ -79,13 +79,13 @@ def handle_option_2_input(data: Dict[str, Any]) -> Dict[str, Any]:
 
 def handle_no_sys_msg(data: Dict[str, Any]) -> Dict[str, Any]:
     """
-    Converts `system` messages to `user` messages for models in NO_SYS_MSG.
+    Changes 'system' messages to 'user' and merges into 'prompt'.
 
     Args:
-        data: The incoming request data.
+        data (Dict[str, Any]): Dictionary with 'messages' list.
 
     Returns:
-        The modified request data without `system` messages.
+        Dict[str, Any]: Updated dictionary without 'system'.
     """
     if "messages" in data:
         for message in data["messages"]:
@@ -104,13 +104,13 @@ def handle_no_sys_msg(data: Dict[str, Any]) -> Dict[str, Any]:
 
 def handle_non_stream_only(data: Dict[str, Any]) -> Dict[str, Any]:
     """
-    Handles non-streaming only models by setting stream to False.
+    Sets stream to False for non-stream models.
 
     Args:
-        data: The incoming request data.
+        data (Dict[str, Any]): Request data dictionary.
 
     Returns:
-        The modified request data with stream set to False.
+        Dict[str, Any]: Data with 'stream' set to False.
     """
     data["stream"] = False
     return data
