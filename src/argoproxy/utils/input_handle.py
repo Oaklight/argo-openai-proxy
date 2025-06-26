@@ -65,6 +65,7 @@ def handle_no_sys_msg(data: Dict[str, Any]) -> Dict[str, Any]:
 
     return data
 
+
 def handle_non_stream_only(data: Dict[str, Any]) -> Dict[str, Any]:
     """
     Handles non-streaming only models by setting stream to False.

@@ -152,6 +152,10 @@ def prepare_chat_request_data(
             logger.info("Transformed data: ")
             logger.info(f"{json.dumps(data, indent=2)}")
 
+    # flatten the list of strings into a single string in case of multiple prompts
+    if isinstance(data.get("prompt"), list):
+        data["prompt"] = ["\n\n".join(data["prompt"]).strip()]
+
     if data["model"] in NO_SYS_MSG:
         data = handle_no_sys_msg(data)
         if config.verbose:
