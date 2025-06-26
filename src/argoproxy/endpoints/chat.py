@@ -235,6 +235,26 @@ async def send_streaming_request(
         openai_compat_fn: Function for conversion to OpenAI-compatible format.
         fake_stream: If True, simulates streaming by sending the response in chunks.
     """
+
+    async def handle_chunk(chunk, finish_reason=None):
+        """
+        Handles a chunk of data, converting it if necessary and sending it off.
+        """
+        if convert_to_openai:
+            # Convert the chunk to OpenAI-compatible JSON
+            chunk_json = openai_compat_fn(
+                json.dumps({"response": chunk.decode()}),
+                model_name=data["model"],
+                create_timestamp=created_timestamp,
+                prompt_tokens=prompt_tokens,
+                is_streaming=True,
+                finish_reason=finish_reason,  # May be None for ongoing chunks
+            )
+            await send_off_sse(response, chunk_json)
+        else:
+            # Return the chunk as raw text
+            await send_off_sse(response, chunk.encode())
+
     headers = {
         "Content-Type": "application/json",
         "Accept": "text/plain",
@@ -256,7 +276,12 @@ async def send_streaming_request(
                 k: v
                 for k, v in upstream_resp.headers.items()
                 if k.lower()
-                not in ("content-type", "content-encoding", "transfer-encoding")
+                not in (
+                    "content-type",
+                    "content-encoding",
+                    "transfer-encoding",
+                    "content-length",  # in case of fake streaming
+                )
             }
         )
         response = web.StreamResponse(
@@ -264,11 +289,9 @@ async def send_streaming_request(
             headers=response_headers,
         )
 
-        if not fake_stream:
-            response.enable_chunked_encoding()
+        response.enable_chunked_encoding()
         await response.prepare(request)
 
-        # Stream the response chunk by chunk
         if fake_stream:
             # Get full response first
             response_data = await upstream_resp.json()
@@ -278,39 +301,13 @@ async def send_streaming_request(
             chunk_size = 10
             for i in range(0, len(response_text), chunk_size):
                 chunk = response_text[i : i + chunk_size]
-                if convert_to_openai:
-                    chunk_json = openai_compat_fn(
-                        json.dumps({"response": chunk}),
-                        model_name=data["model"],
-                        create_timestamp=created_timestamp,
-                        prompt_tokens=prompt_tokens,
-                        is_streaming=True,
-                        finish_reason=None
-                        if i + chunk_size < len(response_text)
-                        else "stop",
-                    )
-                    await send_off_sse(response, chunk_json)
-                else:
-                    await send_off_sse(response, chunk.encode())
+                finish_reason = None if i + chunk_size < len(response_text) else "stop"
+                await handle_chunk(chunk.encode(), finish_reason)
                 await asyncio.sleep(0.05)  # Small delay between chunks
         else:
             chunk_iterator = upstream_resp.content.iter_any()
             async for chunk in chunk_iterator:
-                if convert_to_openai:
-                    # Convert the chunk to OpenAI-compatible JSON
-                    chunk_json = openai_compat_fn(
-                        json.dumps({"response": chunk.decode()}),
-                        model_name=data["model"],
-                        create_timestamp=created_timestamp,
-                        prompt_tokens=prompt_tokens,
-                        is_streaming=True,
-                        finish_reason=None,  # Ongoing chunk
-                    )
-                    # Wrap the JSON in SSE format
-                    await send_off_sse(response, chunk_json)
-                else:
-                    # Return the chunk as-is (raw text)
-                    await send_off_sse(response, chunk)
+                await handle_chunk(chunk)
 
         # Ensure response is properly closed
         await response.write_eof()
