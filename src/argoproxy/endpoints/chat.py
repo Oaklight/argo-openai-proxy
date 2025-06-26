@@ -312,12 +312,12 @@ async def send_streaming_request(
             response_text = response_data.get("response", "")
 
             # Split into chunks of ~10 characters to simulate streaming
-            chunk_size = 10
+            chunk_size = 20
             for i in range(0, len(response_text), chunk_size):
                 chunk = response_text[i : i + chunk_size]
                 finish_reason = None if i + chunk_size < len(response_text) else "stop"
                 await handle_chunk(chunk.encode(), finish_reason)
-                await asyncio.sleep(0.01)  # Small delay between chunks
+                await asyncio.sleep(0.02)  # Small delay between chunks
         else:
             chunk_iterator = upstream_resp.content.iter_any()
             async for chunk in chunk_iterator:

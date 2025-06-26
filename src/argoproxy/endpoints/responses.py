@@ -318,7 +318,7 @@ async def send_streaming_request(
             cumulated_response = response_text
 
             # Split into chunks of ~10 characters to simulate streaming
-            chunk_size = 10
+            chunk_size = 20
             for i in range(0, len(response_text), chunk_size):
                 sequence_number += 1
                 chunk_text = response_text[i : i + chunk_size]
@@ -332,7 +332,7 @@ async def send_streaming_request(
                 )
                 # Wrap the JSON in SSE format
                 await send_off_sse(response, text_delta)
-                await asyncio.sleep(0.01)  # Small delay between chunks
+                await asyncio.sleep(0.02)  # Small delay between chunks
         else:
             async for chunk in upstream_resp.content.iter_any():
                 sequence_number += 1
