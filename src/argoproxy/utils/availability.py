@@ -1,16 +1,26 @@
 import argparse
 import json
 import urllib.request
-from typing import Any, Dict
+from typing import Any, Dict, List
 
 from loguru import logger
+from pydantic import BaseModel
 
 from ..config import validate_config
 from ..models import _CHAT_MODELS
 from .misc import make_bar
 
 
-def get_upstream_model_list(url: str) -> Dict[str, Any]:
+class Model(BaseModel):
+    id: str
+    model_name: str
+
+
+def process_model_name(name: str) -> str:
+    return name.lower().replace(" ", "-")
+
+
+def get_upstream_model_list(url: str) -> List[Model]:
     """
     Fetches the list of available models from the upstream server.
     Args:
@@ -20,7 +30,12 @@ def get_upstream_model_list(url: str) -> Dict[str, Any]:
     """
     try:
         with urllib.request.urlopen(url) as response:
-            data = response.read().decode()
+            raw_data = json.loads(response.read().decode())["data"]
+            models = [Model(**model) for model in raw_data]
+            for model in models:
+                model.model_name = process_model_name(model.model_name)
+
+            data = [each.model_dump() for each in models]
             return data
     except Exception as e:
         logger.error(f"Error fetching model list from {url}: {e}")
