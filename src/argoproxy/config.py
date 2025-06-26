@@ -40,6 +40,7 @@ class ArgoConfig:
     argo_embedding_url: str = (
         "https://apps.inside.anl.gov/argoapi/api/v1/resource/embed/"
     )
+    argo_model_url: str = "https://apps-dev.inside.anl.gov/argoapi/api/v1/models/"
     verbose: bool = True
 
     @classmethod
