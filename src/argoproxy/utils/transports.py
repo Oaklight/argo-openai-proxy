@@ -1,4 +1,5 @@
 import json
+import urllib.request
 from typing import Any, Dict, Union
 
 from aiohttp import web
@@ -26,3 +27,30 @@ async def send_off_sse(
         # Convert the chunk to OpenAI-compatible JSON and then to bytes
         sse_chunk = f"data: {json.dumps(data)}\n\n".encode()
     await response.write(sse_chunk)
+
+
+def validate_api(url: str, username: str, payload: dict, timeout: int = 2) -> bool:
+    """
+    Helper to validate API endpoint connectivity.
+    Args:
+        url (str): The API URL to validate.
+        username (str): The username included in the request payload.
+        payload (dict): The request payload in dictionary format.
+
+    Returns:
+        bool: True if validation succeeds, False otherwise.
+    Raises:
+        ValueError: If validation fails
+    """
+    payload["user"] = username
+    request_data = json.dumps(payload).encode("utf-8")
+    req = urllib.request.Request(
+        url, data=request_data, headers={"Content-Type": "application/json"}
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as response:
+            if response.getcode() != 200:
+                raise ValueError(f"API returned status code {response.getcode()}")
+            return True
+    except Exception as e:
+        raise ValueError(f"API validation failed for {url}: {str(e)}") from e
