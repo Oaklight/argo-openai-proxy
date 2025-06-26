@@ -149,9 +149,6 @@ def prepare_chat_request_data(
     if data["model"] in OPTION_2_INPUT:
         # Transform data for models requiring `system` and `prompt` structure only
         data = handle_option_2_input(data)
-        if config.verbose:
-            logger.info("Transformed data: ")
-            logger.info(f"{json.dumps(data, indent=2)}")
 
     # flatten the list of strings into a single string in case of multiple prompts
     if isinstance(data.get("prompt"), list):
@@ -159,12 +156,13 @@ def prepare_chat_request_data(
 
     if data["model"] in NO_SYS_MSG:
         data = handle_no_sys_msg(data)
-        if config.verbose:
-            logger.info("Transformed data: ")
-            logger.info(f"{json.dumps(data, indent=2)}")
 
     if data["model"] in NO_STREAM:
         data = handle_non_stream_only(data)
+
+    if config.verbose:
+        logger.info(make_bar("Transformed Request"))
+        logger.info(f"{json.dumps(data, indent=2)}")
 
     return data
 
