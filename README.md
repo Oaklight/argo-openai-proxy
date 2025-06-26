@@ -261,6 +261,11 @@ Details of how to make such override in different query flavors: [Timeout Overri
 | `gpto1mini`              | `argo:gpt-o1-mini`, `argo:o1-mini`                 |
 | `gpto3mini`              | `argo:gpt-o3-mini`, `argo:o3-mini`                 |
 | `gpto1`                  | `argo:gpt-o1`, `argo:o1`                           |
+| `gpto3`                  | `argo:gpt-o3`, `argo:o3`                           |
+| `gpto4mini`              | `argo:gpt-o4-mini`, `argo:o4-mini`                 |
+| `gpt41`                  | `argo:gpt-4.1`                                     |
+| `gpt41mini`              | `argo:gpt-4.1-mini`                                |
+| `gpt41nano`              | `argo:gpt-4.1-nano`                                |
 
 ##### Google Gemini Series
 
