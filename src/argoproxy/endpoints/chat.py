@@ -22,6 +22,7 @@ from ..types import (
 )
 from ..types.chat_completion import FINISH_REASONS
 from ..utils.input_handle import (
+    handle_multiple_entries_prompt,
     handle_no_sys_msg,
     handle_non_stream_only,
     handle_option_2_input,
@@ -159,6 +160,8 @@ def prepare_chat_request_data(
 
     if data["model"] in NO_STREAM:
         data = handle_non_stream_only(data)
+
+    data = handle_multiple_entries_prompt(data)
 
     # if config.verbose:
     #     logger.info(make_bar("Transformed Request"))
