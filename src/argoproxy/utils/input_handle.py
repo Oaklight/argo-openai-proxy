@@ -38,37 +38,38 @@ def handle_multiple_entries_prompt(data: Dict[str, Any]) -> Dict[str, Any]:
 
 def handle_option_2_input(data: Dict[str, Any]) -> Dict[str, Any]:
     """
-    Transforms data for models requiring `system` and `prompt` structure only.
+    Segregates messages into 'system' and 'prompt' based on roles.
 
     Args:
-        data: The incoming request data.
+        data (Dict[str, Any]): Dictionary with 'messages' list.
 
     Returns:
-        The modified request data with `system` and `prompt`.
+        Dict[str, Any]: Data split into 'system' and 'prompt'.
     """
     if "messages" in data:
         system_messages = [
-            msg["content"] for msg in data["messages"] if msg["role"] == "system"
+            msg["content"]
+            for msg in data["messages"]
+            if msg["role"] in ("system", "developer")
         ]
-        if system_messages:
-            data["system"] = "\n\n".join(system_messages).strip()
+        data["system"] = system_messages
 
         prompt_messages = []
         for msg in data["messages"]:
             if msg["role"] in ("user", "assistant"):
                 content = msg["content"]
                 if isinstance(content, list):
-                    # Extract text from content parts
                     texts = [
                         part["text"].strip()
                         for part in content
                         if part.get("type") == "text"
                     ]
-                    # Join texts with double newline and add role prefix
-                    prefixed_texts = f"{msg['role']}: " + "\n\n".join(texts).strip()
-                    prompt_messages.append(prefixed_texts)
+                    prefixed_texts = [
+                        f"{msg['role']}: {text.strip()}" for text in texts
+                    ]
+                    prompt_messages.extend(prefixed_texts)
                 else:
-                    prompt_messages.append(f"{msg['role']}: {content}")
+                    prompt_messages.append(f"{msg['role']}: {content.strip()}")
 
         data["prompt"] = prompt_messages
         del data["messages"]
