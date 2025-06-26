@@ -22,6 +22,10 @@ def stream_chat_test():
             "role": "user",
             "content": "Tell me something interesting about quantum mechanics.",
         },
+        {
+            "role": "user",
+            "content": "Wait, I changed my mind. Tell me about the history of the Internet instead.",
+        },
     ]
 
     try:

@@ -18,7 +18,10 @@ print("Running Chat Test with Messages")
 # Define the request payload using the "messages" field
 payload = {
     "model": MODEL,
-    "prompt": ["Tell me something interesting about quantum mechanics. longer passage"],
+    "prompt": [
+        "Tell me something interesting about quantum mechanics. longer passage",
+        "Wait, I changed my mind. Tell me about the history of the Internet instead.",
+    ],
     "user": "test_user",  # This will be overridden by the proxy_request function
 }
 headers = {"Content-Type": "application/json"}
