@@ -1,4 +1,39 @@
-from typing import Any, Dict
+from typing import Any, Dict, List
+
+
+def deduplicate_and_concatenate(messages: List[str]) -> str:
+    """
+    Removes duplicates and concatenates messages with double newline separation.
+
+    Args:
+        messages (List[str]): List of message strings.
+
+    Returns:
+        str: Deduplicated, concatenated string.
+    """
+    return "\n\n".join(dict.fromkeys(messages)).strip()
+
+
+def handle_multiple_entries_prompt(data: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Deduplicates and merges 'system' and 'prompt' lists into single strings.
+
+    Args:
+        data (Dict[str, Any]): Dictionary with 'system' and 'prompt' keys.
+
+    Returns:
+        Dict[str, Any]: Updated dictionary with merged entries.
+    """
+
+    if "system" in data:
+        if isinstance(data["system"], list):
+            data["system"] = deduplicate_and_concatenate(data["system"])
+
+    if "prompt" in data:
+        if isinstance(data["prompt"], list):
+            data["prompt"] = deduplicate_and_concatenate(data["prompt"])
+
+    return data
 
 
 def handle_option_2_input(data: Dict[str, Any]) -> Dict[str, Any]:
