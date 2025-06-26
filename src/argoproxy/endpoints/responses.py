@@ -332,7 +332,7 @@ async def send_streaming_request(
                 )
                 # Wrap the JSON in SSE format
                 await send_off_sse(response, text_delta)
-                await asyncio.sleep(0.05)  # Small delay between chunks
+                await asyncio.sleep(0.01)  # Small delay between chunks
         else:
             async for chunk in upstream_resp.content.iter_any():
                 sequence_number += 1

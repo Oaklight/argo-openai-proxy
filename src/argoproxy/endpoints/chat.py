@@ -313,7 +313,7 @@ async def send_streaming_request(
                 chunk = response_text[i : i + chunk_size]
                 finish_reason = None if i + chunk_size < len(response_text) else "stop"
                 await handle_chunk(chunk.encode(), finish_reason)
-                await asyncio.sleep(0.05)  # Small delay between chunks
+                await asyncio.sleep(0.01)  # Small delay between chunks
         else:
             chunk_iterator = upstream_resp.content.iter_any()
             async for chunk in chunk_iterator:
