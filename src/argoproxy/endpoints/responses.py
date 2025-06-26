@@ -1,3 +1,4 @@
+import asyncio
 import json
 import time
 import uuid
@@ -237,7 +238,12 @@ async def send_streaming_request(
                 k: v
                 for k, v in upstream_resp.headers.items()
                 if k.lower()
-                not in ("Content-Type", "content-encoding", "transfer-encoding")
+                not in (
+                    "Content-Type",
+                    "content-encoding",
+                    "transfer-encoding",
+                    "content-length",  # in case of fake streaming
+                )
             }
         )
         response = web.StreamResponse(
@@ -306,24 +312,43 @@ async def send_streaming_request(
         # ResponseTextDeltaEvent, stream the response chunk by chunk
         cumulated_response = ""
         if fake_stream:
-            chunk_iterator = upstream_resp.content.iter_chunked(512)
-        else:
-            chunk_iterator = upstream_resp.content.iter_any()
-        async for chunk in chunk_iterator:
-            sequence_number += 1
-            chunk_text = chunk.decode()
-            cumulated_response += chunk_text  # for ResponseTextDoneEvent
+            # Get full response first
+            response_data = await upstream_resp.json()
+            response_text = response_data.get("response", "")
+            cumulated_response = response_text
 
-            # Convert the chunk to OpenAI-compatible JSON
-            text_delta = transform_streaming_response(
-                json.dumps({"response": chunk_text}),
-                content_index=content_part.content_index,
-                output_index=output_item.output_index,
-                sequence_number=sequence_number,
-                id=output_msg.id,
-            )
-            # Wrap the JSON in SSE format
-            await send_off_sse(response, text_delta)
+            # Split into chunks of ~10 characters to simulate streaming
+            chunk_size = 10
+            for i in range(0, len(response_text), chunk_size):
+                sequence_number += 1
+                chunk_text = response_text[i : i + chunk_size]
+                # Convert the chunk to OpenAI-compatible JSON
+                text_delta = transform_streaming_response(
+                    json.dumps({"response": chunk_text}),
+                    content_index=content_part.content_index,
+                    output_index=output_item.output_index,
+                    sequence_number=sequence_number,
+                    id=output_msg.id,
+                )
+                # Wrap the JSON in SSE format
+                await send_off_sse(response, text_delta)
+                await asyncio.sleep(0.05)  # Small delay between chunks
+        else:
+            async for chunk in upstream_resp.content.iter_any():
+                sequence_number += 1
+                chunk_text = chunk.decode()
+                cumulated_response += chunk_text  # for ResponseTextDoneEvent
+
+                # Convert the chunk to OpenAI-compatible JSON
+                text_delta = transform_streaming_response(
+                    json.dumps({"response": chunk_text}),
+                    content_index=content_part.content_index,
+                    output_index=output_item.output_index,
+                    sequence_number=sequence_number,
+                    id=output_msg.id,
+                )
+                # Wrap the JSON in SSE format
+                await send_off_sse(response, text_delta)
 
         # =======================================
         # ResponseTextDoneEvent, signal the end of the text stream
@@ -417,9 +442,11 @@ async def proxy_request(
 
         # Prepare the request data
         data = prepare_request_data(data, config)
+        # this is the stream flag sent to upstream API
+        upstream_stream = data.get("stream", False)
 
         # Determine the API URL based on whether streaming is enabled
-        api_url = config.argo_stream_url if stream else config.argo_url
+        api_url = config.argo_stream_url if upstream_stream else config.argo_url
 
         # Forward the modified request to the actual API using aiohttp
         async with aiohttp.ClientSession() as session:
@@ -429,6 +456,7 @@ async def proxy_request(
                     api_url,
                     data,
                     request,
+                    fake_stream=(stream != upstream_stream),
                 )
             else:
                 return await send_non_streaming_request(
