@@ -84,6 +84,12 @@ NO_SYS_MSG = [
 OPTION_2_INPUT_PATTERNS = {
     "*gemini*",  # Matches any model name starting with 'gemini'
     "*claude*",  # Matches any model name starting with 'claude'
+    "gpto3",
+    "argo:*o3",  # Matches any model name starting with 'argo:gpt-o3' or 'argo:o3'
+    "gpto4*",
+    "argo:*o4*",
+    "gpt41*",
+    "argo:gpt-4.1*",  # Matches any model name starting with 'argo:gpt-4.1'
 }
 
 OPTION_2_INPUT = [
