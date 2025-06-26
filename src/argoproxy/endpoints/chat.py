@@ -257,7 +257,7 @@ async def send_streaming_request(
             await send_off_sse(response, chunk_json)
         else:
             # Return the chunk as raw text
-            await send_off_sse(response, chunk.encode())
+            await send_off_sse(response, chunk)
 
     headers = {
         "Content-Type": "application/json",
