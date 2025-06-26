@@ -26,7 +26,7 @@ _CHAT_MODELS = {
     "claudeopus4": ["argo:claude-opus-4", "argo:claude-4-opus"],
     "claudesonnet4": ["argo:claude-sonnet-4", "argo:claude-4-sonnet"],
     "claudesonnet37": ["argo:claude-sonnet-3.7", "argo:claude-3.7-sonnet"],
-    "claudesonnet35v2": ["argo:claude-sonnet-3.5", "argo:claude-3.5-sonnet"],
+    "claudesonnet35v2": ["argo:claude-sonnet-3.5-v2", "argo:claude-3.5-sonnet-v2"],
 }
 
 _EMBED_MODELS = {
