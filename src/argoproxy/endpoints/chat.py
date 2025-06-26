@@ -145,10 +145,10 @@ def prepare_chat_request_data(
     if "prompt" in data and not isinstance(data["prompt"], list):
         data["prompt"] = [data["prompt"]]
 
-    # Apply transformations based on model type
-    if data["model"] in OPTION_2_INPUT:
-        # Transform data for models requiring `system` and `prompt` structure only
-        data = handle_option_2_input(data)
+    # # Apply transformations based on model type
+    # if data["model"] in OPTION_2_INPUT:
+    #     # Transform data for models requiring `system` and `prompt` structure only
+    #     data = handle_option_2_input(data)
 
     # flatten the list of strings into a single string in case of multiple prompts
     if isinstance(data.get("prompt"), list):
