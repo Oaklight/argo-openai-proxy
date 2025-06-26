@@ -17,10 +17,10 @@ _CHAT_MODELS = {
     "gemini25pro": "argo:gemini-2.5-pro",
     "gemini25flash": "argo:gemini-2.5-flash",
     # claude
-    "claudeopus4": "argo:claude-opus-4",
-    "claudesonnet4": "argo:claude-sonnet-4",
-    "claudesonnet37": "argo:claude-sonnet-3.7",
-    "claudesonnet35v2": "argo:claude-sonnet-3.5-v2",
+    "claudeopus4": ["argo:claude-opus-4", "argo:claude-4-opus"],
+    "claudesonnet4": ["argo:claude-sonnet-4", "argo:claude-4-sonnet"],
+    "claudesonnet37": ["argo:claude-sonnet-3.7", "argo:claude-3.7-sonnet"],
+    "claudesonnet35v2": ["argo:claude-sonnet-3.5", "argo:claude-3.5-sonnet"],
 }
 
 _EMBED_MODELS = {
