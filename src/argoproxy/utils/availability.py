@@ -1,11 +1,14 @@
 import argparse
 import fnmatch
 import json
+import time
 import urllib.request
 from typing import Any, Dict, List
 
 from loguru import logger
 from pydantic import BaseModel
+
+from ..utils.transports import validate_api
 
 from ..config import validate_config
 from ..models import CHAT_MODELS
@@ -76,6 +79,28 @@ def get_upstream_model_list(url: str) -> Dict[str, Any]:
             return argo_models
     except Exception as e:
         logger.error(f"Error fetching model list from {url}: {e}")
+        return CHAT_MODELS
+
+
+def streamable_list(stream_url: str, non_stream_url: str, user: str) -> bool:
+    """
+    Checks if the model is streamable.
+    Args:
+        model_name (str): The name of the model.
+    Returns:
+        bool: True if the model is streamable, False otherwise.
+    """
+    payload = {
+        "model": None,
+        "messages": [{"role": "user", "content": "What are you?"}],
+    }
+    for model_name, model_id in CHAT_MODELS.items():
+        payload["model"] = model_id
+        try:
+            validate_api(stream_url, user, payload, timeout=15)
+            logger.info(f"Streamable model: {model_name}")
+        except Exception as e:
+            logger.error(f"Error validating streamable model {model_name}: {e}")
 
 
 if __name__ == "__main__":
@@ -98,3 +123,9 @@ if __name__ == "__main__":
         logger.info("CHAT_MODELS and model_list are the same")
     else:
         logger.warning("CHAT_MODELS and model_list are different")
+
+    streamable_list(
+        config_instance.argo_stream_url,
+        config_instance.argo_url,
+        config_instance.user,
+    )
