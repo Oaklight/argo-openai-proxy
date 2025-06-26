@@ -160,9 +160,9 @@ def prepare_chat_request_data(
     if data["model"] in NO_STREAM:
         data = handle_non_stream_only(data)
 
-    if config.verbose:
-        logger.info(make_bar("Transformed Request"))
-        logger.info(f"{json.dumps(data, indent=2)}")
+    # if config.verbose:
+    #     logger.info(make_bar("Transformed Request"))
+    #     logger.info(f"{json.dumps(data, indent=2)}")
 
     return data
 
