@@ -247,6 +247,7 @@ class ResponseInProgressEvent(BaseModel):
 
 ResponseOutputItem: TypeAlias = Union[
     ResponseOutputMessage,
+    ResponseOutputMessage,
     # ResponseFileSearchToolCall,
     # ResponseFunctionToolCall,
     # ResponseFunctionWebSearch,
@@ -290,6 +291,7 @@ class ResponseOutputItemDoneEvent(BaseModel):
 
 
 Part: TypeAlias = Union[
+    ResponseOutputText,
     ResponseOutputText,
     # ResponseOutputRefusal,
 ]

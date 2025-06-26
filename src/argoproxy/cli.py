@@ -105,6 +105,8 @@ def open_in_editor(config_path: Optional[str] = None):
     # Add EDITOR from environment variable if set, followed by defaults
     editors_to_try = [os.getenv("EDITOR")] if os.getenv("EDITOR") else []
     editors_to_try += ["notepad"] if os.name == "nt" else ["nano", "vi", "vim"]
+    # Filter out None editors
+    editors_to_try = [e for e in editors_to_try if e is not None]
 
     for path in paths_to_try:
         if path and os.path.exists(path):

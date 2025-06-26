@@ -9,6 +9,7 @@ from loguru import logger
 
 from ..config import ArgoConfig
 from ..types import Completion, CompletionChoice, CompletionUsage
+from ..types.completions import FINISH_REASONS
 from ..utils.misc import make_bar
 from .chat import (
     prepare_chat_request_data,
@@ -25,8 +26,8 @@ def make_it_openai_completions_compat(
     create_timestamp: int,
     prompt_tokens: int,
     is_streaming: bool = False,
-    finish_reason: Optional[str] = None,
-) -> Union[Dict[str, Any], str]:
+    finish_reason: Optional[FINISH_REASONS] = None,
+) -> Dict[str, Any]:
     """Converts a custom API response to an OpenAI-compatible completion API response.
 
     Args:
@@ -50,6 +51,7 @@ def make_it_openai_completions_compat(
         # Extract the response text
         response_text: str = custom_response_dict.get("response", "")
 
+        usage = None
         # Calculate token counts (simplified example, actual tokenization may differ)
         if not is_streaming:
             completion_tokens: int = len(response_text.split())

@@ -1,6 +1,6 @@
 import json
 import os
-import urllib
+import urllib.request
 from dataclasses import asdict, dataclass
 from hashlib import md5
 from pathlib import Path

@@ -20,6 +20,7 @@ from ..types import (
     NonStreamChoice,
     StreamChoice,
 )
+from ..types.chat_completion import FINISH_REASONS
 from ..utils.input_handle import (
     handle_no_sys_msg,
     handle_non_stream_only,
@@ -39,7 +40,7 @@ def make_it_openai_chat_completions_compat(
     create_timestamp: int,
     prompt_tokens: int,
     is_streaming: bool = False,
-    finish_reason: Optional[str] = None,
+    finish_reason: Optional[FINISH_REASONS] = None,
 ) -> Dict[str, Any]:
     """
     Transforms the custom API response into a format compatible with OpenAI's API.
@@ -65,6 +66,7 @@ def make_it_openai_chat_completions_compat(
         # Extract the response text
         response_text = custom_response_dict.get("response", "")
 
+        usage = None
         if not is_streaming:
             # only count usage if not stream
             # Calculate token counts (simplified example, actual tokenization may differ)
