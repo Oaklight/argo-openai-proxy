@@ -10,7 +10,7 @@ from aiohttp import web
 from loguru import logger
 
 from ..config import ArgoConfig
-from ..models import CHAT_MODELS, NO_STREAM, NO_SYS_MSG, OPTION_2_INPUT
+from ..models import ModelRegistry
 from ..types import (
     ChatCompletion,
     ChatCompletionChunk,
@@ -25,7 +25,7 @@ from ..utils.input_handle import (
     handle_multiple_entries_prompt,
     handle_no_sys_msg,
     handle_non_stream_only,
-    handle_option_2_input,
+    # handle_option_2_input,
 )
 from ..utils.misc import make_bar
 from ..utils.models import resolve_model_name
@@ -120,14 +120,15 @@ def make_it_openai_chat_completions_compat(
 
 
 def prepare_chat_request_data(
-    data: Dict[str, Any], config: ArgoConfig
+    data: Dict[str, Any], config: ArgoConfig, model_registry: ModelRegistry
 ) -> Dict[str, Any]:
     """
     Prepares chat request data for upstream APIs based on model type.
 
     Args:
         data: The incoming request data.
-        config: Application configuration.
+        config: The ArgoConfig object containing configuration settings.
+        model_registry: The ModelRegistry object containing model mappings.
 
     Returns:
         The modified request data.
@@ -139,7 +140,9 @@ def prepare_chat_request_data(
     if "model" not in data:
         data["model"] = DEFAULT_MODEL
     data["model"] = resolve_model_name(
-        data["model"], DEFAULT_MODEL, avail_models=CHAT_MODELS
+        data["model"],
+        DEFAULT_MODEL,
+        avail_models=model_registry.available_chat_models,
     )
 
     # Convert prompt to list if necessary
@@ -147,7 +150,7 @@ def prepare_chat_request_data(
         data["prompt"] = [data["prompt"]]
 
     # # Apply transformations based on model type
-    # if data["model"] in OPTION_2_INPUT:
+    # if data["model"] in model_registry.option_2_input_models:
     #     # Transform data for models requiring `system` and `prompt` structure only
     #     data = handle_option_2_input(data)
 
@@ -155,10 +158,10 @@ def prepare_chat_request_data(
     if isinstance(data.get("prompt"), list):
         data["prompt"] = ["\n\n".join(data["prompt"]).strip()]
 
-    if data["model"] in NO_SYS_MSG:
+    if data["model"] in model_registry.no_sys_msg_models:
         data = handle_no_sys_msg(data)
 
-    if data["model"] in NO_STREAM:
+    if data["model"] not in model_registry.streamable_models:
         data = handle_non_stream_only(data)
 
     data = handle_multiple_entries_prompt(data)
@@ -346,6 +349,7 @@ async def proxy_request(
         A web.Response or web.StreamResponse with the final response from the upstream API.
     """
     config: ArgoConfig = request.app["config"]
+    model_registry: ModelRegistry = request.app["model_registry"]
 
     try:
         # Retrieve the incoming JSON data from request if input_data is not provided
@@ -361,7 +365,7 @@ async def proxy_request(
             logger.info(make_bar())
 
         # Prepare the request data
-        data = prepare_chat_request_data(data, config)
+        data = prepare_chat_request_data(data, config, model_registry)
         # this is the stream flag sent to upstream API
         upstream_stream = data.get("stream", False)
 
