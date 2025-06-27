@@ -10,6 +10,7 @@ from aiohttp import web
 from loguru import logger
 
 from ..config import ArgoConfig
+from ..models import ModelRegistry
 from ..types import (
     Response,
     ResponseCompletedEvent,
@@ -156,7 +157,9 @@ def transform_streaming_response(
         return {"error": f"An error occurred: {err}"}
 
 
-def prepare_request_data(data: Dict[str, Any], config: ArgoConfig) -> Dict[str, Any]:
+def prepare_request_data(
+    data: Dict[str, Any], config: ArgoConfig, model_registry: ModelRegistry
+) -> Dict[str, Any]:
     """
     Prepares the incoming request data for response models.
 
@@ -180,7 +183,7 @@ def prepare_request_data(data: Dict[str, Any], config: ArgoConfig) -> Dict[str, 
         del data["max_output_tokens"]
 
     # Use shared chat request preparation logic
-    data = prepare_chat_request_data(data, config)
+    data = prepare_chat_request_data(data, config, model_registry)
 
     # Drop unsupported fields
     for key in list(data.keys()):
@@ -424,6 +427,7 @@ async def proxy_request(
         A web.Response or web.StreamResponse with the final response from the upstream API.
     """
     config: ArgoConfig = request.app["config"]
+    model_registry: ModelRegistry = request.app["model_registry"]
 
     try:
         # Retrieve the incoming JSON data from request if input_data is not provided
@@ -439,7 +443,7 @@ async def proxy_request(
             logger.info(make_bar())
 
         # Prepare the request data
-        data = prepare_request_data(data, config)
+        data = prepare_request_data(data, config, model_registry)
         # this is the stream flag sent to upstream API
         upstream_stream = data.get("stream", False)
 

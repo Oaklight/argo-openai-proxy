@@ -8,6 +8,7 @@ from aiohttp import web
 from loguru import logger
 
 from ..config import ArgoConfig
+from ..models import ModelRegistry
 from ..types import Completion, CompletionChoice, CompletionUsage
 from ..types.completions import FINISH_REASONS
 from ..utils.misc import make_bar
@@ -104,6 +105,7 @@ async def proxy_request(
         Exception: Raised for unexpected runtime errors.
     """
     config: ArgoConfig = request.app["config"]
+    model_registry: ModelRegistry = request.app["model_registry"]
 
     try:
         # Retrieve the incoming JSON data
@@ -118,7 +120,7 @@ async def proxy_request(
             logger.info(make_bar())
 
         # Prepare the request data
-        data = prepare_chat_request_data(data, config)
+        data = prepare_chat_request_data(data, config, model_registry)
         # this is the stream flag sent to upstream API
         upstream_stream = data.get("stream", False)
 
