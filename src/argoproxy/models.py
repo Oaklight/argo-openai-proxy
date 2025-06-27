@@ -514,7 +514,7 @@ if __name__ == "__main__":
 
     from .config import load_config
 
-    config, _ = load_config()
+    config, _ = load_config(verbose=False)
     if config is None:
         raise ValueError("Config is None")
 

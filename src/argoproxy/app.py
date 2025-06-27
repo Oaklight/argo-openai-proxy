@@ -13,7 +13,7 @@ from .models import ModelRegistry
 async def prepare_app(app):
     """Load configuration without validation for worker processes"""
     config_path = os.getenv("CONFIG_PATH")
-    app["config"], _ = load_config(config_path)
+    app["config"], _ = load_config(config_path, verbose=False)
     app["model_registry"] = ModelRegistry(config=app["config"])
     await app["model_registry"].initialize()
 

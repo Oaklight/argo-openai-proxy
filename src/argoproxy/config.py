@@ -393,7 +393,10 @@ def _apply_env_overrides(config_data: ArgoConfig) -> ArgoConfig:
 
 
 def load_config(
-    optional_path: Optional[str | Path] = None, env_override: bool = True
+    optional_path: Optional[str | Path] = None,
+    *,
+    env_override: bool = True,
+    verbose: bool = True,
 ) -> Tuple[Optional[ArgoConfig], Optional[Path]]:
     """Loads configuration from file with optional environment variable overrides.
 
@@ -404,6 +407,7 @@ def load_config(
         optional_path: Optional path to a specific configuration file to load. If not provided,
             will attempt to load from default locations defined in PATHS_TO_TRY.
         env_override: If True, environment variables will override the configuration file settings. Defaults to True.
+        verbose: If True, will print verbose output. Defaults to True.
 
     Returns:
         Tuple[Optional[ArgoConfig], Optional[Path]]:
@@ -426,7 +430,8 @@ def load_config(
                     if env_override:
                         config_data = _apply_env_overrides(config_data)
                     actual_path = Path(path).absolute()
-                    logger.info(f"Loaded configuration from {actual_path}")
+                    if verbose:
+                        logger.info(f"Loaded configuration from {actual_path}")
                     return config_data, actual_path
                 except (yaml.YAMLError, AssertionError) as e:
                     logger.warning(f"Error loading config at {path}: {e}")
@@ -456,7 +461,7 @@ def validate_config(
     # Config may change here. We need to persist
     file_changed = config_data.validate()
     if file_changed:
-        config_original, _ = load_config(actual_path, env_override=False)
+        config_original, _ = load_config(actual_path, env_override=False, verbose=False)
         if not config_original:
             raise ValueError("Failed to load original configuration for comparison.")
         # prompt user with yes or no to ask for persistence of changes
