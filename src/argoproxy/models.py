@@ -129,7 +129,7 @@ class OpenAIModel(BaseModel):
     id: str
     internal_name: str
     object: Literal["model"] = "model"
-    created: int = datetime.now().timestamp()
+    created: int = int(datetime.now().timestamp())
     owned_by: str = "argo"
 
 
@@ -475,8 +475,10 @@ if __name__ == "__main__":
     from .config import load_config
 
     config, _ = load_config()
+    if config is None:
+        raise ValueError("Config is None")
 
-    model_registry = ModelRegistry()
+    model_registry = ModelRegistry(config)
     asyncio.run(model_registry.initialize())
 
     logger.info(f"Available stream models: {model_registry.streamable_models}")
