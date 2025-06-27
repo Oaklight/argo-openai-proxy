@@ -10,7 +10,6 @@ from ..config import ArgoConfig
 from ..models import ModelRegistry
 from ..types import CreateEmbeddingResponse, Embedding, Usage
 from ..utils.misc import make_bar
-from ..utils.models import resolve_model_name
 from ..utils.tokens import count_tokens
 
 DEFAULT_MODEL = "argo:text-embedding-3-small"
@@ -88,11 +87,7 @@ def prepare_request_data(
     # Remap the model using EMBED_MODELS
     if "model" not in data:
         data["model"] = DEFAULT_MODEL  # Default model if not provided
-    data["model"] = resolve_model_name(
-        data["model"],
-        DEFAULT_MODEL,
-        avail_models=model_registry.available_embed_models,
-    )
+    data["model"] = model_registry.resolve_model_name(data["model"], model_type="embed")
 
     # Transform the incoming payload to match the destination API format
     if "prompt" not in data:  # argo-API uses prompt, openAI-API uses input

@@ -28,7 +28,6 @@ from ..utils.input_handle import (
     # handle_option_2_input,
 )
 from ..utils.misc import make_bar
-from ..utils.models import resolve_model_name
 from ..utils.tokens import calculate_prompt_tokens, count_tokens
 from ..utils.transports import send_off_sse
 
@@ -139,11 +138,7 @@ def prepare_chat_request_data(
     # Remap the model name
     if "model" not in data:
         data["model"] = DEFAULT_MODEL
-    data["model"] = resolve_model_name(
-        data["model"],
-        DEFAULT_MODEL,
-        avail_models=model_registry.available_chat_models,
-    )
+    data["model"] = model_registry.resolve_model_name(data["model"], model_type="chat")
 
     # Convert prompt to list if necessary
     if "prompt" in data and not isinstance(data["prompt"], list):

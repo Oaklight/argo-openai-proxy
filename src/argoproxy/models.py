@@ -4,7 +4,7 @@ import fnmatch
 import json
 import urllib.request
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Literal, Optional, Tuple
 
 from loguru import logger
 from pydantic import BaseModel
@@ -409,6 +409,36 @@ class ModelRegistry:
             await self.refresh_availability()
         except Exception as e:
             logger.error(f"Manual refresh failed: {str(e)}")
+
+    def resolve_model_name(
+        self,
+        model_name: str,
+        model_type: Literal["chat", "embed"],
+    ) -> str:
+        """
+        Resolves a model name to its primary model name using the flattened model mapping.
+
+        Args:
+            model_name: The input model name to resolve
+            model_type: The type of model to resolve (chat or embed)
+
+        Returns:
+            The resolved primary model name or default_model if no match found
+        """
+
+        # directly pass in resolved model_id
+        if model_name in self.available_models.values():
+            return model_name
+
+        # Check if input exists in the flattened mapping
+        if model_name in self.available_models:
+            return self.available_models[model_name]
+        else:
+            if model_type == "chat":
+                default_model = "argo:gpt-4o"
+            elif model_type == "embed":
+                default_model = "argo:text-embedding-3-small"
+            return self.available_models[default_model]
 
     @property
     def available_chat_models(self):
