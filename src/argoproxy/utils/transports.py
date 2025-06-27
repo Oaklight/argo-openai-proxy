@@ -57,8 +57,32 @@ def validate_api(url: str, username: str, payload: dict, timeout: int = 2) -> bo
         raise ValueError(f"API validation failed for {url}: {str(e)}") from e
 
 
-async def validate_api_async(stream_url, user, payload, timeout):
-    # Wrap your validate_api call for async behavior, assuming validate_api runs synchronously
-    return await asyncio.to_thread(
-        validate_api, stream_url, user, payload, timeout=timeout
-    )
+async def validate_api_async(url, user, payload, timeout, attempts=3):
+    """
+    Asynchronously validates API connectivity with attempts.
+
+    Args:
+        url (str): The API URL to validate.
+        user (str): The username for payload.
+        payload (dict): Request payload.
+        timeout (int): Request timeout seconds.
+        attempts (int): Total attempts (including the first).
+
+    Returns:
+        bool: True if validation succeeds.
+
+    Raises:
+        ValueError if all attempts fail.
+    """
+    last_err = None
+    for attempt in range(attempts + 1):  # tries = 1 + attempts
+        try:
+            return await asyncio.to_thread(
+                validate_api, url, user, payload, timeout=timeout
+            )
+        except Exception as e:
+            last_err = e
+            if attempt < attempts:
+                await asyncio.sleep(0.5)
+    # If we reach here, all attempts failed
+    raise last_err
