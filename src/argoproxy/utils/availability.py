@@ -112,14 +112,12 @@ async def streamable_list_async(
         # Try streaming
         try:
             await validate_api_async(stream_url, user, payload_copy, timeout=15)
-            logger.info(f"Streamable model: {model_name}")
             return (model_name, True)
         except Exception as e_stream:
             logger.warning(f"Streaming check failed for {model_name}: {e_stream}")
             # Try non-stream as fallback
             try:
                 await validate_api_async(non_stream_url, user, payload_copy, timeout=15)
-                logger.info(f"Non-streamable but available: {model_name}")
                 return (model_name, False)
             except Exception as e_non_stream:
                 logger.error(
@@ -134,15 +132,18 @@ async def streamable_list_async(
     results = await asyncio.gather(*tasks)
 
     streamable = []
+    non_streamable = []
     unavailable = []
     for model_name, status in results:
         if status is True:
             streamable.append(model_name)
+            non_streamable.append(model_name)
+        elif status is False:
+            non_streamable.append(model_name)
         elif status is None:
             unavailable.append(model_name)
-        # Non-streamable but available: do nothing per requirements
 
-    return streamable, unavailable
+    return streamable, non_streamable, unavailable
 
 
 if __name__ == "__main__":
@@ -174,6 +175,7 @@ if __name__ == "__main__":
         )
         print("Streamable models:", streamable_models)
 
-    streamable, unavailable = asyncio.run(check_models())
+    streamable, non_streamable, unavailable = asyncio.run(check_models())
     logger.info(f"Streamable models: {streamable}")
+    logger.info(f"Non-streamable models: {non_streamable}")
     logger.info(f"Unavailable models: {unavailable}")
