@@ -3,6 +3,7 @@ import asyncio
 import fnmatch
 import json
 import urllib.request
+from collections import defaultdict
 from datetime import datetime
 from typing import Any, Dict, List, Literal, Optional, Tuple
 
@@ -315,11 +316,13 @@ async def determine_models_availability(
 class ModelRegistry:
     def __init__(self, config: ArgoConfig):
         self._chat_models: Dict[str, str] = {}
-        self._streamable_models: List[str] = []
-        self._non_streamable_models: List[str] = []
-        self._unavailable_models: List[str] = []
         self._no_sys_msg_models = NO_SYS_MSG
         self._option_2_input_models = OPTION_2_INPUT
+
+        # these are model_name to failed_count mappings
+        self._streamable_models: Dict[str, int] = defaultdict(lambda: 0)
+        self._non_streamable_models: Dict[str, int] = defaultdict(lambda: 0)
+        self._unavailable_models: Dict[str, int] = defaultdict(lambda: 0)
 
         # internal state
         self._last_updated: Optional[datetime] = None
@@ -367,9 +370,12 @@ class ModelRegistry:
                 non_streamable = self.available_chat_models.keys()
                 unavailable = []
 
-            self._streamable_models = streamable
-            self._non_streamable_models = non_streamable
-            self._unavailable_models = unavailable
+            for name in streamable:
+                self._streamable_models[name]
+            for name in non_streamable:
+                self._non_streamable_models[name]
+            for name in unavailable:
+                self._unavailable_models[name]
             self._last_updated = datetime.now()
 
             # Update model lists based on model IDs
@@ -457,24 +463,19 @@ class ModelRegistry:
         return model_data
 
     def flag_as_non_streamable(self, model_name: str):
-        if model_name in self.streamable_models:
-            self._streamable_models.remove(model_name)
-        if model_name not in self.non_streamable_models:
-            self._non_streamable_models.append(model_name)
+        self._streamable_models.pop(
+            model_name, 0
+        )  # Remove if present, ignore otherwise
+        self._non_streamable_models[model_name]
 
     def flag_as_streamable(self, model_name: str):
-        if model_name in self.non_streamable_models:
-            self._non_streamable_models.remove(model_name)
-        if model_name not in self.streamable_models:
-            self._streamable_models.append(model_name)
+        self._non_streamable_models.pop(model_name, 0)
+        self._streamable_models[model_name]
 
     def flag_as_unavailable(self, model_name: str):
-        if model_name not in self.unavailable_models:
-            self._unavailable_models.append(model_name)
-        if model_name in self.streamable_models:
-            self._streamable_models.remove(model_name)
-        if model_name in self.non_streamable_models:
-            self._non_streamable_models.remove(model_name)
+        self._unavailable_models[model_name]
+        self._streamable_models.pop(model_name, 0)
+        self._non_streamable_models.pop(model_name, 0)
 
     @property
     def available_chat_models(self):
@@ -490,15 +491,17 @@ class ModelRegistry:
 
     @property
     def unavailable_models(self):
-        return self._unavailable_models or []
+        return list(self._unavailable_models.keys())
 
     @property
     def streamable_models(self):
-        return self._streamable_models or []
+        return list(self._streamable_models.keys())
 
     @property
     def non_streamable_models(self):
-        return self._non_streamable_models or _DEFAULT_CHAT_MODELS
+        return list(self._non_streamable_models.keys()) or list(
+            _DEFAULT_CHAT_MODELS.keys()
+        )
 
     @property
     def no_sys_msg_models(self):
