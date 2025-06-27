@@ -201,44 +201,33 @@ async def _check_model_streamability(
     non_stream_url: str,
     user: str,
     payload: Dict[str, Any],
-    max_retries: int = 3,
 ) -> Tuple[str, Optional[bool]]:
-    """Check if a model is streamable with retry logic using model_id."""
+    """Check if a model is streamable using model_id."""
     payload_copy = payload.copy()
     payload_copy["model"] = model_id
 
-    check_result = (model_id, None)
-    for attempt in range(max_retries):
+    try:
+        # First, try streaming
+        await validate_api_async(
+            stream_url,
+            user,
+            payload_copy,
+            timeout=DEFAULT_TIMEOUT,
+        )
+        return (model_id, True)
+    except Exception:
+        # If streaming fails, try non-streaming
         try:
-            # Try streaming first
             await validate_api_async(
-                stream_url, user, payload_copy, timeout=DEFAULT_TIMEOUT
+                non_stream_url,
+                user,
+                payload_copy,
+                timeout=DEFAULT_TIMEOUT,
             )
-            check_result = (model_id, True)
-            break
-        except Exception as e_stream:
-            # logger.warning(
-            #     f"Streaming check failed for {model_id} (attempt {attempt + 1}): {e_stream}"
-            # )
-            try:
-                # Fallback to non-stream check
-                await validate_api_async(
-                    non_stream_url, user, payload_copy, timeout=DEFAULT_TIMEOUT
-                )
-                check_result = (model_id, False)
-                break
-            except Exception as e_non_stream:
-                # logger.warning(
-                #     f"Non-stream check failed for {model_id} (attempt {attempt + 1}): {e_non_stream}"
-                # )
-                if attempt < max_retries - 1:
-                    await asyncio.sleep(2**attempt)  # Exponential backoff
-                    continue
-                logger.error(f"All attempts failed for model ID: {model_id}")
-                check_result = (model_id, None)
-                break
-
-    return check_result
+            return (model_id, False)
+        except Exception:
+            logger.error(f"All attempts failed for model ID: {model_id}")
+            return (model_id, None)
 
 
 def _categorize_results(
