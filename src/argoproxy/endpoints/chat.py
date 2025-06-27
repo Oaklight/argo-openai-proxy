@@ -269,6 +269,9 @@ async def send_streaming_request(
     else:
         response_headers = {"Content-Type": "text/plain; charset=utf-8"}
 
+    if fake_stream:
+        data["stream"] = False  # disable streaming in upstream request
+
     async with session.post(api_url, headers=headers, json=data) as upstream_resp:
         if upstream_resp.status != 200:
             # Read error content from upstream response
@@ -361,31 +364,14 @@ async def proxy_request(
         # Forward the modified request to the actual API using aiohttp
         async with aiohttp.ClientSession() as session:
             if stream:
-                try:
-                    # Try streamed (upstream_stream could be false if model does not support)
-                    return await send_streaming_request(
-                        session,
-                        config.argo_stream_url,
-                        data,
-                        request,
-                        convert_to_openai,
-                        fake_stream=False,
-                    )
-                except Exception as e:
-                    logger.warning(
-                        f"Upstream streaming failed, retrying as non-stream. Reason: {e}"
-                    )
-
-                    # fallback: set stream=false for upstream, but keep client stream=true to fake stream if needed
-                    data["stream"] = False
-                    return await send_streaming_request(
-                        session,
-                        config.argo_url,
-                        data,
-                        request,
-                        convert_to_openai,
-                        fake_stream=True,
-                    )
+                return await send_streaming_request(
+                    session,
+                    config.argo_url,
+                    data,
+                    request,
+                    convert_to_openai,
+                    fake_stream=True,
+                )
             else:
                 return await send_non_streaming_request(
                     session,

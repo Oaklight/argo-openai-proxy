@@ -222,6 +222,9 @@ async def send_streaming_request(
     created_timestamp = int(time.time())
     prompt_tokens = calculate_prompt_tokens(data, data["model"])
 
+    if fake_stream:
+        data["stream"] = False  # disable streaming in upstream request
+
     async with session.post(api_url, headers=headers, json=data) as upstream_resp:
         if upstream_resp.status != 200:
             # Read error content from upstream response
@@ -444,26 +447,21 @@ async def proxy_request(
 
         # Prepare the request data
         data = prepare_request_data(data, config, model_registry)
-        # this is the stream flag sent to upstream API
-        upstream_stream = data.get("stream", False)
-
-        # Determine the API URL based on whether streaming is enabled
-        api_url = config.argo_stream_url if upstream_stream else config.argo_url
 
         # Forward the modified request to the actual API using aiohttp
         async with aiohttp.ClientSession() as session:
             if stream:
                 return await send_streaming_request(
                     session,
-                    api_url,
+                    config.argo_url,
                     data,
                     request,
-                    fake_stream=(stream != upstream_stream),
+                    fake_stream=True,
                 )
             else:
                 return await send_non_streaming_request(
                     session,
-                    api_url,
+                    config.argo_url,
                     data,
                     convert_to_openai=True,
                     openai_compat_fn=transform_non_streaming_response,
