@@ -1,6 +1,6 @@
+import asyncio
 import json
 import os
-import urllib.request
 from dataclasses import asdict, dataclass
 from hashlib import md5
 from pathlib import Path
@@ -10,7 +10,7 @@ import yaml  # type: ignore
 from loguru import logger
 
 from .utils.misc import get_random_port, is_port_available, make_bar
-from .utils.transports import validate_api
+from .utils.transports import validate_api_async
 
 PATHS_TO_TRY = [
     "./config.yaml",
@@ -96,7 +96,7 @@ class ArgoConfig:
         logger.info(f"Using port {self.port}...")
 
     def _validate_urls(self) -> None:
-        """Validate URL connectivity with option to skip failures."""
+        """Validate URL connectivity using validate_api_async with default retries."""
         required_urls: list[tuple[str, dict[str, Any]]] = [
             (
                 self.argo_url,
@@ -109,28 +109,40 @@ class ArgoConfig:
         ]
 
         logger.info("Validating URL connectivity...")
-        errors = []
 
-        for url, payload in required_urls:
+        failed_urls = []
+
+        async def _validate_single_url(url: str, payload: dict) -> None:
             if not url.startswith(("http://", "https://")):
-                errors.append(f"Invalid URL format: {url}")
-                continue
-
+                logger.error(f"Invalid URL format: {url}")
+                failed_urls.append(url)
+                return
             try:
-                validate_api(url, self.user, payload)
+                await validate_api_async(url, self.user, payload, timeout=5)
+                logger.info(f"Successfully connected to {url}")
             except Exception as e:
-                errors.append(f"{url}: {str(e)}")
+                logger.error(f"{url}: {str(e)} (all attempts failed)")
+                failed_urls.append(url)
 
-        if errors:
-            logger.error("URL validation errors:")
-            for error in errors:
-                logger.error(f"- {error}")
+        async def _main():
+            await asyncio.gather(
+                *[_validate_single_url(url, payload) for url, payload in required_urls]
+            )
 
+        try:
+            asyncio.run(_main())
+        except RuntimeError:
+            logger.error("Async validation failed unexpectedly.")
+            raise
+
+        if failed_urls:
             if not _get_yes_no_input(
                 prompt="Continue despite connectivity issue? [Y/n] ", default_choice="y"
             ):
                 raise ValueError("URL validation aborted by user")
             logger.info("Continuing with configuration despite URL issues...")
+        else:
+            logger.info("All URLs connectivity validated successfully.")
 
     def _get_verbose(self) -> None:
         """
