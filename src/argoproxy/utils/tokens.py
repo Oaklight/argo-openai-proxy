@@ -2,7 +2,7 @@ from typing import List, Union
 
 import tiktoken
 
-from ..models import ALL_MODELS, TIKTOKEN_ENCODING_PREFIX_MAPPING
+from ..models import TIKTOKEN_ENCODING_PREFIX_MAPPING
 
 
 def get_tiktoken_encoding_model(model: str) -> str:
@@ -11,9 +11,6 @@ def get_tiktoken_encoding_model(model: str) -> str:
     If the model starts with 'argo:', use TIKTOKEN_ENCODING_PREFIX_MAPPING to find encoding.
     Otherwise use MODEL_TO_ENCODING mapping.
     """
-    if model.startswith("argo:"):
-        model = ALL_MODELS[model]
-
     for prefix, encoding in TIKTOKEN_ENCODING_PREFIX_MAPPING.items():
         if model == prefix:
             return encoding
