@@ -24,7 +24,6 @@ from ..types.chat_completion import FINISH_REASONS
 from ..utils.input_handle import (
     handle_multiple_entries_prompt,
     handle_no_sys_msg,
-    handle_non_stream_only,
     # handle_option_2_input,
 )
 from ..utils.misc import make_bar
@@ -155,9 +154,6 @@ def prepare_chat_request_data(
 
     if data["model"] in model_registry.no_sys_msg_models:
         data = handle_no_sys_msg(data)
-
-    if data["model"] not in model_registry.streamable_models:
-        data = handle_non_stream_only(data)
 
     data = handle_multiple_entries_prompt(data)
 
@@ -361,27 +357,39 @@ async def proxy_request(
 
         # Prepare the request data
         data = prepare_chat_request_data(data, config, model_registry)
-        # this is the stream flag sent to upstream API
-        upstream_stream = data.get("stream", False)
-
-        # Determine the API URL based on whether streaming is enabled
-        api_url = config.argo_stream_url if upstream_stream else config.argo_url
 
         # Forward the modified request to the actual API using aiohttp
         async with aiohttp.ClientSession() as session:
             if stream:
-                return await send_streaming_request(
-                    session,
-                    api_url,
-                    data,
-                    request,
-                    convert_to_openai,
-                    fake_stream=(stream != upstream_stream),
-                )
+                try:
+                    # Try streamed (upstream_stream could be false if model does not support)
+                    return await send_streaming_request(
+                        session,
+                        config.argo_stream_url,
+                        data,
+                        request,
+                        convert_to_openai,
+                        fake_stream=False,
+                    )
+                except Exception as e:
+                    logger.warning(
+                        f"Upstream streaming failed, retrying as non-stream. Reason: {e}"
+                    )
+
+                    # fallback: set stream=false for upstream, but keep client stream=true to fake stream if needed
+                    data["stream"] = False
+                    return await send_streaming_request(
+                        session,
+                        config.argo_url,
+                        data,
+                        request,
+                        convert_to_openai,
+                        fake_stream=True,
+                    )
             else:
                 return await send_non_streaming_request(
                     session,
-                    api_url,
+                    config.argo_url,
                     data,
                     convert_to_openai,
                 )
