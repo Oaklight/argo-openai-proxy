@@ -119,9 +119,7 @@ class ArgoConfig:
                 return
             try:
                 await validate_api_async(url, self.user, payload, timeout=5)
-                logger.info(f"Successfully connected to {url}")
             except Exception as e:
-                logger.error(f"{url}: {str(e)} (all attempts failed)")
                 failed_urls.append(url)
 
         async def _main():
