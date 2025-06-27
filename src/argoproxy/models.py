@@ -10,7 +10,7 @@ from loguru import logger
 from pydantic import BaseModel
 from tqdm.asyncio import tqdm_asyncio
 
-from .config import load_config
+from .config import ArgoConfig
 from .utils.transports import validate_api
 
 DEFAULT_TIMEOUT = 30
@@ -317,16 +317,18 @@ async def determine_models_availability(
 
 
 class ModelRegistry:
-    def __init__(self, config_path: Optional[str] = None):
+    def __init__(self, config: ArgoConfig):
         self._chat_models: Dict[str, str] = {}
         self._streamable_models: List[str] = []
         self._non_streamable_models: List[str] = []
         self._unavailable_models: List[str] = []
-        self._last_updated: Optional[datetime] = None
-        self._refresh_task = None
-        self._config_path = config_path
         self._no_sys_msg_models = NO_SYS_MSG
         self._option_2_input_models = OPTION_2_INPUT
+
+        # internal state
+        self._last_updated: Optional[datetime] = None
+        self._refresh_task = None
+        self._config = config
 
     async def initialize(self):
         """Initialize model registry with upstream data"""
@@ -344,12 +346,11 @@ class ModelRegistry:
 
     async def refresh_availability(self):
         """Refresh model availability status"""
-        config, self._config_path = load_config(self._config_path)
-        if not config:
+        if not self._config:
             raise ValueError("Failed to load valid configuration")
 
         # Initial model list fetch
-        self._chat_models = get_upstream_model_list(config.argo_model_url)
+        self._chat_models = get_upstream_model_list(self._config.argo_model_url)
         logger.info(f"Initialized model registry with {len(self._chat_models)} models")
 
         try:
@@ -358,9 +359,9 @@ class ModelRegistry:
                 non_streamable,
                 unavailable,
             ) = await determine_models_availability(
-                config.argo_stream_url,
-                config.argo_url,
-                config.user,
+                self._config.argo_stream_url,
+                self._config.argo_url,
+                self._config.user,
                 self.available_chat_models,
             )
 
@@ -488,6 +489,10 @@ class ModelRegistry:
 
 if __name__ == "__main__":
     import asyncio
+
+    from .config import load_config
+
+    config, _ = load_config()
 
     model_registry = ModelRegistry()
     asyncio.run(model_registry.initialize())
