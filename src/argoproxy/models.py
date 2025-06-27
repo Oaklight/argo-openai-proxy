@@ -8,6 +8,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from loguru import logger
 from pydantic import BaseModel
+from tqdm.asyncio import tqdm_asyncio
 
 from .config import load_config
 from .utils.transports import validate_api
@@ -292,17 +293,19 @@ async def determine_models_availability(
 
     # Get unique model IDs to check (avoid duplicate checks for same ID)
     unique_model_ids = set(model_list.values())
-
-    # Create checking tasks for each unique model ID
     tasks = [
         _check_model_streamability(model_id, stream_url, non_stream_url, user, payload)
         for model_id in unique_model_ids
     ]
 
-    # Run all checks concurrently
-    results = await asyncio.gather(*tasks)
+    # Run all checks concurrently, showing a progress bar
+    results = []
+    for coro in tqdm_asyncio.as_completed(
+        tasks, total=len(tasks), desc="Checking models"
+    ):
+        result = await coro
+        results.append(result)
 
-    # Categorize results and map back to all aliases
     return _categorize_results(results, model_list)
 
 
