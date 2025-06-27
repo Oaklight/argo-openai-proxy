@@ -1,6 +1,7 @@
 import asyncio
 import json
 import os
+import threading
 from dataclasses import asdict, dataclass
 from hashlib import md5
 from pathlib import Path
@@ -247,6 +248,45 @@ def _get_yes_no_input(
                 return value_type(choice)
             except ValueError:
                 logger.info(f"Invalid input, please enter Y/n or a valid {key}")
+
+
+def _get_yes_no_input_with_timeout(
+    prompt: str,
+    default_choice: str = "y",
+    accept_value: Optional[dict[str, type]] = None,
+    timeout=30,
+):
+    """Get yes/no input with timeout.
+
+    Args:
+        prompt: Input prompt string
+        timeout: Timeout in seconds
+        default: Default value to return if timeout occurs (None means raise TimeoutError)
+
+    Returns:
+        bool: True for yes, False for no
+    Raises:
+        TimeoutError: If timeout occurs and no default is provided
+    """
+    result = None
+
+    def input_thread():
+        nonlocal result
+        try:
+            result = _get_yes_no_input(prompt, default_choice, accept_value)
+        except Exception:
+            pass
+
+    thread = threading.Thread(target=input_thread)
+    thread.daemon = True
+    thread.start()
+    thread.join(timeout)
+
+    if thread.is_alive():
+        if default_choice is not None:
+            return default_choice
+        raise TimeoutError("Input timed out")
+    return result
 
 
 def _get_valid_username(username: str = "") -> str:
