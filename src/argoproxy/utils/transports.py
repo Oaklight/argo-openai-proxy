@@ -84,5 +84,8 @@ async def validate_api_async(url, user, payload, timeout, attempts=3):
             last_err = e
             if attempt < attempts:
                 await asyncio.sleep(0.5)
+
     # If we reach here, all attempts failed
-    raise last_err
+    if last_err is not None:
+        raise last_err
+    raise ValueError("API validation failed after all attempts")
