@@ -54,7 +54,7 @@ async def proxy_openai_embedding_request(request: web.Request):
 
 async def get_models(request: web.Request):
     logger.info("/v1/models")
-    return extras.get_models()
+    return extras.get_models(request)
 
 
 async def docs(request: web.Request):

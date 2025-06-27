@@ -120,16 +120,17 @@ TIKTOKEN_ENCODING_PREFIX_MAPPING = {
 }
 
 
-# # Legacy references for compatibility
-# CHAT_MODELS = Any()
-# EMBED_MODELS = Any()
-# ALL_MODELS = Any()
-# NO_STREAM = OPTION_2_INPUT
-
-
 class Model(BaseModel):
     id: str
     model_name: str
+
+
+class OpenAIModel(BaseModel):
+    id: str
+    internal_name: str
+    object: Literal["model"] = "model"
+    created: int = datetime.now().timestamp()
+    owned_by: str = "argo"
 
 
 GPT_O_PATTERN = "gpto*"
@@ -439,6 +440,18 @@ class ModelRegistry:
             elif model_type == "embed":
                 default_model = "argo:text-embedding-3-small"
             return self.available_models[default_model]
+
+    def as_openai_list(self) -> Dict[str, Any]:
+        # Mock data for available models
+        model_data: Dict[str, Any] = {"object": "list", "data": []}  # type: ignore
+
+        # Populate the models data with the combined models
+        for model_name, model_id in self.available_models.items():
+            model_data["data"].append(
+                OpenAIModel(id=model_id, internal_name=model_name).model_dump()
+            )
+
+        return model_data
 
     @property
     def available_chat_models(self):

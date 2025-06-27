@@ -1,34 +1,17 @@
-from datetime import datetime
-from typing import Any, Dict, Optional
+from typing import Optional
 
 import aiohttp
 from aiohttp import web
 
-from ..models import ALL_MODELS
-
-# Mock data for available models
-MODELS_DATA: Dict[str, Any] = {"object": "list", "data": []}  # type: ignore
-
-# Populate the models data with the combined models
-for model_id, model_name in ALL_MODELS.items():
-    MODELS_DATA["data"].append(
-        {
-            "id": model_id,  # Include the key (e.g., "argo:gpt-4o")
-            "object": "model",
-            "created": int(
-                datetime.now().timestamp()
-            ),  # Use current timestamp for simplicity
-            "owned_by": "system",  # Default ownership
-            "internal_name": model_name,  # Include the value (e.g., "gpt4o")
-        }
-    )
+from ..models import ModelRegistry
 
 
-def get_models():
+def get_models(request: web.Request):
     """
     Returns a list of available models in OpenAI-compatible format.
     """
-    return web.json_response(MODELS_DATA, status=200)
+    model_registry: ModelRegistry = request.app["model_registry"]
+    return web.json_response(model_registry.as_openai_list(), status=200)
 
 
 async def get_latest_pypi_version() -> Optional[str]:
