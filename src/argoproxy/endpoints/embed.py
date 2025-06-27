@@ -7,7 +7,7 @@ from aiohttp import web
 from loguru import logger
 
 from ..config import ArgoConfig
-from ..models import EMBED_MODELS
+from ..models import ModelRegistry
 from ..types import CreateEmbeddingResponse, Embedding, Usage
 from ..utils.misc import make_bar
 from ..utils.models import resolve_model_name
@@ -67,27 +67,31 @@ def make_it_openai_embeddings_compat(
 
 def prepare_request_data(
     data: Dict[str, Any],
-    request: web.Request,
+    config: ArgoConfig,
+    model_registry: ModelRegistry,
 ) -> Dict[str, Any]:
     """
     Modifies and prepares the incoming request data by adding user information
     and remapping the model according to configurations.
 
     Args:
-        data: The original request data.
-        request: The incoming web request object.
+        data: The incoming request data.
+        config: The ArgoConfig object containing configuration settings.
+        model_registry: The ModelRegistry object containing model mappings.
 
     Returns:
         The modified and prepared request data.
     """
-    config: ArgoConfig = request.app["config"]
+
     # Automatically replace or insert the user
     data["user"] = config.user
     # Remap the model using EMBED_MODELS
     if "model" not in data:
         data["model"] = DEFAULT_MODEL  # Default model if not provided
     data["model"] = resolve_model_name(
-        data["model"], DEFAULT_MODEL, avail_models=EMBED_MODELS
+        data["model"],
+        DEFAULT_MODEL,
+        avail_models=model_registry.available_embed_models,
     )
 
     # Transform the incoming payload to match the destination API format
@@ -117,6 +121,8 @@ async def proxy_request(
         web.Response: The HTTP response sent back to the client.
     """
     config: ArgoConfig = request.app["config"]
+    model_registry: ModelRegistry = request.app["model_registry"]
+
     try:
         # Retrieve the incoming JSON data
         data: Dict[str, Any] = await request.json()
@@ -127,7 +133,7 @@ async def proxy_request(
             logger.info(json.dumps(data, indent=4))
             logger.info(make_bar())
 
-        data = prepare_request_data(data, request)
+        data = prepare_request_data(data, config, model_registry)
 
         headers: Dict[str, str] = {"Content-Type": "application/json"}
 
