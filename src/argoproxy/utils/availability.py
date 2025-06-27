@@ -106,24 +106,34 @@ async def streamable_list_async(
         "messages": [{"role": "user", "content": "What are you?"}],
     }
 
-    async def check_model(model_name, model_id):
+    async def check_model(model_name, model_id, max_retries=2):
         payload_copy = payload.copy()
         payload_copy["model"] = model_id
-        # Try streaming
-        try:
-            await validate_api_async(stream_url, user, payload_copy, timeout=15)
-            return (model_name, True)
-        except Exception as e_stream:
-            logger.warning(f"Streaming check failed for {model_name}: {e_stream}")
-            # Try non-stream as fallback
+
+        for attempt in range(max_retries):
+            # Try streaming
             try:
-                await validate_api_async(non_stream_url, user, payload_copy, timeout=15)
-                return (model_name, False)
-            except Exception as e_non_stream:
-                logger.error(
-                    f"Both streaming and non-stream checks failed for {model_name}: {e_non_stream}"
+                await validate_api_async(stream_url, user, payload_copy, timeout=15)
+                return (model_name, True)
+            except Exception as e_stream:
+                logger.warning(
+                    f"Streaming check failed for {model_name} (attempt {attempt + 1}): {e_stream}"
                 )
-                return (model_name, None)
+                # Try non-stream as fallback
+                try:
+                    await validate_api_async(
+                        non_stream_url, user, payload_copy, timeout=15
+                    )
+                    return (model_name, False)
+                except Exception as e_non_stream:
+                    logger.warning(
+                        f"Non-stream check failed for {model_name} (attempt {attempt + 1}): {e_non_stream}"
+                    )
+                    if attempt < max_retries - 1:
+                        await asyncio.sleep(2**attempt)  # Exponential backoff
+                        continue
+                    logger.error(f"All attempts failed for {model_name}")
+                    return (model_name, None)
 
     tasks = [
         check_model(model_name, model_id)
@@ -168,12 +178,11 @@ if __name__ == "__main__":
         logger.warning("CHAT_MODELS and model_list are different")
 
     async def check_models():
-        streamable_models = await streamable_list_async(
+        return await streamable_list_async(
             config_instance.argo_stream_url,
             config_instance.argo_url,
             config_instance.user,
         )
-        print("Streamable models:", streamable_models)
 
     streamable, non_streamable, unavailable = asyncio.run(check_models())
     logger.info(f"Streamable models: {streamable}")
