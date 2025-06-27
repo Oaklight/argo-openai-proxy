@@ -1,3 +1,4 @@
+import asyncio
 import json
 import urllib.request
 from typing import Any, Dict, Union
@@ -54,3 +55,10 @@ def validate_api(url: str, username: str, payload: dict, timeout: int = 2) -> bo
             return True
     except Exception as e:
         raise ValueError(f"API validation failed for {url}: {str(e)}") from e
+
+
+async def validate_api_async(stream_url, user, payload, timeout):
+    # Wrap your validate_api call for async behavior, assuming validate_api runs synchronously
+    return await asyncio.to_thread(
+        validate_api, stream_url, user, payload, timeout=timeout
+    )

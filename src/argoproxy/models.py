@@ -11,7 +11,7 @@ from pydantic import BaseModel
 from tqdm.asyncio import tqdm_asyncio
 
 from .config import ArgoConfig
-from .utils.transports import validate_api
+from .utils.transports import validate_api_async
 
 DEFAULT_TIMEOUT = 30
 
@@ -193,13 +193,6 @@ def get_upstream_model_list(url: str) -> Dict[str, str]:
     except Exception as e:
         logger.error(f"Error fetching model list from {url}: {e}")
         return _DEFAULT_CHAT_MODELS
-
-
-async def validate_api_async(stream_url, user, payload, timeout):
-    # Wrap your validate_api call for async behavior, assuming validate_api runs synchronously
-    return await asyncio.to_thread(
-        validate_api, stream_url, user, payload, timeout=timeout
-    )
 
 
 async def _check_model_streamability(
