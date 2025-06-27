@@ -110,7 +110,11 @@ class ArgoConfig:
             (self.argo_embedding_url, {"model": "v3small", "prompt": ["hello"]}),
         ]
 
-        logger.info("Validating URL connectivity...")
+        timeout = 2
+        attempts = 2
+        logger.info(
+            f"Validating {len(required_urls)} URL connectivity with timeout {timeout}s and {attempts} attempts ..."
+        )
 
         failed_urls = []
 
@@ -120,7 +124,9 @@ class ArgoConfig:
                 failed_urls.append(url)
                 return
             try:
-                await validate_api_async(url, self.user, payload, timeout=3, attempts=2)
+                await validate_api_async(
+                    url, self.user, payload, timeout=timeout, attempts=attempts
+                )
             except Exception as e:
                 failed_urls.append(url)
 
