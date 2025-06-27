@@ -334,10 +334,10 @@ class ModelRegistry:
         except Exception as e:
             logger.error(f"Initial availability check failed: {str(e)}")
 
-        # Start periodic refresh (default 24h)
-        self._refresh_task = asyncio.create_task(
-            self._periodic_refresh(interval_hours=24)
-        )
+        # # Start periodic refresh (default 24h)
+        # self._refresh_task = asyncio.create_task(
+        #     self._periodic_refresh(interval_hours=24)
+        # )
 
     async def refresh_availability(self):
         """Refresh model availability status"""
@@ -349,16 +349,21 @@ class ModelRegistry:
         logger.info(f"Initialized model registry with {len(self._chat_models)} models")
 
         try:
-            (
-                streamable,
-                non_streamable,
-                unavailable,
-            ) = await determine_models_availability(
-                self._config.argo_stream_url,
-                self._config.argo_url,
-                self._config.user,
-                self.available_chat_models,
-            )
+            # (
+            #     streamable,
+            #     non_streamable,
+            #     unavailable,
+            # ) = await determine_models_availability(
+            #     self._config.argo_stream_url,
+            #     self._config.argo_url,
+            #     self._config.user,
+            #     self.available_chat_models,
+            # )
+
+            # assume all of them are available and streamable, for now, disable them on the fly if failed with user query
+            streamable = self.available_chat_models.keys()
+            non_streamable = self.available_chat_models.keys()
+            unavailable = []
 
             self._streamable_models = streamable
             self._non_streamable_models = non_streamable
@@ -391,14 +396,14 @@ class ModelRegistry:
                 self._chat_models = _DEFAULT_CHAT_MODELS
                 logger.warning("Falling back to default model list")
 
-    async def _periodic_refresh(self, interval_hours: float):
-        """Background task for periodic refresh"""
-        while True:
-            await asyncio.sleep(interval_hours * 3600)
-            try:
-                await self.refresh_availability()
-            except Exception as e:
-                logger.error(f"Periodic refresh failed: {str(e)}")
+    # async def _periodic_refresh(self, interval_hours: float):
+    #     """Background task for periodic refresh"""
+    #     while True:
+    #         await asyncio.sleep(interval_hours * 3600)
+    #         try:
+    #             await self.refresh_availability()
+    #         except Exception as e:
+    #             logger.error(f"Periodic refresh failed: {str(e)}")
 
     async def manual_refresh(self):
         """Trigger manual refresh of model data"""
@@ -448,6 +453,26 @@ class ModelRegistry:
             )
 
         return model_data
+
+    def flag_as_non_streamable(self, model_name: str):
+        if model_name in self.streamable_models:
+            self._streamable_models.remove(model_name)
+        if model_name not in self.non_streamable_models:
+            self._non_streamable_models.append(model_name)
+
+    def flag_as_streamable(self, model_name: str):
+        if model_name in self.non_streamable_models:
+            self._non_streamable_models.remove(model_name)
+        if model_name not in self.streamable_models:
+            self._streamable_models.append(model_name)
+
+    def flag_as_unavailable(self, model_name: str):
+        if model_name not in self.unavailable_models:
+            self._unavailable_models.append(model_name)
+        if model_name in self.streamable_models:
+            self._streamable_models.remove(model_name)
+        if model_name in self.non_streamable_models:
+            self._non_streamable_models.remove(model_name)
 
     @property
     def available_chat_models(self):
