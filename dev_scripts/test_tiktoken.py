@@ -1,13 +1,11 @@
 from argoproxy.utils.tokens import get_tiktoken_encoding_model
 
 if __name__ == "__main__":
-    from argoproxy.models import CHAT_MODELS, EMBED_MODELS
+    from argoproxy.models import ModelRegistry
 
-    models = dict()
-    models.update(EMBED_MODELS)
-    models.update(CHAT_MODELS)
+    registry = ModelRegistry()
 
-    for argoname, name in models.items():
-        print("-" * 10, argoname, "-" * 10)
-        print(get_tiktoken_encoding_model(argoname))
-        print(get_tiktoken_encoding_model(name))
+    for model_name, model_id in registry.available_models.items():
+        print("-" * 10, model_name, "-" * 10)
+        print(get_tiktoken_encoding_model(model_name))
+        print(get_tiktoken_encoding_model(model_id))
