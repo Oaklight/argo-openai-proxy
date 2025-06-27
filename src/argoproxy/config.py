@@ -9,6 +9,7 @@ from typing import Any, Optional, Tuple, Union
 
 import yaml  # type: ignore
 from loguru import logger
+from tqdm.asyncio import tqdm_asyncio
 
 from .utils.misc import get_random_port, is_port_available, make_bar
 from .utils.transports import validate_api_async
@@ -119,14 +120,18 @@ class ArgoConfig:
                 failed_urls.append(url)
                 return
             try:
-                await validate_api_async(url, self.user, payload, timeout=5)
+                await validate_api_async(url, self.user, payload, timeout=3, attempts=2)
             except Exception as e:
                 failed_urls.append(url)
 
         async def _main():
-            await asyncio.gather(
-                *[_validate_single_url(url, payload) for url, payload in required_urls]
-            )
+            tasks = [
+                _validate_single_url(url, payload) for url, payload in required_urls
+            ]
+            for fut in tqdm_asyncio.as_completed(
+                tasks, total=len(tasks), desc="Validating URLs"
+            ):
+                await fut
 
         try:
             asyncio.run(_main())
@@ -135,6 +140,10 @@ class ArgoConfig:
             raise
 
         if failed_urls:
+            logger.error("Failed to validate the following URLs: ")
+            for url in failed_urls:
+                logger.error(url)
+
             if not _get_yes_no_input(
                 prompt="Continue despite connectivity issue? [Y/n] ", default_choice="y"
             ):
