@@ -10,7 +10,7 @@ from loguru import logger
 from pydantic import BaseModel
 from tqdm.asyncio import tqdm_asyncio
 
-from .config import ArgoConfig
+from .config import ArgoConfig, _get_yes_no_input_with_timeout
 from .utils.transports import validate_api_async
 
 DEFAULT_TIMEOUT = 30
@@ -253,6 +253,19 @@ def _categorize_results(
             non_streamable.update(aliases)
         elif status is None:
             unavailable.update(aliases)
+
+    if unavailable:
+        logger.warning(f"Unavailable models: {unavailable}")
+        if _get_yes_no_input_with_timeout(
+            "Do you want to keep using them? It might be a temporary issue. [Y/n]",
+            timeout=5,
+        ):
+            non_streamable.update(unavailable)
+            unavailable.clear()
+        else:
+            logger.error(
+                "Proceeding without unavailable models. Subsequent calls to these models will be replaced with argo:gpt-4o"
+            )
 
     return (
         sorted(list(streamable)),

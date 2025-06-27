@@ -17,6 +17,7 @@ async def prepare_app(app):
     app["model_registry"] = ModelRegistry(config=app["config"])
     await app["model_registry"].initialize()
 
+
 # ================= Argo Direct Access =================
 
 
