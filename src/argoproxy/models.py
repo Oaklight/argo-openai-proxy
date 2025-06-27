@@ -191,7 +191,8 @@ def get_upstream_model_list(url: str) -> Dict[str, str]:
 
             return argo_models
     except Exception as e:
-        logger.error(f"Error fetching model list from {url}: {e}")
+        logger.error(f"Error fetching model list from {url}")
+        logger.warning("Using built-in model list.")
         return _DEFAULT_CHAT_MODELS
 
 
@@ -339,7 +340,7 @@ class ModelRegistry:
         #     self._periodic_refresh(interval_hours=24)
         # )
 
-    async def refresh_availability(self):
+    async def refresh_availability(self, real_test: bool = False):
         """Refresh model availability status"""
         if not self._config:
             raise ValueError("Failed to load valid configuration")
@@ -349,21 +350,22 @@ class ModelRegistry:
         logger.info(f"Initialized model registry with {len(self._chat_models)} models")
 
         try:
-            # (
-            #     streamable,
-            #     non_streamable,
-            #     unavailable,
-            # ) = await determine_models_availability(
-            #     self._config.argo_stream_url,
-            #     self._config.argo_url,
-            #     self._config.user,
-            #     self.available_chat_models,
-            # )
-
-            # assume all of them are available and streamable, for now, disable them on the fly if failed with user query
-            streamable = self.available_chat_models.keys()
-            non_streamable = self.available_chat_models.keys()
-            unavailable = []
+            if real_test:
+                (
+                    streamable,
+                    non_streamable,
+                    unavailable,
+                ) = await determine_models_availability(
+                    self._config.argo_stream_url,
+                    self._config.argo_url,
+                    self._config.user,
+                    self.available_chat_models,
+                )
+            else:
+                # assume all of them are available and streamable, for now, disable them on the fly if failed with user query
+                streamable = self.available_chat_models.keys()
+                non_streamable = self.available_chat_models.keys()
+                unavailable = []
 
             self._streamable_models = streamable
             self._non_streamable_models = non_streamable
@@ -408,7 +410,7 @@ class ModelRegistry:
     async def manual_refresh(self):
         """Trigger manual refresh of model data"""
         try:
-            await self.refresh_availability()
+            await self.refresh_availability(real_test=True)
         except Exception as e:
             logger.error(f"Manual refresh failed: {str(e)}")
 
