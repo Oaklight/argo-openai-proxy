@@ -3,16 +3,14 @@ import asyncio
 import fnmatch
 import json
 import urllib.request
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
-from httpx import stream
 from loguru import logger
 from pydantic import BaseModel
 
 from ..config import validate_config
 from ..models import CHAT_MODELS
 from ..utils.transports import validate_api
-from .misc import make_bar
 
 
 class Model(BaseModel):
@@ -89,61 +87,51 @@ async def validate_api_async(stream_url, user, payload, timeout):
     )
 
 
-async def streamable_list_async(
-    stream_url: str, non_stream_url: str, user: str
-) -> Tuple[List[str], List[str]]:
-    """
-    Asynchronously checks which models are streamable.
-    Args:
-        stream_url (str): The streaming URL.
-        non_stream_url (str): The non-streaming URL used as a fallback.
-        user (str): The user identifier.
-    Returns:
-        tuple: (list of streamable model names, list of unavailable model names)
-    """
-    payload = {
-        "model": None,
-        "messages": [{"role": "user", "content": "What are you?"}],
-    }
+async def _check_model_streamability(
+    model_name: str,
+    model_id: str,
+    stream_url: str,
+    non_stream_url: str,
+    user: str,
+    payload: Dict[str, Any],
+    max_retries: int = 2,
+) -> Tuple[str, Optional[bool]]:
+    """Check if a single model is streamable with retry logic."""
+    payload_copy = payload.copy()
+    payload_copy["model"] = model_id
 
-    async def check_model(model_name, model_id, max_retries=2):
-        payload_copy = payload.copy()
-        payload_copy["model"] = model_id
-
-        for attempt in range(max_retries):
-            # Try streaming
+    for attempt in range(max_retries):
+        try:
+            # Try streaming first
+            await validate_api_async(stream_url, user, payload_copy, timeout=15)
+            return (model_name, True)
+        except Exception as e_stream:
+            logger.warning(
+                f"Streaming check failed for {model_name} (attempt {attempt + 1}): {e_stream}"
+            )
             try:
-                await validate_api_async(stream_url, user, payload_copy, timeout=15)
-                return (model_name, True)
-            except Exception as e_stream:
+                # Fallback to non-stream check
+                await validate_api_async(non_stream_url, user, payload_copy, timeout=15)
+                return (model_name, False)
+            except Exception as e_non_stream:
                 logger.warning(
-                    f"Streaming check failed for {model_name} (attempt {attempt + 1}): {e_stream}"
+                    f"Non-stream check failed for {model_name} (attempt {attempt + 1}): {e_non_stream}"
                 )
-                # Try non-stream as fallback
-                try:
-                    await validate_api_async(
-                        non_stream_url, user, payload_copy, timeout=15
-                    )
-                    return (model_name, False)
-                except Exception as e_non_stream:
-                    logger.warning(
-                        f"Non-stream check failed for {model_name} (attempt {attempt + 1}): {e_non_stream}"
-                    )
-                    if attempt < max_retries - 1:
-                        await asyncio.sleep(2**attempt)  # Exponential backoff
-                        continue
-                    logger.error(f"All attempts failed for {model_name}")
-                    return (model_name, None)
+                if attempt < max_retries - 1:
+                    await asyncio.sleep(2**attempt)  # Exponential backoff
+                    continue
+                logger.error(f"All attempts failed for {model_name}")
+                return (model_name, None)
 
-    tasks = [
-        check_model(model_name, model_id)
-        for model_name, model_id in CHAT_MODELS.items()
-    ]
-    results = await asyncio.gather(*tasks)
 
+def _categorize_results(
+    results: List[Tuple[str, Optional[bool]]],
+) -> Tuple[List[str], List[str], List[str]]:
+    """Categorize model check results into streamable/non-streamable/unavailable."""
     streamable = []
     non_streamable = []
     unavailable = []
+
     for model_name, status in results:
         if status is True:
             streamable.append(model_name)
@@ -154,6 +142,33 @@ async def streamable_list_async(
             unavailable.append(model_name)
 
     return streamable, non_streamable, unavailable
+
+
+def determine_models_availability(
+    stream_url: str, non_stream_url: str, user: str
+) -> Tuple[List[str], List[str], List[str]]:
+    """
+    Asynchronously checks which models are streamable.
+    Args/Returns same as before...
+    """
+    payload = {
+        "model": None,
+        "messages": [{"role": "user", "content": "What are you?"}],
+    }
+
+    # Create all checking tasks
+    tasks = [
+        _check_model_streamability(
+            model_name, model_id, stream_url, non_stream_url, user, payload
+        )
+        for model_name, model_id in CHAT_MODELS.items()
+    ]
+
+    # Run all checks concurrently
+    results = asyncio.gather(*tasks)
+
+    # Categorize the results
+    return _categorize_results(results)
 
 
 if __name__ == "__main__":
@@ -177,14 +192,12 @@ if __name__ == "__main__":
     else:
         logger.warning("CHAT_MODELS and model_list are different")
 
-    async def check_models():
-        return await streamable_list_async(
-            config_instance.argo_stream_url,
-            config_instance.argo_url,
-            config_instance.user,
-        )
+    streamable, non_streamable, unavailable = determine_models_availability(
+        config_instance.argo_stream_url,
+        config_instance.argo_url,
+        config_instance.user,
+    )
 
-    streamable, non_streamable, unavailable = asyncio.run(check_models())
     logger.info(f"Streamable models: {streamable}")
     logger.info(f"Non-streamable models: {non_streamable}")
     logger.info(f"Unavailable models: {unavailable}")
