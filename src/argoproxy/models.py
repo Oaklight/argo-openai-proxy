@@ -213,13 +213,15 @@ async def _check_model_streamability(
     payload_copy = payload.copy()
     payload_copy["model"] = model_id
 
+    check_result = (model_id, None)
     for attempt in range(max_retries):
         try:
             # Try streaming first
             await validate_api_async(
                 stream_url, user, payload_copy, timeout=DEFAULT_TIMEOUT
             )
-            return (model_id, True)
+            check_result = (model_id, True)
+            break
         except Exception as e_stream:
             # logger.warning(
             #     f"Streaming check failed for {model_id} (attempt {attempt + 1}): {e_stream}"
@@ -229,7 +231,8 @@ async def _check_model_streamability(
                 await validate_api_async(
                     non_stream_url, user, payload_copy, timeout=DEFAULT_TIMEOUT
                 )
-                return (model_id, False)
+                check_result = (model_id, False)
+                break
             except Exception as e_non_stream:
                 # logger.warning(
                 #     f"Non-stream check failed for {model_id} (attempt {attempt + 1}): {e_non_stream}"
@@ -238,7 +241,10 @@ async def _check_model_streamability(
                     await asyncio.sleep(2**attempt)  # Exponential backoff
                     continue
                 logger.error(f"All attempts failed for model ID: {model_id}")
-                return (model_id, None)
+                check_result = (model_id, None)
+                break
+
+    return check_result
 
 
 def _categorize_results(
@@ -315,7 +321,7 @@ class ModelRegistry:
         self._streamable_models: List[str] = []
         self._non_streamable_models: List[str] = []
         self._unavailable_models: List[str] = []
-        self._last_updated: datetime = None
+        self._last_updated: Optional[datetime] = None
         self._refresh_task = None
         self._config_path = config_path
         self._no_sys_msg_models = NO_SYS_MSG
@@ -325,7 +331,10 @@ class ModelRegistry:
         """Initialize model registry with upstream data"""
 
         # Initial availability check
-        await self.refresh_availability()
+        try:
+            await self.refresh_availability()
+        except Exception as e:
+            logger.error(f"Initial availability check failed: {str(e)}")
 
         # Start periodic refresh (default 24h)
         self._refresh_task = asyncio.create_task(
@@ -335,6 +344,8 @@ class ModelRegistry:
     async def refresh_availability(self):
         """Refresh model availability status"""
         config, self._config_path = load_config(self._config_path)
+        if not config:
+            raise ValueError("Failed to load valid configuration")
 
         # Initial model list fetch
         self._chat_models = get_upstream_model_list(config.argo_model_url)
@@ -394,7 +405,10 @@ class ModelRegistry:
 
     async def manual_refresh(self):
         """Trigger manual refresh of model data"""
-        return await self.refresh_availability()
+        try:
+            await self.refresh_availability()
+        except Exception as e:
+            logger.error(f"Manual refresh failed: {str(e)}")
 
     @property
     def available_chat_models(self):
