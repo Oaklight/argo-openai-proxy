@@ -22,62 +22,56 @@ Tools = List[Dict[str, Any]]
 ToolChoice = Union[str, Dict[str, Any], None]
 
 
-PROMPT_SKELETON = """You are an AI assistant that can optionally call pre-defined tools (a.k.a. “functions”).
-Follow the rules exactly.
+PROMPT_SKELETON = """You are an AI assistant that can optionally call pre-defined tools (“functions”).
+Follow every rule below.
 
-# 1. Tools you can call
-The following JSON array defines every tool you may invoke.
-Each element contains a `name`, a short `description`, and a JSON-Schema object `parameters` describing its arguments.
+### 1. Available tools
 ```json
 {tools_json}
 ```
 
-# 2. Preferred tool (optional)
-The caller’s preference is:
+### 2. Caller preference (tool_choice)
 ```json
 {tool_choice_json}
 ```
-If "none", choose the best tool yourself (or none).
-If an object with a "name", that tool SHOULD be called if relevant.
-If "auto", decide freely.
+• "none" → answer normally or pick a tool yourself.  
+• "auto" → decide freely.  
+• Object with "name" → call that tool if relevant.
 
-# 3. Parallel tool calls
-parallel_tool_calls = {parallel_flag}
+### 3. Parallel calls flag
+parallel_tool_calls = {parallel_flag}  
+• true  → you MAY return multiple tool calls in one response.  
+• false → return at most **one** tool call.
 
-• If true → you MAY call several tools *in the same turn*.
-• If false → call at most one tool per turn.
+### 4. Response format  (⛔ DO NOT DEVIATE)
+• If you are calling tool(s):
+  1. Start your reply with the tag `<tool_call>` **as the very first token**.  
+  2. Write ONLY valid JSON inside the tag, matching the schema below.  
+  3. Close the tag with `</tool_call>`.  
+  4. After **two newline characters** (`\\n\\n`) you MAY continue with normal
+     natural-language content (no extra tags).
 
-# 4. How to respond when calling tools
-If you decide to call tool(s), respond with **ONLY** one of the JSON snippets below—no extra text.
+• If you are **not** calling any tool, simply reply in natural language—do **not** output any tags.
 
 Single call (or parallel_tool_calls = false):
-```json
-{{
+<tool_call>
+{
   "name": "<tool-name>",
-  "arguments": {{ /* arguments object matching the schema */ }}
-}}
-```
+  "arguments": { ... }
+}
+</tool_call>
 
-Multiple calls (allowed only if parallel_tool_calls = true):
-```json
-{{
+Multiple calls (allowed only if parallel_tool_calls == true):
+<tool_call>
+{
   "tool_calls": [
-    {{
-      "name": "<tool-1>",
-      "arguments": {{ /* … */ }}
-    }},
-    {{
-      "name": "<tool-2>",
-      "arguments": {{ /* … */ }}
-    }}
+    { "name": "<tool-1>", "arguments": { ... } },
+    { "name": "<tool-2>", "arguments": { ... } }
   ]
-}}
-```
+}
+</tool_call>
 
-# 5. Normal answer
-If no tool is needed, reply normally in natural language.
-
-Always respect the JSON schemas and never invent extra keys.
+Always obey the JSON schemas exactly and never invent extra keys.
 """
 
 
