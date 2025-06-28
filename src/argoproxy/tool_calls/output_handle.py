@@ -1,6 +1,14 @@
-import json
-from typing import List, Tuple, Optional, AsyncIterator
 import asyncio
+import json
+import secrets
+import string
+from typing import Any, AsyncIterator, Dict, List, Literal, Optional, Tuple
+
+from ..types.function_call import (
+    ChatCompletionMessageToolCall,
+    Function,
+    ResponseFunctionToolCall,
+)
 
 
 class ToolIterceptor:
@@ -144,7 +152,79 @@ class ToolIterceptor:
             yield None, self.buffer
 
 
-# Assuming ToolIterceptor is imported or defined above
+def generate_id(
+    *,
+    mode: Literal["chat_completion", "response"] = "chat_completion",
+) -> str:
+    """
+    Return a random identifier.
+
+    Parameters
+    ----------
+    mode : {'chat_completion', 'response'}
+        'chat_completion' →  call_<22-char base62 string>   (default)
+        'response'        →  fc_<48-char hex string>
+    chat_len : int
+        Length of the suffix for the chat-completion variant.
+
+    Examples
+    --------
+    >>> generate_id()
+    'call_b9krJaIcuBM4lej3IyI5heVc'
+
+    >>> generate_id(mode='response')
+    'fc_68600a8868248199a436492a47a75e440766032408f75a09'
+    """
+    ALPHANUM = string.ascii_letters + string.digits
+    if mode == "chat_completion":
+        suffix = "".join(secrets.choice(ALPHANUM) for _ in range(22))
+        return f"call_{suffix}"
+    elif mode == "response":
+        # 24 bytes → 48 hex chars (matches your example)
+        return f"fc_{secrets.token_hex(24)}"
+    else:
+        raise ValueError(f"Unknown mode: {mode!r}")
+
+
+def convert_tool_calls_to_openai_format(
+    tool_calls: List[Dict[str, Any]],
+    api_format: Literal["chat_completion", "response"] = "chat_completion",
+) -> List[Dict[str, Any]]:
+    """
+    Convert parsed tool calls to OpenAI API format.
+
+    Parameters
+    ----------
+    tool_calls : list
+        List of parsed tool calls
+
+    Returns
+    -------
+    list
+        List of tool calls in OpenAI API format
+    """
+    openai_tool_calls = []
+
+    for call in tool_calls:
+        arguments = json.dumps(call.get("arguments", ""))
+        name = call.get("name", "")
+        if api_format == "chat_completion":
+            tool_call_obj = ChatCompletionMessageToolCall(
+                id=generate_id(mode="chat_completion"),
+                function=Function(name=name, arguments=arguments),
+            )
+        else:
+            pass
+            tool_call_obj = ResponseFunctionToolCall(
+                arguments=arguments,
+                call_id=generate_id(mode="chat_completion"),
+                name=name,
+                id=generate_id(mode="response"),
+                status="completed",
+            )
+        openai_tool_calls.append(tool_call_obj.model_dump())
+
+    return openai_tool_calls
 
 
 def get_test_cases():
