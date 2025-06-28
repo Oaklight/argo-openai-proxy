@@ -55,20 +55,20 @@ parallel_tool_calls = {parallel_flag}
 
 Single call (or parallel_tool_calls = false):
 <tool_call>
-{
+{{
   "name": "<tool-name>",
-  "arguments": { ... }
-}
+  "arguments": {{ ... }}
+}}
 </tool_call>
 
 Multiple calls (allowed only if parallel_tool_calls == true):
 <tool_call>
-{
+{{
   "tool_calls": [
-    { "name": "<tool-1>", "arguments": { ... } },
-    { "name": "<tool-2>", "arguments": { ... } }
+    {{ "name": "<tool-1>", "arguments": {{ ... }} }},
+    {{ "name": "<tool-2>", "arguments": {{ ... }} }}
   ]
-}
+}}
 </tool_call>
 
 Always obey the JSON schemas exactly and never invent extra keys.
