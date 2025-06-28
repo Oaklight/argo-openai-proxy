@@ -1,6 +1,7 @@
-from typing import Dict, Literal, Optional
-
+from typing import Dict, Literal, Optional, TypeAlias, TypedDict, Union
+from typing_extensions import Required
 from pydantic import BaseModel
+
 
 # for chat completion api only
 class Function(BaseModel):
@@ -25,6 +26,23 @@ class ChatCompletionMessageToolCall(BaseModel):
 
     type: Literal["function"] = "function"
     """The type of the tool. Currently, only `function` is supported."""
+
+
+class ToolChoiceFunction(TypedDict, total=False):
+    name: Required[str]
+    """The name of the function to call."""
+
+
+class ChatCompletionNamedToolChoiceParam(TypedDict, total=False):
+    function: Required[ToolChoiceFunction]
+
+    type: Required[Literal["function"]] = "function"
+    """The type of the tool. Currently, only `function` is supported."""
+
+
+ChatCompletionToolChoiceOptionParam: TypeAlias = Union[
+    Literal["none", "auto", "required"], ChatCompletionNamedToolChoiceParam
+]
 
 
 # for responses api only
