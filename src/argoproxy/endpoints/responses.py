@@ -3,7 +3,7 @@ import json
 import time
 import uuid
 from http import HTTPStatus
-from typing import Any, Dict, Union
+from typing import Any, Dict, List, Optional, Union
 
 import aiohttp
 from aiohttp import web
@@ -11,6 +11,7 @@ from loguru import logger
 
 from ..config import ArgoConfig
 from ..models import ModelRegistry
+from ..tool_calls.output_handle import convert_tool_calls_to_openai_format
 from ..types import (
     Response,
     ResponseCompletedEvent,
@@ -55,6 +56,7 @@ def transform_non_streaming_response(
     model_name: str,
     create_timestamp: int,
     prompt_tokens: int,
+    tool_calls: Optional[List[Dict[str, Any]]] = None,
     **kwargs,
 ) -> Dict[str, Any]:
     """
@@ -71,6 +73,9 @@ def transform_non_streaming_response(
     """
     try:
         completion_tokens = count_tokens(content, model_name)
+        if tool_calls:
+            tool_tokens = count_tokens(json.dumps(tool_calls), model_name)
+            completion_tokens += tool_tokens
         total_tokens = prompt_tokens + completion_tokens
         usage = ResponseUsage(
             input_tokens=prompt_tokens,
@@ -78,22 +83,28 @@ def transform_non_streaming_response(
             total_tokens=total_tokens,
         )
 
-        id = str(uuid.uuid4().hex)
+        output = []
+        if tool_calls:
+            output.extend(
+                convert_tool_calls_to_openai_format(tool_calls, api_format="response")
+            )
+        output.append(
+            ResponseOutputMessage(
+                id=f"msg_{uuid.uuid4().hex}",
+                status="completed",
+                content=[
+                    ResponseOutputText(
+                        text=content,
+                    )
+                ],
+            )
+        )
+
         openai_response = Response(
-            id=f"resp_{id}",
+            id=f"resp_{uuid.uuid4().hex}",
             created_at=create_timestamp,
             model=model_name,
-            output=[
-                ResponseOutputMessage(
-                    id=f"msg_{id}",
-                    status="completed",
-                    content=[
-                        ResponseOutputText(
-                            text=content,
-                        )
-                    ],
-                )
-            ],
+            output=output,
             status="completed",
             usage=usage,
         )
