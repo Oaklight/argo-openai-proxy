@@ -35,7 +35,8 @@ DEFAULT_MODEL = "argo:gpt-4o"
 
 
 def make_it_openai_chat_completions_compat(
-    custom_response: Any,
+    content: str,
+    *,
     model_name: str,
     create_timestamp: int,
     prompt_tokens: int,
@@ -46,7 +47,7 @@ def make_it_openai_chat_completions_compat(
     Transforms the custom API response into a format compatible with OpenAI's API.
 
     Args:
-        custom_response: The response obtained from the custom API.
+        content: The response obtained from the custom API.
         model_name: The name of the model that generated the completion.
         create_timestamp: The creation timestamp of the completion.
         prompt_tokens: The number of tokens in the input prompt.
@@ -57,20 +58,11 @@ def make_it_openai_chat_completions_compat(
         A dictionary representing the OpenAI-compatible JSON response.
     """
     try:
-        # Parse the custom response
-        if isinstance(custom_response, str):
-            custom_response_dict = json.loads(custom_response)
-        else:
-            custom_response_dict = custom_response
-
-        # Extract the response text
-        response_text = custom_response_dict.get("response", "")
-
         usage = None
         if not is_streaming:
             # only count usage if not stream
             # Calculate token counts (simplified example, actual tokenization may differ)
-            completion_tokens = count_tokens(response_text, model_name)
+            completion_tokens = count_tokens(content, model_name)
             total_tokens = prompt_tokens + completion_tokens
             usage = CompletionUsage(
                 prompt_tokens=prompt_tokens,
@@ -87,7 +79,7 @@ def make_it_openai_chat_completions_compat(
                     StreamChoice(
                         index=0,
                         delta=ChoiceDelta(
-                            content=response_text,
+                            content=content,
                         ),
                         finish_reason=finish_reason or "stop",
                     )
@@ -102,7 +94,7 @@ def make_it_openai_chat_completions_compat(
                     NonStreamChoice(
                         index=0,
                         message=ChatCompletionMessage(
-                            content=response_text,
+                            content=content,
                         ),
                         finish_reason=finish_reason or "stop",
                     )
@@ -197,7 +189,7 @@ async def send_non_streaming_request(
             # Calculate prompt tokens using the unified function
             prompt_tokens = calculate_prompt_tokens(data, data["model"])
             openai_response = openai_compat_fn(
-                json.dumps(response_data),
+                content,
                 model_name=data.get("model"),
                 create_timestamp=int(time.time()),
                 prompt_tokens=prompt_tokens,
@@ -246,7 +238,7 @@ async def send_streaming_request(
         if convert_to_openai:
             # Convert the chunk to OpenAI-compatible JSON
             chunk_json = openai_compat_fn(
-                json.dumps({"response": chunk.decode()}),
+                chunk.decode(),
                 model_name=data["model"],
                 create_timestamp=created_timestamp,
                 prompt_tokens=prompt_tokens,
