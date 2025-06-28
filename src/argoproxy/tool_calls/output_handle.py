@@ -2,7 +2,9 @@ import asyncio
 import json
 import secrets
 import string
-from typing import Any, AsyncIterator, Dict, List, Literal, Optional, Tuple
+from typing import Any, AsyncIterator, Dict, List, Literal, Optional, Tuple, Union
+
+from loguru import logger
 
 from ..types.function_call import (
     ChatCompletionMessageToolCall,
@@ -21,6 +23,8 @@ class ToolIterceptor:
         """Non-stream mode: Extract all tool_call JSONs and return remaining text."""
         tool_calls = []
         remaining_text = []
+
+        logger.warning(f"Processing text: {text}")
 
         # Reset state for non-stream processing
         self.buffer = text
@@ -193,7 +197,7 @@ def generate_id(
 def convert_tool_calls_to_openai_format(
     tool_calls: List[Dict[str, Any]],
     api_format: Literal["chat_completion", "response"] = "chat_completion",
-) -> List[Dict[str, Any]]:
+) -> List[Union[ChatCompletionMessageToolCall, ResponseFunctionToolCall]]:
     """
     Convert parsed tool calls to OpenAI API format.
 
@@ -205,7 +209,7 @@ def convert_tool_calls_to_openai_format(
     Returns
     -------
     list
-        List of tool calls in OpenAI API format
+        List of tool calls in OpenAI function call object type
     """
     openai_tool_calls = []
 
@@ -218,7 +222,6 @@ def convert_tool_calls_to_openai_format(
                 function=Function(name=name, arguments=arguments),
             )
         else:
-            pass
             tool_call_obj = ResponseFunctionToolCall(
                 arguments=arguments,
                 call_id=generate_id(mode="chat_completion"),
@@ -226,7 +229,7 @@ def convert_tool_calls_to_openai_format(
                 id=generate_id(mode="response"),
                 status="completed",
             )
-        openai_tool_calls.append(tool_call_obj.model_dump())
+        openai_tool_calls.append(tool_call_obj)
 
     return openai_tool_calls
 
