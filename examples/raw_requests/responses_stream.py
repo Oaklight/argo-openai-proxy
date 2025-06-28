@@ -8,7 +8,7 @@ load_dotenv()  # Load environment variables from .env file if n
 BASE_URL = os.getenv("BASE_URL", "http://localhost:44498")
 MODEL = os.getenv("MODEL", "argo:gpt-4o")
 
-CHAT_ENDPOINT = f"{BASE_URL}/v1/chat/completions"
+CHAT_ENDPOINT = f"{BASE_URL}/v1/responses"
 
 
 def stream_chat_test():
@@ -16,7 +16,7 @@ def stream_chat_test():
 
     payload = {
         "model": MODEL,
-        "messages": [
+        "input": [
             {
                 "role": "user",
                 "content": "Tell me something interesting about quantum mechanics.",

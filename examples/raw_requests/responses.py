@@ -8,7 +8,7 @@ load_dotenv()
 BASE_URL = os.getenv("BASE_URL", "http://localhost:44498")
 MODEL = os.getenv("MODEL", "argo:gpt-4o")
 
-RESPONSES_ENDPOINT = f"{BASE_URL}/v1/completions"
+RESPONSES_ENDPOINT = f"{BASE_URL}/v1/responses"
 
 
 def make_response_request():
@@ -16,7 +16,7 @@ def make_response_request():
 
     payload = {
         "model": MODEL,
-        "messages": [
+        "input": [
             {
                 "role": "user",
                 "content": "Tell me something interesting about quantum mechanics.",
