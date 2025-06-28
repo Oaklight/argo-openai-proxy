@@ -11,6 +11,7 @@ from loguru import logger
 
 from ..config import ArgoConfig
 from ..models import ModelRegistry
+from ..tool_calls.input_handle import handle_tools
 from ..types import (
     ChatCompletion,
     ChatCompletionChunk,
@@ -28,7 +29,6 @@ from ..utils.input_handle import (
 )
 from ..utils.misc import make_bar
 from ..utils.tokens import calculate_prompt_tokens, count_tokens
-from ..utils.tool_call import handle_tools
 from ..utils.transports import send_off_sse
 
 DEFAULT_MODEL = "argo:gpt-4o"
