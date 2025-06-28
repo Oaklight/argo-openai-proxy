@@ -8,6 +8,7 @@ load_dotenv()
 MODEL = os.getenv("MODEL", "argo:gpt-4o")
 BASE_URL = os.getenv("BASE_URL", "http://localhost:44498")
 API_KEY = os.getenv("API_KEY", "whatever+random")
+STREAM = os.getenv("STREAM", "false").lower() == "true"
 
 client = openai.OpenAI(
     api_key=API_KEY,
@@ -49,10 +50,16 @@ def stream_function_calling_add_test():
             instructions="Show your reasoning step by step.",
             input=messages,
             tools=tools,
-            tool_choice="auto",
+            tool_choice={"type": "function", "name": "add"},
+            stream=STREAM,
         )
         print("Streaming Response:")
-        print(response)
+        # check if response is iterable
+        if STREAM:
+            for event in response:
+                print(event)
+        else:
+            print(response)
     except Exception as e:
         print("\nError:", e)
 
