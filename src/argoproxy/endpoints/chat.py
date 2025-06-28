@@ -24,7 +24,7 @@ from ..types.chat_completion import FINISH_REASONS
 from ..utils.input_handle import (
     handle_multiple_entries_prompt,
     handle_no_sys_msg,
-    # handle_option_2_input,
+    handle_option_2_input,
 )
 from ..utils.misc import make_bar
 from ..utils.tokens import calculate_prompt_tokens, count_tokens
@@ -143,10 +143,10 @@ def prepare_chat_request_data(
     if "prompt" in data and not isinstance(data["prompt"], list):
         data["prompt"] = [data["prompt"]]
 
-    # # Apply transformations based on model type
-    # if data["model"] in model_registry.option_2_input_models:
-    #     # Transform data for models requiring `system` and `prompt` structure only
-    #     data = handle_option_2_input(data)
+    # Apply transformations based on model type
+    if data["model"] in model_registry.option_2_input_models:
+        # Transform data for models requiring `system` and `prompt` structure only
+        data = handle_option_2_input(data)
 
     # flatten the list of strings into a single string in case of multiple prompts
     if isinstance(data.get("prompt"), list):
