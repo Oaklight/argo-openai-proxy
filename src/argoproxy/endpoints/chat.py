@@ -69,6 +69,9 @@ def make_it_openai_chat_completions_compat(
             # only count usage if not stream
             # Calculate token counts (simplified example, actual tokenization may differ)
             completion_tokens = count_tokens(content, model_name)
+            if tool_calls:
+                tool_tokens = count_tokens(json.dumps(tool_calls), model_name)
+                completion_tokens += tool_tokens
             total_tokens = prompt_tokens + completion_tokens
             usage = CompletionUsage(
                 prompt_tokens=prompt_tokens,
