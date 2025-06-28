@@ -1,0 +1,255 @@
+ResponseCreatedEvent(
+    response=Response(
+        id="resp_686070f2ff6c819abf62bc408d483fa10e361c725b3711c0",
+        created_at=1751150835.0,
+        error=None,
+        incomplete_details=None,
+        instructions="Show your reasoning step by step.",
+        metadata={},
+        model="gpt-4.1-mini-2025-04-14",
+        object="response",
+        output=[],
+        parallel_tool_calls=True,
+        temperature=1.0,
+        tool_choice=ToolChoiceFunction(name="add", type="function"),
+        tools=[
+            FunctionTool(
+                name="add",
+                parameters={
+                    "properties": {
+                        "a": {"description": "First number", "type": "number"},
+                        "b": {"description": "Second number", "type": "number"},
+                    },
+                    "required": ["a", "b"],
+                    "type": "object",
+                },
+                strict=False,
+                type="function",
+                description="Add two numbers together.",
+            )
+        ],
+        top_p=1.0,
+        background=False,
+        max_output_tokens=None,
+        previous_response_id=None,
+        reasoning=Reasoning(effort=None, generate_summary=None, summary=None),
+        service_tier="auto",
+        status="in_progress",
+        text=ResponseTextConfig(format=ResponseFormatText(type="text")),
+        truncation="disabled",
+        usage=None,
+        user=None,
+        max_tool_calls=None,
+        store=True,
+        top_logprobs=0,
+    ),
+    sequence_number=0,
+    type="response.created",
+)
+ResponseInProgressEvent(
+    response=Response(
+        id="resp_686070f2ff6c819abf62bc408d483fa10e361c725b3711c0",
+        created_at=1751150835.0,
+        error=None,
+        incomplete_details=None,
+        instructions="Show your reasoning step by step.",
+        metadata={},
+        model="gpt-4.1-mini-2025-04-14",
+        object="response",
+        output=[],
+        parallel_tool_calls=True,
+        temperature=1.0,
+        tool_choice=ToolChoiceFunction(name="add", type="function"),
+        tools=[
+            FunctionTool(
+                name="add",
+                parameters={
+                    "properties": {
+                        "a": {"description": "First number", "type": "number"},
+                        "b": {"description": "Second number", "type": "number"},
+                    },
+                    "required": ["a", "b"],
+                    "type": "object",
+                },
+                strict=False,
+                type="function",
+                description="Add two numbers together.",
+            )
+        ],
+        top_p=1.0,
+        background=False,
+        max_output_tokens=None,
+        previous_response_id=None,
+        reasoning=Reasoning(effort=None, generate_summary=None, summary=None),
+        service_tier="auto",
+        status="in_progress",
+        text=ResponseTextConfig(format=ResponseFormatText(type="text")),
+        truncation="disabled",
+        usage=None,
+        user=None,
+        max_tool_calls=None,
+        store=True,
+        top_logprobs=0,
+    ),
+    sequence_number=1,
+    type="response.in_progress",
+)
+ResponseOutputItemAddedEvent(
+    item=ResponseFunctionToolCall(
+        arguments="",
+        call_id="call_mEHgeWxaTj7BdaVyIdnjkQ0J",
+        name="add",
+        type="function_call",
+        id="fc_686070f363c8819aa5c745c74762fbe90e361c725b3711c0",
+        status="in_progress",
+    ),
+    output_index=0,
+    sequence_number=2,
+    type="response.output_item.added",
+)
+ResponseFunctionCallArgumentsDeltaEvent(
+    delta='{"',
+    item_id="fc_686070f363c8819aa5c745c74762fbe90e361c725b3711c0",
+    output_index=0,
+    sequence_number=3,
+    type="response.function_call_arguments.delta",
+)
+ResponseFunctionCallArgumentsDeltaEvent(
+    delta="a",
+    item_id="fc_686070f363c8819aa5c745c74762fbe90e361c725b3711c0",
+    output_index=0,
+    sequence_number=4,
+    type="response.function_call_arguments.delta",
+)
+ResponseFunctionCallArgumentsDeltaEvent(
+    delta='":',
+    item_id="fc_686070f363c8819aa5c745c74762fbe90e361c725b3711c0",
+    output_index=0,
+    sequence_number=5,
+    type="response.function_call_arguments.delta",
+)
+ResponseFunctionCallArgumentsDeltaEvent(
+    delta="15",
+    item_id="fc_686070f363c8819aa5c745c74762fbe90e361c725b3711c0",
+    output_index=0,
+    sequence_number=6,
+    type="response.function_call_arguments.delta",
+)
+ResponseFunctionCallArgumentsDeltaEvent(
+    delta=',"',
+    item_id="fc_686070f363c8819aa5c745c74762fbe90e361c725b3711c0",
+    output_index=0,
+    sequence_number=7,
+    type="response.function_call_arguments.delta",
+)
+ResponseFunctionCallArgumentsDeltaEvent(
+    delta="b",
+    item_id="fc_686070f363c8819aa5c745c74762fbe90e361c725b3711c0",
+    output_index=0,
+    sequence_number=8,
+    type="response.function_call_arguments.delta",
+)
+ResponseFunctionCallArgumentsDeltaEvent(
+    delta='":',
+    item_id="fc_686070f363c8819aa5c745c74762fbe90e361c725b3711c0",
+    output_index=0,
+    sequence_number=9,
+    type="response.function_call_arguments.delta",
+)
+ResponseFunctionCallArgumentsDeltaEvent(
+    delta="27",
+    item_id="fc_686070f363c8819aa5c745c74762fbe90e361c725b3711c0",
+    output_index=0,
+    sequence_number=10,
+    type="response.function_call_arguments.delta",
+)
+ResponseFunctionCallArgumentsDeltaEvent(
+    delta="}",
+    item_id="fc_686070f363c8819aa5c745c74762fbe90e361c725b3711c0",
+    output_index=0,
+    sequence_number=11,
+    type="response.function_call_arguments.delta",
+)
+ResponseFunctionCallArgumentsDoneEvent(
+    arguments='{"a":15,"b":27}',
+    item_id="fc_686070f363c8819aa5c745c74762fbe90e361c725b3711c0",
+    output_index=0,
+    sequence_number=12,
+    type="response.function_call_arguments.done",
+)
+ResponseOutputItemDoneEvent(
+    item=ResponseFunctionToolCall(
+        arguments='{"a":15,"b":27}',
+        call_id="call_mEHgeWxaTj7BdaVyIdnjkQ0J",
+        name="add",
+        type="function_call",
+        id="fc_686070f363c8819aa5c745c74762fbe90e361c725b3711c0",
+        status="completed",
+    ),
+    output_index=0,
+    sequence_number=13,
+    type="response.output_item.done",
+)
+ResponseCompletedEvent(
+    response=Response(
+        id="resp_686070f2ff6c819abf62bc408d483fa10e361c725b3711c0",
+        created_at=1751150835.0,
+        error=None,
+        incomplete_details=None,
+        instructions="Show your reasoning step by step.",
+        metadata={},
+        model="gpt-4.1-mini-2025-04-14",
+        object="response",
+        output=[
+            ResponseFunctionToolCall(
+                arguments='{"a":15,"b":27}',
+                call_id="call_mEHgeWxaTj7BdaVyIdnjkQ0J",
+                name="add",
+                type="function_call",
+                id="fc_686070f363c8819aa5c745c74762fbe90e361c725b3711c0",
+                status="completed",
+            )
+        ],
+        parallel_tool_calls=True,
+        temperature=1.0,
+        tool_choice=ToolChoiceFunction(name="add", type="function"),
+        tools=[
+            FunctionTool(
+                name="add",
+                parameters={
+                    "properties": {
+                        "a": {"description": "First number", "type": "number"},
+                        "b": {"description": "Second number", "type": "number"},
+                    },
+                    "required": ["a", "b"],
+                    "type": "object",
+                },
+                strict=False,
+                type="function",
+                description="Add two numbers together.",
+            )
+        ],
+        top_p=1.0,
+        background=False,
+        max_output_tokens=None,
+        previous_response_id=None,
+        reasoning=Reasoning(effort=None, generate_summary=None, summary=None),
+        service_tier="default",
+        status="completed",
+        text=ResponseTextConfig(format=ResponseFormatText(type="text")),
+        truncation="disabled",
+        usage=ResponseUsage(
+            input_tokens=84,
+            input_tokens_details=InputTokensDetails(cached_tokens=0),
+            output_tokens=10,
+            output_tokens_details=OutputTokensDetails(reasoning_tokens=0),
+            total_tokens=94,
+        ),
+        user=None,
+        max_tool_calls=None,
+        store=True,
+        top_logprobs=0,
+    ),
+    sequence_number=14,
+    type="response.completed",
+)
