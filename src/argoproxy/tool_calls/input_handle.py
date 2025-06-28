@@ -14,10 +14,9 @@ Usage
 """
 
 import json
-import re
 import secrets
 import string
-from typing import Any, Dict, List, Literal, Optional, Tuple, Union
+from typing import Any, Dict, List, Literal, Union
 
 from ..types.function_call import (
     ChatCompletionMessageToolCall,
@@ -356,4 +355,3 @@ if __name__ == "__main__":  # pragma: no cover
     # --- 5. Demonstrate tool call response parsing ---------------------------
     print("\n" + "=" * 50 + "\n")
     print("=== Demonstrate Tool Call Response Parsing ===")
-
