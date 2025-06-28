@@ -3,7 +3,7 @@ import json
 import time
 import uuid
 from http import HTTPStatus
-from typing import Any, Callable, Dict, Optional, Union
+from typing import Any, Callable, Dict, List, Optional, Union
 
 import aiohttp
 from aiohttp import web
@@ -12,6 +12,10 @@ from loguru import logger
 from ..config import ArgoConfig
 from ..models import ModelRegistry
 from ..tool_calls.input_handle import handle_tools
+from ..tool_calls.output_handle import (
+    ToolIterceptor,
+    convert_tool_calls_to_openai_format,
+)
 from ..types import (
     ChatCompletion,
     ChatCompletionChunk,
@@ -41,7 +45,8 @@ def make_it_openai_chat_completions_compat(
     create_timestamp: int,
     prompt_tokens: int,
     is_streaming: bool = False,
-    finish_reason: Optional[FINISH_REASONS] = None,
+    finish_reason: FINISH_REASONS = "stop",
+    tool_calls: Optional[List[Dict[str, Any]]] = None,
 ) -> Dict[str, Any]:
     """
     Transforms the custom API response into a format compatible with OpenAI's API.
@@ -53,6 +58,7 @@ def make_it_openai_chat_completions_compat(
         prompt_tokens: The number of tokens in the input prompt.
         is_streaming: Boolean indicating if the response is streaming.
         finish_reason: The reason for response completion, e.g., "stop".
+        tool_calls: A list of tool calls received from custom API.
 
     Returns:
         A dictionary representing the OpenAI-compatible JSON response.
@@ -81,11 +87,17 @@ def make_it_openai_chat_completions_compat(
                         delta=ChoiceDelta(
                             content=content,
                         ),
-                        finish_reason=finish_reason or "stop",
+                        finish_reason=finish_reason,
                     )
                 ],
             )
         else:
+            tool_calls_obj = None
+            if tool_calls:
+                tool_calls_obj = convert_tool_calls_to_openai_format(
+                    tool_calls, api_format="chat_completion"
+                )
+
             openai_response = ChatCompletion(
                 id=str(uuid.uuid4().hex),
                 created=create_timestamp,
@@ -95,8 +107,9 @@ def make_it_openai_chat_completions_compat(
                         index=0,
                         message=ChatCompletionMessage(
                             content=content,
+                            tool_calls=tool_calls_obj,
                         ),
-                        finish_reason=finish_reason or "stop",
+                        finish_reason=finish_reason,
                     )
                 ],
                 usage=usage,
@@ -188,11 +201,18 @@ async def send_non_streaming_request(
         if convert_to_openai:
             # Calculate prompt tokens using the unified function
             prompt_tokens = calculate_prompt_tokens(data, data["model"])
+            content = response_data["response"]
+
+            cs = ToolIterceptor()
+            tool_calls, clean_text = cs.process(content)
+            finish_reason = "tool_calls" if tool_calls else "stop"
             openai_response = openai_compat_fn(
-                content,
+                clean_text,
                 model_name=data.get("model"),
                 create_timestamp=int(time.time()),
                 prompt_tokens=prompt_tokens,
+                finish_reason=finish_reason,
+                tool_calls=tool_calls,
             )
             return web.json_response(
                 openai_response,
