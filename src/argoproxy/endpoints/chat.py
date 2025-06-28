@@ -38,7 +38,7 @@ from ..utils.transports import send_off_sse
 DEFAULT_MODEL = "argo:gpt-4o"
 
 
-def make_it_openai_chat_completions_compat(
+def transform_chat_completions_compat(
     content: str,
     *,
     model_name: str,
@@ -47,6 +47,7 @@ def make_it_openai_chat_completions_compat(
     is_streaming: bool = False,
     finish_reason: FINISH_REASONS = "stop",
     tool_calls: Optional[List[Dict[str, Any]]] = None,
+    **kwargs,
 ) -> Dict[str, Any]:
     """
     Transforms the custom API response into a format compatible with OpenAI's API.
@@ -180,9 +181,7 @@ async def send_non_streaming_request(
     api_url: str,
     data: Dict[str, Any],
     convert_to_openai: bool = False,
-    openai_compat_fn: Callable[
-        ..., Dict[str, Any]
-    ] = make_it_openai_chat_completions_compat,
+    openai_compat_fn: Callable[..., Dict[str, Any]] = transform_chat_completions_compat,
 ) -> web.Response:
     """Sends a non-streaming request to an API and processes the response.
 
@@ -237,9 +236,7 @@ async def send_streaming_request(
     request: web.Request,
     convert_to_openai: bool = False,
     *,
-    openai_compat_fn: Callable[
-        ..., Dict[str, Any]
-    ] = make_it_openai_chat_completions_compat,
+    openai_compat_fn: Callable[..., Dict[str, Any]] = transform_chat_completions_compat,
     fake_stream: bool = False,
 ) -> web.StreamResponse:
     """Sends a streaming request to an API and streams the response to the client.

@@ -22,7 +22,7 @@ from .chat import (
 DEFAULT_STREAM = False
 
 
-def make_it_openai_completions_compat(
+def transform_completions_compat(
     content: str,
     *,
     model_name: str,
@@ -30,6 +30,7 @@ def make_it_openai_completions_compat(
     prompt_tokens: int,
     is_streaming: bool = False,
     finish_reason: Optional[FINISH_REASONS] = None,
+    **kwargs,  # in case of receiving tools, which is not handled in this endpoint
 ) -> Dict[str, Any]:
     """Converts a custom API response to an OpenAI-compatible completion API response.
 
@@ -124,7 +125,7 @@ async def proxy_request(
                     data,
                     request,
                     convert_to_openai=True,
-                    openai_compat_fn=make_it_openai_completions_compat,
+                    openai_compat_fn=transform_completions_compat,
                     fake_stream=True,
                 )
             else:
@@ -133,7 +134,7 @@ async def proxy_request(
                     config.argo_url,
                     data,
                     convert_to_openai=True,
-                    openai_compat_fn=make_it_openai_completions_compat,
+                    openai_compat_fn=transform_completions_compat,
                 )
 
     except ValueError as err:
