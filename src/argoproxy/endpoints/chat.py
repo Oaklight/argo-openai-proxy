@@ -28,6 +28,7 @@ from ..utils.input_handle import (
 )
 from ..utils.misc import make_bar
 from ..utils.tokens import calculate_prompt_tokens, count_tokens
+from ..utils.tool_call import handle_tools
 from ..utils.transports import send_off_sse
 
 DEFAULT_MODEL = "argo:gpt-4o"
@@ -142,6 +143,8 @@ def prepare_chat_request_data(
     # Convert prompt to list if necessary
     if "prompt" in data and not isinstance(data["prompt"], list):
         data["prompt"] = [data["prompt"]]
+
+    data = handle_tools(data)  # convert tools related fields to a single system prompt
 
     # Apply transformations based on model type
     if data["model"] in model_registry.option_2_input_models:
