@@ -50,7 +50,8 @@ INCOMPATIBLE_INPUT_FIELDS = {
 
 
 def transform_non_streaming_response(
-    custom_response: Any,
+    content: str,
+    *,
     model_name: str,
     create_timestamp: int,
     prompt_tokens: int,
@@ -60,7 +61,7 @@ def transform_non_streaming_response(
     Transforms a non-streaming custom API response into a format compatible with OpenAI's API.
 
     Args:
-        custom_response: The response obtained from the custom API.
+        content: The response obtained from the custom API.
         model_name: The name of the model that generated the completion.
         create_timestamp: The creation timestamp of the completion.
         prompt_tokens: The number of tokens in the input prompt.
@@ -69,13 +70,7 @@ def transform_non_streaming_response(
         A dictionary representing the OpenAI-compatible JSON response.
     """
     try:
-        if isinstance(custom_response, str):
-            custom_response_dict = json.loads(custom_response)
-        else:
-            custom_response_dict = custom_response
-
-        response_text = custom_response_dict.get("response", "")
-        completion_tokens = count_tokens(response_text, model_name)
+        completion_tokens = count_tokens(content, model_name)
         total_tokens = prompt_tokens + completion_tokens
         usage = ResponseUsage(
             input_tokens=prompt_tokens,
@@ -94,7 +89,7 @@ def transform_non_streaming_response(
                     status="completed",
                     content=[
                         ResponseOutputText(
-                            text=response_text,
+                            text=content,
                         )
                     ],
                 )
