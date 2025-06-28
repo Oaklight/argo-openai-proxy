@@ -198,6 +198,40 @@ def handle_tools(data: Dict[str, Any]) -> Dict[str, Any]:
     return data
 
 
+def generate_id(
+    mode: Literal["chat_completion", "response"] = "chat_completion",
+    chat_len: int = 22,
+) -> str:
+    """
+    Return a random identifier.
+
+    Parameters
+    ----------
+    mode : {'chat_completion', 'response'}
+        'chat_completion' →  call_<22-char base62 string>   (default)
+        'response'        →  fc_<48-char hex string>
+    chat_len : int
+        Length of the suffix for the chat-completion variant.
+
+    Examples
+    --------
+    >>> generate_id()
+    'call_b9krJaIcuBM4lej3IyI5heVc'
+
+    >>> generate_id(mode='response')
+    'fc_68600a8868248199a436492a47a75e440766032408f75a09'
+    """
+    ALPHANUM = string.ascii_letters + string.digits
+    if mode == "chat_completion":
+        suffix = "".join(secrets.choice(ALPHANUM) for _ in range(chat_len))
+        return f"call_{suffix}"
+    elif mode == "response":
+        # 24 bytes → 48 hex chars (matches your example)
+        return f"fc_{secrets.token_hex(24)}"
+    else:
+        raise ValueError(f"Unknown mode: {mode!r}")
+
+
 # ---------------------------------------------------------------------------#
 # Example usage
 # ---------------------------------------------------------------------------#
