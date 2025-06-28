@@ -1,8 +1,248 @@
+# o3-mini
+Response(
+    id="resp_686066e3fb58819b82f974219b1e727804844594a4ffc254",
+    created_at=1751148260.0,
+    error=None,
+    incomplete_details=None,
+    instructions="Show your reasoning step by step.",
+    metadata=None,
+    model="o3-mini-2025-01-31",
+    object="response",
+    output=[
+        ResponseReasoningItem(
+            id="rs_686066e5678c819b8e55b6898806d17604844594a4ffc254",
+            summary=None,
+            type="reasoning",
+            encrypted_content=None,
+            status="",
+        ),
+        ResponseFunctionToolCall(
+            arguments='{"a": 15, "b": 27}',
+            call_id="call_ryYuAyJoIVIPzHi6mJ9af88Z",
+            name="add",
+            type="function_call",
+            id="fc_686066e63c84819b8b16b43434b125e204844594a4ffc254",
+            status="completed",
+        ),
+    ],
+    parallel_tool_calls=True,
+    temperature=1.0,
+    tool_choice="auto",
+    tools=[
+        FunctionTool(
+            name="add",
+            parameters={
+                "properties": {
+                    "a": {"description": "First number", "type": "number"},
+                    "b": {"description": "Second number", "type": "number"},
+                },
+                "required": ["a", "b"],
+                "type": "object",
+            },
+            strict=False,
+            type="function",
+            description="Add two numbers together.",
+        )
+    ],
+    top_p=1.0,
+    background=None,
+    max_output_tokens=None,
+    previous_response_id=None,
+    reasoning=Reasoning(effort="medium", generate_summary=None, summary=None),
+    service_tier=None,
+    status="completed",
+    text=ResponseTextConfig(format=ResponseFormatText(type="text")),
+    truncation="disabled",
+    usage=ResponseUsage(
+        input_tokens=78,
+        input_tokens_details=InputTokensDetails(cached_tokens=None),
+        output_tokens=149,
+        output_tokens_details=OutputTokensDetails(reasoning_tokens=128),
+        total_tokens=227,
+    ),
+    user=None,
+)
+
+
 # o4-mini
-Response(id='gen-1751148014-ioC2IPmbx5rDQtR5GcSz', created_at=1751148014.0, error=None, incomplete_details=None, instructions=None, metadata=None, model='openai/o4-mini', object='response', output=[ResponseReasoningItem(id='msg_MyRTqOpKrFbbPTrnQxCacqFZdNqi5ZXusbMBQ9KbyfQUv5rc', summary=[Summary(text='**Calculating 15 plus 27**\n\nThe user wants to know what 15 plus 27 is, and they’re looking for a step-by-step process. First, I identify the numbers as 15 and 27. Then, I’ll add them: breaking it down, 5 plus 7 equals 12, with a carry of 1. Adding that to 2 and the carry gives me 4 in the tens place. So, 15 plus 27 equals 42! I could also present this using a function call, but let’s stick with my reasoning approach for clarity.', type='summary_text')], type='reasoning', encrypted_content=None, status='completed'), ResponseOutputMessage(id='msg_6gJs6a6OD5GJJp0cjImKvwRegKdsTqGbMcEVkPuyrZlmroBM', content=[ResponseOutputText(annotations=None, text='Here’s the addition worked out step by step:\n\n1. Write the numbers one under the other, aligning place-values:\n    \n      15  \n    + 27  \n    ----\n\n2. Add the units (rightmost) digits:  \n   5 + 7 = 12.  \n   Write down 2 in the units place, carry over 1 to the tens place.\n\n3. Add the tens digits plus the carried 1:  \n   1 (from 15) + 2 (from 27) + 1 (carried) = 4.\n\n4. Combine the results: the tens digit is 4 and the units digit is 2, giving 42.\n\nAnswer: 15 + 27 = 42.', type='output_text', logprobs=None)], role='assistant', status='completed', type='message')], parallel_tool_calls=None, temperature=None, tool_choice='auto', tools=[FunctionTool(name='add', parameters={'properties': {'a': {'description': 'First number', 'type': 'number'}, 'b': {'description': 'Second number', 'type': 'number'}}, 'required': ['a', 'b'], 'type': 'object'}, strict=False, type='function', description='Add two numbers together.')], top_p=None, background=None, max_output_tokens=None, previous_response_id=None, reasoning=None, service_tier=None, status='completed', text=ResponseTextConfig(format=ResponseFormatText(type='text')), truncation=None, usage=ResponseUsage(input_tokens=78, input_tokens_details=InputTokensDetails(cached_tokens=None), output_tokens=609, output_tokens_details=None, total_tokens=687), user=None)
+Response(
+    id="gen-1751148014-ioC2IPmbx5rDQtR5GcSz",
+    created_at=1751148014.0,
+    error=None,
+    incomplete_details=None,
+    instructions=None,
+    metadata=None,
+    model="openai/o4-mini",
+    object="response",
+    output=[
+        ResponseReasoningItem(
+            id="msg_MyRTqOpKrFbbPTrnQxCacqFZdNqi5ZXusbMBQ9KbyfQUv5rc",
+            summary=[
+                Summary(
+                    text="**Calculating 15 plus 27**\n\nThe user wants to know what 15 plus 27 is, and they’re looking for a step-by-step process. First, I identify the numbers as 15 and 27. Then, I’ll add them: breaking it down, 5 plus 7 equals 12, with a carry of 1. Adding that to 2 and the carry gives me 4 in the tens place. So, 15 plus 27 equals 42! I could also present this using a function call, but let’s stick with my reasoning approach for clarity.",
+                    type="summary_text",
+                )
+            ],
+            type="reasoning",
+            encrypted_content=None,
+            status="completed",
+        ),
+        ResponseOutputMessage(
+            id="msg_6gJs6a6OD5GJJp0cjImKvwRegKdsTqGbMcEVkPuyrZlmroBM",
+            content=[
+                ResponseOutputText(
+                    annotations=None,
+                    text="Here’s the addition worked out step by step:\n\n1. Write the numbers one under the other, aligning place-values:\n    \n      15  \n    + 27  \n    ----\n\n2. Add the units (rightmost) digits:  \n   5 + 7 = 12.  \n   Write down 2 in the units place, carry over 1 to the tens place.\n\n3. Add the tens digits plus the carried 1:  \n   1 (from 15) + 2 (from 27) + 1 (carried) = 4.\n\n4. Combine the results: the tens digit is 4 and the units digit is 2, giving 42.\n\nAnswer: 15 + 27 = 42.",
+                    type="output_text",
+                    logprobs=None,
+                )
+            ],
+            role="assistant",
+            status="completed",
+            type="message",
+        ),
+    ],
+    parallel_tool_calls=None,
+    temperature=None,
+    tool_choice="auto",
+    tools=[
+        FunctionTool(
+            name="add",
+            parameters={
+                "properties": {
+                    "a": {"description": "First number", "type": "number"},
+                    "b": {"description": "Second number", "type": "number"},
+                },
+                "required": ["a", "b"],
+                "type": "object",
+            },
+            strict=False,
+            type="function",
+            description="Add two numbers together.",
+        )
+    ],
+    top_p=None,
+    background=None,
+    max_output_tokens=None,
+    previous_response_id=None,
+    reasoning=None,
+    service_tier=None,
+    status="completed",
+    text=ResponseTextConfig(format=ResponseFormatText(type="text")),
+    truncation=None,
+    usage=ResponseUsage(
+        input_tokens=78,
+        input_tokens_details=InputTokensDetails(cached_tokens=None),
+        output_tokens=609,
+        output_tokens_details=None,
+        total_tokens=687,
+    ),
+    user=None,
+)
 
 # gpt-4o
-Response(id='resp_6860633d592c8198980c150b0ef32d880bcf98f44802658a', created_at=1751147325.0, error=None, incomplete_details=None, instructions='Show your reasoning step by step.', metadata=None, model='gpt-4.1-mini-2025-04-14', object='response', output=[ResponseFunctionToolCall(arguments='{"a":15,"b":27}', call_id='call_7Xgb2y4OkQSzTayzSGPVvg2c', name='add', type='function_call', id='fc_6860633deaa88198a9725c6190ad30910bcf98f44802658a', status='completed')], parallel_tool_calls=True, temperature=1.0, tool_choice='auto', tools=[FunctionTool(name='add', parameters={'properties': {'a': {'description': 'First number', 'type': 'number'}, 'b': {'description': 'Second number', 'type': 'number'}}, 'required': ['a', 'b'], 'type': 'object'}, strict=False, type='function', description='Add two numbers together.')], top_p=1.0, background=None, max_output_tokens=None, previous_response_id=None, reasoning=Reasoning(effort=None, generate_summary=None, summary=None), service_tier=None, status='completed', text=ResponseTextConfig(format=ResponseFormatText(type='text')), truncation='disabled', usage=ResponseUsage(input_tokens=76, input_tokens_details=InputTokensDetails(cached_tokens=None), output_tokens=18, output_tokens_details=OutputTokensDetails(reasoning_tokens=0), total_tokens=94), user=None)
+Response(
+    id="resp_6860633d592c8198980c150b0ef32d880bcf98f44802658a",
+    created_at=1751147325.0,
+    error=None,
+    incomplete_details=None,
+    instructions="Show your reasoning step by step.",
+    metadata=None,
+    model="gpt-4.1-mini-2025-04-14",
+    object="response",
+    output=[
+        ResponseFunctionToolCall(
+            arguments='{"a":15,"b":27}',
+            call_id="call_7Xgb2y4OkQSzTayzSGPVvg2c",
+            name="add",
+            type="function_call",
+            id="fc_6860633deaa88198a9725c6190ad30910bcf98f44802658a",
+            status="completed",
+        )
+    ],
+    parallel_tool_calls=True,
+    temperature=1.0,
+    tool_choice="auto",
+    tools=[
+        FunctionTool(
+            name="add",
+            parameters={
+                "properties": {
+                    "a": {"description": "First number", "type": "number"},
+                    "b": {"description": "Second number", "type": "number"},
+                },
+                "required": ["a", "b"],
+                "type": "object",
+            },
+            strict=False,
+            type="function",
+            description="Add two numbers together.",
+        )
+    ],
+    top_p=1.0,
+    background=None,
+    max_output_tokens=None,
+    previous_response_id=None,
+    reasoning=Reasoning(effort=None, generate_summary=None, summary=None),
+    service_tier=None,
+    status="completed",
+    text=ResponseTextConfig(format=ResponseFormatText(type="text")),
+    truncation="disabled",
+    usage=ResponseUsage(
+        input_tokens=76,
+        input_tokens_details=InputTokensDetails(cached_tokens=None),
+        output_tokens=18,
+        output_tokens_details=OutputTokensDetails(reasoning_tokens=0),
+        total_tokens=94,
+    ),
+    user=None,
+)
 
 # gpt-4o no function call
-Response(id='gen-1751147313-9bXuAdbPMFPlXLss1OpF', created_at=1751147313.0, error=None, incomplete_details=None, instructions=None, metadata=None, model='openai/gpt-4.1-mini', object='response', output=[ResponseOutputMessage(id='msg_dfUOBe9cl3oZetu7CcgcJvGDvYsmoT2DoVGJ57UpV3TN6JNA', content=[ResponseOutputText(annotations=None, text="Arrr, matey! Did ye know that in the mysterious seas of quantum mechanics, particles can be in two places at once? 'Tis called superposition, where a tiny quantum buccaneer like an electron can be both here and there until ye take a look. It’s as if the particle be hidin’ its true treasure location until ye spy on it, makin’ the quantum world a treasure map full of surprises! Yarrr!", type='output_text', logprobs=None)], role='assistant', status='completed', type='message')], parallel_tool_calls=None, temperature=None, tool_choice=None, tools=None, top_p=None, background=None, max_output_tokens=None, previous_response_id=None, reasoning=None, service_tier=None, status='completed', text=ResponseTextConfig(format=ResponseFormatText(type='text')), truncation=None, usage=ResponseUsage(input_tokens=34, input_tokens_details=InputTokensDetails(cached_tokens=None), output_tokens=92, output_tokens_details=None, total_tokens=126), user=None)
+Response(
+    id="gen-1751147313-9bXuAdbPMFPlXLss1OpF",
+    created_at=1751147313.0,
+    error=None,
+    incomplete_details=None,
+    instructions=None,
+    metadata=None,
+    model="openai/gpt-4.1-mini",
+    object="response",
+    output=[
+        ResponseOutputMessage(
+            id="msg_dfUOBe9cl3oZetu7CcgcJvGDvYsmoT2DoVGJ57UpV3TN6JNA",
+            content=[
+                ResponseOutputText(
+                    annotations=None,
+                    text="Arrr, matey! Did ye know that in the mysterious seas of quantum mechanics, particles can be in two places at once? 'Tis called superposition, where a tiny quantum buccaneer like an electron can be both here and there until ye take a look. It’s as if the particle be hidin’ its true treasure location until ye spy on it, makin’ the quantum world a treasure map full of surprises! Yarrr!",
+                    type="output_text",
+                    logprobs=None,
+                )
+            ],
+            role="assistant",
+            status="completed",
+            type="message",
+        )
+    ],
+    parallel_tool_calls=None,
+    temperature=None,
+    tool_choice=None,
+    tools=None,
+    top_p=None,
+    background=None,
+    max_output_tokens=None,
+    previous_response_id=None,
+    reasoning=None,
+    service_tier=None,
+    status="completed",
+    text=ResponseTextConfig(format=ResponseFormatText(type="text")),
+    truncation=None,
+    usage=ResponseUsage(
+        input_tokens=34,
+        input_tokens_details=InputTokensDetails(cached_tokens=None),
+        output_tokens=92,
+        output_tokens_details=None,
+        total_tokens=126,
+    ),
+    user=None,
+)
