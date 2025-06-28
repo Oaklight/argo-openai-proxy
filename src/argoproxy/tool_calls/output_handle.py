@@ -17,7 +17,7 @@ class ToolIterceptor:
         self.in_tool_call = False
         self.tool_call_buffer = ""
 
-    def process(self, text: str) -> Tuple[List[dict], str]:
+    def process(self, text: str) -> Tuple[Optional[List[dict]], str]:
         """Non-stream mode: Extract all tool_call JSONs and return remaining text."""
         tool_calls = []
         remaining_text = []
@@ -63,7 +63,11 @@ class ToolIterceptor:
                     self.in_tool_call = False
                     self.tool_call_buffer = ""
 
-        return tool_calls, "".join(remaining_text)
+        # Updated return statement to conditionally return None for tool_calls
+        return (
+            tool_calls if tool_calls else None,
+            "".join(remaining_text),
+        )
 
     def _could_be_partial_tag(self, text: str) -> bool:
         """Check if text could be the start of <tool_call> or </tool_call>"""
