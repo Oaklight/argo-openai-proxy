@@ -16,7 +16,7 @@ Usage
 import json
 import secrets
 import string
-from typing import Any, Dict, List, Literal, Union
+from typing import Any, Dict, List, Literal, Optional, Union
 
 from ..types.function_call import (
     ChatCompletionMessageToolCall,
@@ -91,7 +91,7 @@ def build_tool_prompt(
     tool_choice: ToolChoice = None,
     *,
     parallel_tool_calls: bool = False,
-    json_indent: int = 2,
+    json_indent: Optional[int] = None,
 ) -> str:
     """
     Return a system-prompt string embedding `tools`, `tool_choice`
@@ -105,8 +105,8 @@ def build_tool_prompt(
         "none", "auto", or an object with "name", etc.
     parallel_tool_calls : bool
         Whether multiple tool calls may be returned in one turn.
-    json_indent : int
-        Pretty-print indentation for embedded JSON blobs.
+    json_indent : int | None
+        Pretty-print indentation for embedded JSON blobs. Defaults to None for most compact output.
 
     Returns
     -------
@@ -351,7 +351,3 @@ if __name__ == "__main__":  # pragma: no cover
 
     print("\nProcessed data:")
     print(json.dumps(processed_data, indent=2, ensure_ascii=False))
-
-    # --- 5. Demonstrate tool call response parsing ---------------------------
-    print("\n" + "=" * 50 + "\n")
-    print("=== Demonstrate Tool Call Response Parsing ===")
