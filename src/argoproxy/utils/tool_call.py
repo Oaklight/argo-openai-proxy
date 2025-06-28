@@ -28,8 +28,7 @@ from ..types.function_call import (
 Tools = List[Dict[str, Any]]
 ToolChoice = Union[str, Dict[str, Any], None]
 
-
-PROMPT_SKELETON = """You are an AI assistant that can optionally call pre-defined tools (“functions”).
+PROMPT_SKELETON = """You are an AI assistant that can optionally call pre-defined tools.
 Follow every rule below.
 
 ### 1. Available tools
@@ -50,35 +49,41 @@ parallel_tool_calls = {parallel_flag}
 • true  → you MAY return multiple tool calls in one response.  
 • false → return at most **one** tool call.
 
-### 4. Response format  (⛔ DO NOT DEVIATE)
-• If you are calling tool(s):
-  1. Start your reply with the tag `<tool_call>` **as the very first token**.  
-  2. Write ONLY valid JSON inside the tag, matching the schema below.  
-  3. Close the tag with `</tool_call>`.  
-  4. After **two newline characters** (`\\n\\n`) you MAY continue with normal
-     natural-language content (no extra tags).
+### 4. Response format  (CRITICAL RULES - DO NOT DEVIATE)
 
-• If you are **not** calling any tool, simply reply in natural language—do **not** output any tags.
+**DECISION POINT: Before writing ANY text, decide:**
+- Am I calling a tool? → Start with `<tool_call>` IMMEDIATELY
+- Am I not calling a tool? → Write natural language with NO tags
 
-Single call (or parallel_tool_calls = false):
-<tool_call>
-{{
-  "name": "<tool-name>",
-  "arguments": {{ ... }}
-}}
-</tool_call>
+**IF CALLING TOOLS:**
+1. Your response MUST start with `<tool_call>` as the **VERY FIRST characters** (no text before it!)
+2. Write ONLY valid JSON inside the tag
+3. Close with `</tool_call>`
+4. After **two newlines** (`\\n\\n`) you MAY add natural language
 
-Multiple calls (allowed only if parallel_tool_calls == true):
-<tool_call>
-{{
-  "tool_calls": [
-    {{ "name": "<tool-1>", "arguments": {{ ... }} }},
-    {{ "name": "<tool-2>", "arguments": {{ ... }} }}
-  ]
-}}
-</tool_call>
+**IF NOT CALLING TOOLS:**
+- Write natural language ONLY
+- DO NOT use any `<tool_call>` tags anywhere
 
-Always obey the JSON schemas exactly and never invent extra keys.
+**INVALID (will be rejected):**
+- "Let me help you... <tool_call>"
+- "I'll search for that. <tool_call>"
+- Any text before <tool_call>
+
+**VALID formats:**
+
+- Single call (or parallel_tool_calls = false):
+<tool_call> {{ "name": "<tool-name>", "arguments": {{ ... }} }} </tool_call>
+
+Optional natural language here...
+
+- Multiple calls (only if parallel_tool_calls == true):
+<tool_call> {{ "name": "<tool-1>", "arguments": {{ ... }} }} </tool_call>
+<tool_call> {{ "name": "<tool-2>", "arguments": {{ ... }} }} </tool_call>
+
+Optional natural language here...
+
+Remember: The FIRST character of your response determines everything. If it's not "<", you cannot use tools in that response.
 """
 
 
