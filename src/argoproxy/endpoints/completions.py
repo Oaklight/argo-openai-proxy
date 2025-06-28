@@ -12,6 +12,7 @@ from ..models import ModelRegistry
 from ..types import Completion, CompletionChoice, CompletionUsage
 from ..types.completions import FINISH_REASONS
 from ..utils.misc import make_bar
+from ..utils.tokens import count_tokens
 from .chat import (
     prepare_chat_request_data,
     send_non_streaming_request,
@@ -22,7 +23,8 @@ DEFAULT_STREAM = False
 
 
 def make_it_openai_completions_compat(
-    custom_response: Union[str, Dict[str, Any]],
+    content: str,
+    *,
     model_name: str,
     create_timestamp: int,
     prompt_tokens: int,
@@ -32,7 +34,7 @@ def make_it_openai_completions_compat(
     """Converts a custom API response to an OpenAI-compatible completion API response.
 
     Args:
-        custom_response (Union[str, Dict[str, Any]]): The custom API response in JSON format.
+        content (str): The custom API response in JSON format.
         model_name (str): The model name used for generating the completion.
         create_timestamp (int): Timestamp indicating when the completion was created.
         prompt_tokens (int): Number of tokens in the input prompt.
@@ -43,19 +45,10 @@ def make_it_openai_completions_compat(
         Union[Dict[str, Any], str]: OpenAI-compatible JSON response or an error message.
     """
     try:
-        # Parse the custom response
-        if isinstance(custom_response, str):
-            custom_response_dict = json.loads(custom_response)
-        else:
-            custom_response_dict = custom_response
-
-        # Extract the response text
-        response_text: str = custom_response_dict.get("response", "")
-
         usage = None
         # Calculate token counts (simplified example, actual tokenization may differ)
         if not is_streaming:
-            completion_tokens: int = len(response_text.split())
+            completion_tokens: int = count_tokens(content, model_name)
             total_tokens: int = prompt_tokens + completion_tokens
             usage = CompletionUsage(
                 prompt_tokens=prompt_tokens,
@@ -69,7 +62,7 @@ def make_it_openai_completions_compat(
             model=model_name,
             choices=[
                 CompletionChoice(
-                    text=response_text,
+                    text=content,
                     index=0,
                     finish_reason=finish_reason or "stop",
                 )
