@@ -322,5 +322,33 @@ if __name__ == "__main__":  # pragma: no cover
         parallel_tool_calls=True,
     )
 
-    # --- 4. Send `prompt` as your *system* message when calling the model ---
+    print("=== Direct Tool Prompt Building ===")
     print(prompt)
+    print("\n" + "=" * 50 + "\n")
+
+    # --- 4. Demonstrate handle_tools function --------------------------------
+    print("=== Demonstrate handle_tools Function ===")
+
+    # Example input data (similar to OpenAI API request)
+    input_data = {
+        "messages": [
+            {"role": "user", "content": "What's the weather like in Beijing today?"}
+        ],
+        "tools": tools_example,
+        "tool_choice": tool_choice_example,
+        "parallel_tool_calls": True,
+    }
+
+    print("Original input data:")
+    print(json.dumps(input_data, indent=2, ensure_ascii=False))
+
+    # Process tool calls
+    processed_data = handle_tools(input_data.copy())
+
+    print("\nProcessed data:")
+    print(json.dumps(processed_data, indent=2, ensure_ascii=False))
+
+    # --- 5. Demonstrate tool call response parsing ---------------------------
+    print("\n" + "=" * 50 + "\n")
+    print("=== Demonstrate Tool Call Response Parsing ===")
+
