@@ -9,14 +9,17 @@ support.
 
 Usage
 =====
->>> python -m argoproxy.utils.tool_prompt_template
+>>> python -m argoproxy.utils.tool_call_template
 (or see the __main__ block below)
 """
 
-from __future__ import annotations
-
 import json
-from typing import Any, Dict, List, Union
+import re
+import secrets
+import string
+from typing import Any, Dict, List, Literal, Optional, Tuple, Union
+
+from ..types.function_call import ChatCompletionMessageToolCall, Function
 
 Tools = List[Dict[str, Any]]
 ToolChoice = Union[str, Dict[str, Any], None]
@@ -116,6 +119,83 @@ def build_tool_prompt(
         tool_choice_json=tool_choice_json,
         parallel_flag=parallel_flag,
     )
+
+
+def handle_tools(data: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Process input data containing tool calls.
+
+    This function will:
+    1. Check if input data contains tool-related fields (tools, tool_choice, parallel_tool_calls)
+    2. If present, generate tool call system prompt and add it to system messages
+    3. Return processed data
+
+    Parameters
+    ----------
+    data : dict
+        Dictionary containing request data, may include:
+        - tools: List of tool definitions
+        - tool_choice: Tool selection preference
+        - parallel_tool_calls: Whether to allow parallel tool calls
+        - messages: Message list
+        - system: System message
+
+    Returns
+    -------
+    dict
+        Processed data dictionary
+    """
+    # Check if there are tool-related fields
+    tools = data.get("tools")
+    if not tools:
+        return data
+
+    # Get tool call related parameters
+    tool_choice = data.get("tool_choice")
+    parallel_tool_calls = data.get("parallel_tool_calls", False)
+
+    # Generate tool call prompt
+    tool_prompt = build_tool_prompt(
+        tools=tools, tool_choice=tool_choice, parallel_tool_calls=parallel_tool_calls
+    )
+
+    # Add tool prompt to system messages
+    if "messages" in data:
+        # Handle messages format
+        messages = data["messages"]
+
+        # Find existing system message
+        system_msg_found = False
+        for _, msg in enumerate(messages):
+            if msg.get("role") == "system":
+                # Add tool prompt to existing system message
+                existing_content = msg.get("content", "")
+                msg["content"] = f"{existing_content}\n\n{tool_prompt}".strip()
+                system_msg_found = True
+                break
+
+        # If no system message found, add one at the beginning
+        if not system_msg_found:
+            system_message = {"role": "system", "content": tool_prompt}
+            messages.insert(0, system_message)
+
+    elif "system" in data:
+        # Handle direct system field
+        existing_system = data["system"]
+        if isinstance(existing_system, str):
+            data["system"] = f"{existing_system}\n\n{tool_prompt}".strip()
+        elif isinstance(existing_system, list):
+            data["system"] = existing_system + [tool_prompt]
+    else:
+        # If no system message, create one
+        data["system"] = tool_prompt
+
+    # Remove original tool-related fields as they've been converted to prompts
+    data.pop("tools", None)
+    data.pop("tool_choice", None)
+    data.pop("parallel_tool_calls", None)
+
+    return data
 
 
 # ---------------------------------------------------------------------------#
