@@ -5,7 +5,7 @@ from typing import List, Literal, Optional
 from pydantic import BaseModel
 
 from .completions import CompletionUsage
-from .function_call import ChatCompletionMessageToolCall
+from .function_call import ChatCompletionMessageToolCall, ChoiceDeltaToolCall
 
 FINISH_REASONS = Literal[
     "stop", "length", "tool_calls", "content_filter", "function_call"
@@ -119,7 +119,7 @@ class ChatCompletion(ChatCompletionCore):
 
 
 class ChoiceDelta(ChatCompletionMessageCore):
-    tool_calls: Optional[List[ChatCompletionMessageToolCall]] = None
+    tool_calls: Optional[List[ChoiceDeltaToolCall]] = None
 
 
 class StreamChoice(ChoiceCore):
