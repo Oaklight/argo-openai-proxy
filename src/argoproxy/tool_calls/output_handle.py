@@ -272,10 +272,9 @@ def generate_id(
         raise ValueError(f"Unknown mode: {mode!r}")
 
 
-def convert_tool_calls_to_openai_format(
+def tool_calls_to_openai(
     tool_calls: List[Dict[str, Any]],
     *,
-    is_stream: bool = False,
     api_format: Literal["chat_completion", "response"] = "chat_completion",
 ) -> List[Union[ChatCompletionMessageToolCall, ResponseFunctionToolCall]]:
     """Converts parsed tool calls to OpenAI API format.
@@ -298,24 +297,18 @@ def convert_tool_calls_to_openai_format(
         arguments = json.dumps(call.get("arguments", ""))
         name = call.get("name", "")
         if api_format == "chat_completion":
-            if is_stream:
-                pass
-            else:
-                tool_call_obj = ChatCompletionMessageToolCall(
-                    id=generate_id(mode="chat_completion"),
-                    function=Function(name=name, arguments=arguments),
-                )
+            tool_call_obj = ChatCompletionMessageToolCall(
+                id=generate_id(mode="chat_completion"),
+                function=Function(name=name, arguments=arguments),
+            )
         else:
-            if is_stream:
-                pass
-            else:
-                tool_call_obj = ResponseFunctionToolCall(
-                    arguments=arguments,
-                    call_id=generate_id(mode="chat_completion"),
-                    name=name,
-                    id=generate_id(mode="response"),
-                    status="completed",
-                )
+            tool_call_obj = ResponseFunctionToolCall(
+                arguments=arguments,
+                call_id=generate_id(mode="chat_completion"),
+                name=name,
+                id=generate_id(mode="response"),
+                status="completed",
+            )
         openai_tool_calls.append(tool_call_obj)
 
     return openai_tool_calls
