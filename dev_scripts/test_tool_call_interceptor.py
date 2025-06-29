@@ -208,9 +208,11 @@ def get_streaming_test_cases():
             [
                 "<",
                 "tool_",
-                'call>{"name": "first", "arguments":',
+                'call>{"name": ',
+                '"first", "arguments":',
                 ' {"id": 1}}</tool',
-                "_call>text<to",
+                "_call>",
+                "<to",
                 'ol_call>{"',
                 'name": "second", "arguments": {"',
                 'id": 2}}</',
