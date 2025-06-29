@@ -1,6 +1,6 @@
 import asyncio
 
-from argoproxy.tool_calls.output_handle import ToolIterceptor
+from argoproxy.tool_calls.output_handle import ToolInterceptor
 
 
 def get_test_cases():
@@ -213,7 +213,7 @@ async def run_all_tests():
         print(f"Test: {desc}")
         print(f"Input: {repr(content[:100])}{'...' if len(content) > 100 else ''}")
 
-        cs = ToolIterceptor()
+        cs = ToolInterceptor()
         try:
             tool_calls, clean_text = cs.process(content)
             print(f"Tool calls: {tool_calls}")
@@ -235,7 +235,7 @@ async def run_all_tests():
                 await asyncio.sleep(0.001)
                 yield chunk
 
-        cs = ToolIterceptor()
+        cs = ToolInterceptor()
         results = []
         try:
             async for tool_call, text in cs.process_stream(chunk_generator()):
@@ -261,7 +261,7 @@ async def run_all_tests():
                 await asyncio.sleep(0.001)
                 yield chunk
 
-        cs = ToolIterceptor()
+        cs = ToolInterceptor()
         results = []
         try:
             for tool_call, text in cs.process_stream(chunks):
@@ -294,7 +294,7 @@ if __name__ == "__main__":
 #     print("=== Non-stream mode tests ===")
 #     for i, sample in enumerate(samples):
 #         print(f"\nSample {i + 1}:")
-#         cs = ToolIterceptor()
+#         cs = ToolInterceptor()
 #         tool_calls, clean_text = cs.process(sample)
 #         print(f"Tool calls: {tool_calls}")
 #         print(f"Clean text: {repr(clean_text)}")
@@ -315,7 +315,7 @@ if __name__ == "__main__":
 #             yield chunk
 
 #     async def run_stream_test():
-#         cs = ToolIterceptor()
+#         cs = ToolInterceptor()
 #         results = []
 #         async for tool_call, text in cs.process_async(dummy_chunk_iterator()):
 #             if tool_call:
