@@ -6,6 +6,7 @@ from argoproxy.tool_calls.input_handle import (
 from argoproxy.tool_calls.output_handle import (
     ToolInterceptor,
     tool_calls_to_openai,
+    tool_calls_to_openai_stream,
 )
 
 
@@ -427,6 +428,34 @@ def test_tool_calls_to_openai():
     print(f"First response call status: {response_format[0].status}")
 
 
+def test_tool_calls_to_openai_stream():
+    """Test tool_calls_to_openai_stream function"""
+    print("\n=== Testing tool_calls_to_openai_stream function ===")
+
+    tool_calls = [
+        {"name": "calculate", "arguments": {"expression": "2 + 3"}},
+        {"name": "get_weather", "arguments": {"location": "Beijing"}},
+    ]
+
+    # Test chat_completion format
+    openai_format = [
+        tool_calls_to_openai_stream(tc, api_format="chat_completion")
+        for tc in tool_calls
+    ]
+
+    print(f"Conversion successful: {len(openai_format) == 2}")
+    print(f"First call ID: {openai_format[0].id}")
+    print(f"First call type: {openai_format[0].type}")
+    print(f"First call function name: {openai_format[0].function.name}")
+    print(f"First call arguments type: {type(openai_format[0].function.arguments)}")
+
+    # # Test response format
+    # response_format = tool_calls_to_openai_stream(tool_calls, api_format="response")
+    # print(f"\nResponse format conversion successful: {len(response_format) == 2}")
+    # print(f"First response call name: {response_format[0].name}")
+    # print(f"First response call status: {response_format[0].status}")
+
+
 def test_edge_cases():
     """Test edge cases and error conditions"""
     print("\n=== Testing edge cases ===")
@@ -463,4 +492,5 @@ if __name__ == "__main__":
     test_tool_interceptor_stream()
     test_tool_calls_to_openai()
     test_edge_cases()
+    test_tool_calls_to_openai_stream()
     print("\nAll tests completed!")
