@@ -32,11 +32,9 @@ class ToolInterceptor:
         self.tool_call_buffer = ""
 
     def process(self, text: str) -> Tuple[Optional[List[dict]], str]:
-        """Non-stream mode: Extract all tool_call JSONs and return remaining text."""
+        """Non-stream mode: Extract all tool_call JSONs and text after the last </tool_call> only."""
         tool_calls = []
-        remaining_text = []
-
-        logger.warning(f"Processing text: {text}")
+        last_tail = ""
 
         # Reset state for non-stream processing
         self.buffer = text
@@ -48,12 +46,10 @@ class ToolInterceptor:
                 start_idx = self.buffer.find("<tool_call>")
                 if start_idx == -1:
                     # No more tool calls
-                    remaining_text.append(self.buffer)
+                    last_tail = self.buffer  # Only grab the tail once, no accumulation
                     self.buffer = ""
                 else:
-                    # Found tool call start
-                    if start_idx > 0:
-                        remaining_text.append(self.buffer[:start_idx])
+                    # Found tool call start, skip any preceding text
                     self.buffer = self.buffer[start_idx + len("<tool_call>") :]
                     self.in_tool_call = True
                     self.tool_call_buffer = ""
@@ -70,19 +66,16 @@ class ToolInterceptor:
                         tool_call_json = json.loads(self.tool_call_buffer.strip())
                         tool_calls.append(tool_call_json)
                     except json.JSONDecodeError:
-                        # Invalid JSON - add to remaining text as error marker
-                        remaining_text.append(
-                            f"<invalid>{self.tool_call_buffer}</invalid>"
-                        )
+                        # Invalid JSON - ignore error marker for in-between text (as per new logic)
+                        pass
 
                     self.buffer = self.buffer[end_idx + len("</tool_call>") :]
                     self.in_tool_call = False
                     self.tool_call_buffer = ""
 
-        # Updated return statement to conditionally return None for tool_calls
         return (
             tool_calls if tool_calls else None,
-            "".join(remaining_text),
+            last_tail.lstrip(),
         )
 
     def _could_be_partial_tag(self, text: str) -> bool:
