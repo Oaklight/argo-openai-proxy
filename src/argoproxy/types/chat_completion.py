@@ -118,10 +118,6 @@ class ChatCompletion(ChatCompletionCore):
 # ==================== Streaming Response ====================
 
 
-class ChoiceDeltaToolCall(ChatCompletionMessageToolCall):
-    index: int
-
-
 class ChoiceDelta(ChatCompletionMessageCore):
     tool_calls: Optional[List[ChatCompletionMessageToolCall]] = None
 
