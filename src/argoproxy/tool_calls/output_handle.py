@@ -26,7 +26,7 @@ from ..types.function_call import (
 )
 
 
-class ToolIterceptor:
+class ToolInterceptor:
     def __init__(self):
         self.buffer = ""
         self.in_tool_call = False

@@ -13,7 +13,7 @@ from ..config import ArgoConfig
 from ..models import ModelRegistry
 from ..tool_calls.input_handle import handle_tools
 from ..tool_calls.output_handle import (
-    ToolIterceptor,
+    ToolInterceptor,
     convert_tool_calls_to_openai_format,
 )
 from ..types import (
@@ -205,7 +205,7 @@ async def send_non_streaming_request(
             prompt_tokens = calculate_prompt_tokens(data, data["model"])
             content = response_data["response"]
 
-            cs = ToolIterceptor()
+            cs = ToolInterceptor()
             tool_calls, clean_text = cs.process(content)
             finish_reason = "tool_calls" if tool_calls else "stop"
             openai_response = openai_compat_fn(
