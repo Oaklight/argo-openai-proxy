@@ -33,7 +33,7 @@ from ..utils.input_handle import (
 )
 from ..utils.misc import make_bar
 from ..utils.tokens import calculate_prompt_tokens, count_tokens
-from ..utils.transports import send_off_sse
+from ..utils.transports import pseudo_chunk_generator, send_off_sse
 
 DEFAULT_MODEL = "argo:gpt-4o"
 
@@ -327,11 +327,13 @@ async def send_streaming_request(
 
             # Split into chunks of ~10 characters to simulate streaming
             chunk_size = 20
-            for i in range(0, len(response_text), chunk_size):
-                chunk = response_text[i : i + chunk_size]
-                finish_reason = None if i + chunk_size < len(response_text) else "stop"
+            chunks = []
+            async for chunk in pseudo_chunk_generator(response_text, chunk_size):
+                chunks.append(chunk)
+                is_last_chunk = len("".join(chunks)) >= len(response_text)
+                finish_reason = "stop" if is_last_chunk else None
                 await handle_chunk(chunk.encode(), finish_reason)
-                await asyncio.sleep(0.02)  # Small delay between chunks
+
         else:
             chunk_iterator = upstream_resp.content.iter_any()
             async for chunk in chunk_iterator:
