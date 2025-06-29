@@ -4,12 +4,13 @@ import sys
 # 添加 src 目录到 Python 路径
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "src"))
 
-from argoproxy.utils.tool_call import (
-    convert_tool_calls_to_openai_format,
+from argoproxy.tool_calls.input_handle import (
     handle_tools,
-    parse_tool_call_response,
 )
-
+from argoproxy.tool_calls.output_handle import (
+    ToolInterceptor,
+    convert_tool_calls_to_openai_format,
+)
 
 def test_handle_tools():
     """测试 handle_tools 函数"""
@@ -69,9 +70,11 @@ def test_handle_tools():
     print(f"数据未改变: {result_3 == input_data_3}")
 
 
-def test_parse_tool_call_response():
-    """测试 parse_tool_call_response 函数"""
-    print("\n=== 测试 parse_tool_call_response 函数 ===")
+def test_tool_interceptor():
+    """测试 ToolInterceptor 函数"""
+    print("\n=== 测试 ToolInterceptor 函数 ===")
+
+    interceptor = ToolInterceptor()
 
     # 测试 1: 单个工具调用
     response_1 = """<tool_call>
@@ -83,7 +86,7 @@ def test_parse_tool_call_response():
 
 计算结果是 5。"""
 
-    tool_calls_1, remaining_1 = parse_tool_call_response(response_1)
+    tool_calls_1, remaining_1 = interceptor.process(response_1)
     print("测试 1 - 单个工具调用:")
     print(f"解析成功: {tool_calls_1 is not None}")
     print(f"工具名称: {tool_calls_1[0]['name'] if tool_calls_1 else 'None'}")
@@ -101,7 +104,7 @@ def test_parse_tool_call_response():
 
 计算完成。"""
 
-    tool_calls_2, remaining_2 = parse_tool_call_response(response_2)
+    tool_calls_2, remaining_2 = interceptor.process(response_2)
     print("\n测试 2 - 多个工具调用:")
     print(f"解析成功: {tool_calls_2 is not None}")
     print(f"工具调用数量: {len(tool_calls_2) if tool_calls_2 else 0}")
@@ -109,7 +112,7 @@ def test_parse_tool_call_response():
     # 测试 3: 没有工具调用
     response_3 = "这是一个普通的回复，没有工具调用。"
 
-    tool_calls_3, remaining_3 = parse_tool_call_response(response_3)
+    tool_calls_3, remaining_3 = interceptor.process(response_3)
     print("\n测试 3 - 没有工具调用:")
     print(f"正确返回 None: {tool_calls_3 is None}")
     print(f"文本保持不变: {remaining_3 == response_3}")
@@ -127,13 +130,13 @@ def test_convert_tool_calls_to_openai_format():
     openai_format = convert_tool_calls_to_openai_format(tool_calls)
 
     print(f"转换成功: {len(openai_format) == 2}")
-    print(f"第一个调用 ID: {openai_format[0]['id']}")
-    print(f"第一个调用类型: {openai_format[0]['type']}")
-    print(f"第一个调用函数名: {openai_format[0]['function']['name']}")
+    print(f"第一个调用 ID: {openai_format[0].id}")
+    print(f"第一个调用类型: {openai_format[0].type}")
+    print(f"第一个调用函数名: {openai_format[0].function.name}")
 
 
 if __name__ == "__main__":
     test_handle_tools()
-    test_parse_tool_call_response()
+    test_tool_interceptor()
     test_convert_tool_calls_to_openai_format()
     print("\n所有测试完成！")
