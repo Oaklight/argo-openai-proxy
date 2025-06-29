@@ -1,4 +1,5 @@
 import json
+import re
 import time
 import uuid
 from http import HTTPStatus
@@ -14,6 +15,7 @@ from ..tool_calls.input_handle import handle_tools
 from ..tool_calls.output_handle import (
     ToolInterceptor,
     tool_calls_to_openai,
+    tool_calls_to_openai_stream,
 )
 from ..types import (
     ChatCompletion,
@@ -53,6 +55,7 @@ def transform_chat_completions_compat(
 
     This is a wrapper function that delegates to the appropriate streaming or non-streaming handler.
     """
+    logger.warning(f"tool_calls: {tool_calls}")
     try:
         if is_streaming:
             return transform_chat_completions_streaming(
@@ -60,6 +63,7 @@ def transform_chat_completions_compat(
                 model_name=model_name,
                 create_timestamp=create_timestamp,
                 finish_reason=finish_reason,
+                tool_calls=tool_calls,
                 **kwargs,
             )
         else:
@@ -82,12 +86,30 @@ def transform_chat_completions_streaming(
     model_name: str,
     create_timestamp: int,
     finish_reason: FINISH_REASONS = "stop",
+    tool_calls: Optional[Dict[str, Any]] = None,
+    tc_index: int = 0,
     **kwargs,
 ) -> Dict[str, Any]:
     """
     Transforms the custom API response into a streaming OpenAI-compatible format.
     """
+
+    # in stream mode we could only have one tool call at a time, but we need to wrap it in a list to match the tool_calls_to_openai_stream function signature
     try:
+        # Handle tool calls for streaming
+        tool_calls_obj = None
+        logger.warning(f"transforming tool_calls: {tool_calls}")
+        if tool_calls:
+            # tool_calls_obj is None or List of ChoiceDeltaToolCall
+            tool_calls_obj = [
+                tool_calls_to_openai_stream(
+                    tool_calls,
+                    tc_index=tc_index,
+                    api_format="chat_completion",
+                )
+            ]
+            logger.warning(f"tool_calls_obj: {tool_calls_obj}")
+
         openai_response = ChatCompletionChunk(
             id=str(uuid.uuid4().hex),
             created=create_timestamp,
@@ -97,6 +119,7 @@ def transform_chat_completions_streaming(
                     index=0,
                     delta=ChoiceDelta(
                         content=content,
+                        tool_calls=tool_calls_obj,
                     ),
                     finish_reason=finish_reason,
                 )
@@ -277,7 +300,9 @@ async def send_streaming_request(
     request: web.Request,
     convert_to_openai: bool = False,
     *,
-    openai_compat_fn: Callable[..., Dict[str, Any]] = transform_chat_completions_compat,
+    openai_compat_fn: Callable[
+        ..., Dict[str, Any]
+    ] = transform_chat_completions_streaming,
     fake_stream: bool = False,
 ) -> web.StreamResponse:
     """Sends a streaming request to an API and streams the response to the client.
@@ -292,19 +317,23 @@ async def send_streaming_request(
         fake_stream: If True, simulates streaming by sending the response in chunks.
     """
 
-    async def handle_chunk(chunk, finish_reason=None):
+    async def handle_chunk(chunk, finish_reason=None, tool_call_single=None):
         """
         Handles a chunk of data, converting it if necessary and sending it off.
         """
+        logger.warning(f"Handling chunk: {chunk}")
+        logger.warning(f"Finish reason: {finish_reason}")
+        logger.warning(f"Tool calls before openai_compat_fn: {tool_call_single}")
         if convert_to_openai:
             # Convert the chunk to OpenAI-compatible JSON
             chunk_json = openai_compat_fn(
-                chunk.decode(),
+                chunk.decode() if chunk else None,
                 model_name=data["model"],
                 create_timestamp=created_timestamp,
                 prompt_tokens=prompt_tokens,
                 is_streaming=True,
                 finish_reason=finish_reason,  # May be None for ongoing chunks
+                tool_calls=tool_call_single,
             )
             await send_off_sse(response, chunk_json)
         else:
@@ -361,19 +390,35 @@ async def send_streaming_request(
         response.enable_chunked_encoding()
         await response.prepare(request)
 
+        cs = ToolInterceptor()
+
         if fake_stream:
             # Get full response first
             response_data = await upstream_resp.json()
             response_text = response_data.get("response", "")
 
-            # Split into chunks of ~10 characters to simulate streaming
-            chunk_size = 20
+            tool_calls, cleaned_text = cs.process(response_text)
+
+            if tool_calls:
+                for i, tc_dict in enumerate(tool_calls):
+                    chunk_json = openai_compat_fn(
+                        None,
+                        model_name=data["model"],
+                        create_timestamp=created_timestamp,
+                        prompt_tokens=prompt_tokens,
+                        is_streaming=True,
+                        finish_reason="tool_calls",
+                        tool_calls=tc_dict,
+                        tc_index=i,
+                    )
+                    await send_off_sse(response, chunk_json)
+
             total_processed = 0
-            async for chunk in pseudo_chunk_generator(response_text, chunk_size):
+            async for chunk in pseudo_chunk_generator(cleaned_text):
                 total_processed += len(chunk)
-                finish_reason = (
-                    "stop" if total_processed >= len(response_text) else None
-                )
+                finish_reason = None
+                if total_processed >= len(cleaned_text):
+                    finish_reason = "stop"
                 await handle_chunk(chunk.encode(), finish_reason)
 
         else:
