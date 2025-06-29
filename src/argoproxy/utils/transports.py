@@ -1,9 +1,37 @@
 import asyncio
 import json
 import urllib.request
-from typing import Any, Dict, Union
+from typing import Any, AsyncGenerator, Dict, Union
 
 from aiohttp import web
+
+
+async def pseudo_chunk_generator(
+    complete_text: str,
+    chunk_size: int = 20,
+    sleep_time: float = 0.02,
+) -> AsyncGenerator[str, None]:
+    """Generate text chunks asynchronously to simulate streaming responses.
+
+    Args:
+        complete_text: The complete text to be chunked.
+        chunk_size: Size of each chunk in characters. Defaults to 20.
+        sleep_time: Time to sleep between chunks in seconds. Defaults to 0.02.
+
+    Yields:
+        str: Text chunks of the specified size.
+
+    Example:
+        >>> async for chunk in pseudo_chunk_generator("Hello World", 5):
+        ...     print(chunk)
+        "Hello"
+        " Worl"
+        "d"
+    """
+    for i in range(0, len(complete_text), chunk_size):
+        chunk = complete_text[i : i + chunk_size]
+        await asyncio.sleep(sleep_time)  # Small delay between chunks
+        yield chunk
 
 
 async def send_off_sse(
