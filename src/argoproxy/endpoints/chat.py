@@ -1,5 +1,4 @@
 import json
-import re
 import time
 import uuid
 from http import HTTPStatus
@@ -317,29 +316,6 @@ async def send_streaming_request(
         fake_stream: If True, simulates streaming by sending the response in chunks.
     """
 
-    async def handle_chunk(chunk, finish_reason=None, tool_call_single=None):
-        """
-        Handles a chunk of data, converting it if necessary and sending it off.
-        """
-        logger.warning(f"Handling chunk: {chunk}")
-        logger.warning(f"Finish reason: {finish_reason}")
-        logger.warning(f"Tool calls before openai_compat_fn: {tool_call_single}")
-        if convert_to_openai:
-            # Convert the chunk to OpenAI-compatible JSON
-            chunk_json = openai_compat_fn(
-                chunk.decode() if chunk else None,
-                model_name=data["model"],
-                create_timestamp=created_timestamp,
-                prompt_tokens=prompt_tokens,
-                is_streaming=True,
-                finish_reason=finish_reason,  # May be None for ongoing chunks
-                tool_calls=tool_call_single,
-            )
-            await send_off_sse(response, chunk_json)
-        else:
-            # Return the chunk as raw text
-            await send_off_sse(response, chunk)
-
     headers = {
         "Content-Type": "application/json",
         "Accept": "text/plain",
@@ -414,17 +390,54 @@ async def send_streaming_request(
                     await send_off_sse(response, chunk_json)
 
             total_processed = 0
-            async for chunk in pseudo_chunk_generator(cleaned_text):
-                total_processed += len(chunk)
+            async for chunk_text in pseudo_chunk_generator(cleaned_text):
+                total_processed += len(chunk_text)
                 finish_reason = None
                 if total_processed >= len(cleaned_text):
                     finish_reason = "stop"
-                await handle_chunk(chunk.encode(), finish_reason)
+
+                # Inline handle_chunk logic for fake_stream mode
+                logger.warning(f"Handling chunk: {chunk_text}")
+                logger.warning(f"Finish reason: {finish_reason}")
+                logger.warning(f"Tool calls before openai_compat_fn: {None}")
+                if convert_to_openai:
+                    # Convert the chunk to OpenAI-compatible JSON
+                    chunk_json = openai_compat_fn(
+                        chunk_text,
+                        model_name=data["model"],
+                        create_timestamp=created_timestamp,
+                        prompt_tokens=prompt_tokens,
+                        is_streaming=True,
+                        finish_reason=finish_reason,  # May be None for ongoing chunks
+                        tool_calls=None,
+                    )
+                    await send_off_sse(response, chunk_json)
+                else:
+                    # Return the chunk as raw text
+                    await send_off_sse(response, chunk_text.encode())
 
         else:
             chunk_iterator = upstream_resp.content.iter_any()
-            async for chunk in chunk_iterator:
-                await handle_chunk(chunk)
+            async for chunk_bytes in chunk_iterator:
+                # Inline handle_chunk logic for real streaming mode
+                logger.warning(f"Handling chunk: {chunk_bytes}")
+                logger.warning(f"Finish reason: {None}")
+                logger.warning(f"Tool calls before openai_compat_fn: {None}")
+                if convert_to_openai:
+                    # Convert the chunk to OpenAI-compatible JSON
+                    chunk_json = openai_compat_fn(
+                        chunk_bytes.decode() if chunk_bytes else None,
+                        model_name=data["model"],
+                        create_timestamp=created_timestamp,
+                        prompt_tokens=prompt_tokens,
+                        is_streaming=True,
+                        finish_reason=None,  # May be None for ongoing chunks
+                        tool_calls=None,
+                    )
+                    await send_off_sse(response, chunk_json)
+                else:
+                    # Return the chunk as raw text
+                    await send_off_sse(response, chunk_bytes)
 
         # Ensure response is properly closed
         await response.write_eof()
