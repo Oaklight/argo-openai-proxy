@@ -1,4 +1,3 @@
-import asyncio
 import json
 import time
 import uuid
@@ -39,92 +38,132 @@ DEFAULT_MODEL = "argo:gpt-4o"
 
 
 def transform_chat_completions_compat(
-    content: str,
+    content: Optional[str] = None,
     *,
     model_name: str,
     create_timestamp: int,
     prompt_tokens: int,
     is_streaming: bool = False,
     finish_reason: FINISH_REASONS = "stop",
-    tool_calls: Optional[List[Dict[str, Any]]] = None,
+    tool_calls: Optional[Union[List[Dict[str, Any]], str]] = None,
     **kwargs,
 ) -> Dict[str, Any]:
     """
     Transforms the custom API response into a format compatible with OpenAI's API.
 
-    Args:
-        content: The response obtained from the custom API.
-        model_name: The name of the model that generated the completion.
-        create_timestamp: The creation timestamp of the completion.
-        prompt_tokens: The number of tokens in the input prompt.
-        is_streaming: Boolean indicating if the response is streaming.
-        finish_reason: The reason for response completion, e.g., "stop".
-        tool_calls: A list of tool calls received from custom API.
-
-    Returns:
-        A dictionary representing the OpenAI-compatible JSON response.
+    This is a wrapper function that delegates to the appropriate streaming or non-streaming handler.
     """
     try:
-        usage = None
-        if not is_streaming:
-            # only count usage if not stream
-            # Calculate token counts (simplified example, actual tokenization may differ)
-            completion_tokens = count_tokens(content, model_name)
-            if tool_calls:
-                tool_tokens = count_tokens(json.dumps(tool_calls), model_name)
-                completion_tokens += tool_tokens
-            total_tokens = prompt_tokens + completion_tokens
-            usage = CompletionUsage(
-                prompt_tokens=prompt_tokens,
-                completion_tokens=completion_tokens,
-                total_tokens=total_tokens,
-            )
-
         if is_streaming:
-            openai_response = ChatCompletionChunk(
-                id=str(uuid.uuid4().hex),
-                created=create_timestamp,
-                model=model_name,
-                choices=[
-                    StreamChoice(
-                        index=0,
-                        delta=ChoiceDelta(
-                            content=content,
-                        ),
-                        finish_reason=finish_reason,
-                    )
-                ],
+            return transform_chat_completions_streaming(
+                content=content,
+                model_name=model_name,
+                create_timestamp=create_timestamp,
+                finish_reason=finish_reason,
+                **kwargs,
             )
         else:
-            tool_calls_obj = None
-            if tool_calls:
-                tool_calls_obj = tool_calls_to_openai(
-                    tool_calls, api_format="chat_completion"
-                )
-
-            openai_response = ChatCompletion(
-                id=str(uuid.uuid4().hex),
-                created=create_timestamp,
-                model=model_name,
-                choices=[
-                    NonStreamChoice(
-                        index=0,
-                        message=ChatCompletionMessage(
-                            content=content,
-                            tool_calls=tool_calls_obj,
-                        ),
-                        finish_reason=finish_reason,
-                    )
-                ],
-                usage=usage,
+            return transform_chat_completions_non_streaming(
+                content=content,
+                model_name=model_name,
+                create_timestamp=create_timestamp,
+                prompt_tokens=prompt_tokens,
+                finish_reason=finish_reason,
+                tool_calls=tool_calls,
+                **kwargs,
             )
+    except Exception as err:
+        return {"error": f"An error occurred: {err}"}
+
+
+def transform_chat_completions_streaming(
+    content: Optional[str] = None,
+    *,
+    model_name: str,
+    create_timestamp: int,
+    finish_reason: FINISH_REASONS = "stop",
+    **kwargs,
+) -> Dict[str, Any]:
+    """
+    Transforms the custom API response into a streaming OpenAI-compatible format.
+    """
+    try:
+        openai_response = ChatCompletionChunk(
+            id=str(uuid.uuid4().hex),
+            created=create_timestamp,
+            model=model_name,
+            choices=[
+                StreamChoice(
+                    index=0,
+                    delta=ChoiceDelta(
+                        content=content,
+                    ),
+                    finish_reason=finish_reason,
+                )
+            ],
+        )
+        return openai_response.model_dump()
+    except Exception as err:
+        return {"error": f"An error occurred in streaming response: {err}"}
+
+
+def transform_chat_completions_non_streaming(
+    content: Optional[str] = None,
+    *,
+    model_name: str,
+    create_timestamp: int,
+    prompt_tokens: int,
+    finish_reason: FINISH_REASONS = "stop",
+    tool_calls: Optional[Union[List[Dict[str, Any]], str]] = None,
+    **kwargs,
+) -> Dict[str, Any]:
+    """
+    Transforms the custom API response into a non-streaming OpenAI-compatible format.
+    """
+    try:
+        # Calculate token usage
+        completion_tokens = count_tokens(content, model_name) if content else 0
+        if tool_calls:
+            tool_tokens = count_tokens(json.dumps(tool_calls), model_name)
+            completion_tokens += tool_tokens
+        total_tokens = prompt_tokens + completion_tokens
+
+        usage = CompletionUsage(
+            prompt_tokens=prompt_tokens,
+            completion_tokens=completion_tokens,
+            total_tokens=total_tokens,
+        )
+
+        # Handle tool calls
+        tool_calls_obj = None
+        if tool_calls:
+            tool_calls_obj = tool_calls_to_openai(
+                tool_calls, api_format="chat_completion"
+            )
+
+        openai_response = ChatCompletion(
+            id=str(uuid.uuid4().hex),
+            created=create_timestamp,
+            model=model_name,
+            choices=[
+                NonStreamChoice(
+                    index=0,
+                    message=ChatCompletionMessage(
+                        content=content,
+                        tool_calls=tool_calls_obj,
+                    ),
+                    finish_reason=finish_reason,
+                )
+            ],
+            usage=usage,
+        )
 
         return openai_response.model_dump()
 
     except json.JSONDecodeError as err:
         return {"error": f"Error decoding JSON: {err}"}
     except Exception as err:
-        return {"error": f"An error occurred: {err}"}
+        return {"error": f"An error occurred in non-streaming response: {err}"}
 
 
 def prepare_chat_request_data(
@@ -181,7 +220,9 @@ async def send_non_streaming_request(
     api_url: str,
     data: Dict[str, Any],
     convert_to_openai: bool = False,
-    openai_compat_fn: Callable[..., Dict[str, Any]] = transform_chat_completions_compat,
+    openai_compat_fn: Callable[
+        ..., Dict[str, Any]
+    ] = transform_chat_completions_non_streaming,
 ) -> web.Response:
     """Sends a non-streaming request to an API and processes the response.
 
@@ -396,6 +437,7 @@ async def proxy_request(
                     config.argo_url,
                     data,
                     convert_to_openai,
+                    openai_compat_fn=transform_chat_completions_non_streaming,
                 )
 
     except ValueError as err:
