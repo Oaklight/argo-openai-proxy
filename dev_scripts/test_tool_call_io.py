@@ -1,5 +1,6 @@
 import os
 import sys
+import asyncio
 
 # 添加 src 目录到 Python 路径
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "src"))
@@ -118,6 +119,233 @@ def test_tool_interceptor():
     print(f"文本保持不变: {remaining_3 == response_3}")
 
 
+def test_tool_interceptor_stream():
+    """测试 ToolInterceptor 流式处理功能"""
+    print("\n=== 测试 ToolInterceptor 流式处理功能 ===")
+
+    def test_sync_stream():
+        """测试同步流式处理"""
+        print("\n--- 同步流式处理测试 ---")
+
+        # 测试 1: 基本流式处理
+        print("\n测试 1 - 基本同步流:")
+        interceptor = ToolInterceptor()
+        chunks = [
+            "开始文本 <tool_c",
+            'all>{"name": "test", "arg',
+            'uments": {"value": 42}}',
+            "</tool_call> 结束文本",
+        ]
+
+        results = []
+        for tool_call, text in interceptor.process_stream(iter(chunks)):
+            if tool_call:
+                results.append(f"TOOL: {tool_call}")
+            if text:
+                results.append(f"TEXT: {repr(text)}")
+
+        print(f"结果数量: {len(results)}")
+        for result in results:
+            print(f"  {result}")
+
+        # 测试 2: 多个工具调用的流式处理
+        print("\n测试 2 - 多个工具调用同步流:")
+        interceptor = ToolInterceptor()
+        chunks = [
+            '第一个 <tool_call>{"name": "first"}',
+            '</tool_call> 中间文本 <tool_call>{"name":',
+            ' "second"}</tool_call> 最后文本',
+        ]
+
+        results = []
+        for tool_call, text in interceptor.process_stream(iter(chunks)):
+            if tool_call:
+                results.append(f"TOOL: {tool_call['name']}")
+            if text:
+                results.append(f"TEXT: {repr(text)}")
+
+        print(f"结果数量: {len(results)}")
+        for result in results:
+            print(f"  {result}")
+
+        # 测试 3: 边界情况 - 标签分割
+        print("\n测试 3 - 标签分割同步流:")
+        interceptor = ToolInterceptor()
+        chunks = ["<", "tool_", "call>", '{"test": 1}', "<", "/tool_call>"]
+
+        results = []
+        for tool_call, text in interceptor.process_stream(iter(chunks)):
+            if tool_call:
+                results.append(f"TOOL: {tool_call}")
+            if text:
+                results.append(f"TEXT: {repr(text)}")
+
+        print(f"结果数量: {len(results)}")
+        for result in results:
+            print(f"  {result}")
+
+        # 测试 4: 无效 JSON 处理
+        print("\n测试 4 - 无效 JSON 同步流:")
+        interceptor = ToolInterceptor()
+        chunks = ['<tool_call>{"invalid": json', " syntax}</tool_call>"]
+
+        results = []
+        for tool_call, text in interceptor.process_stream(iter(chunks)):
+            if tool_call:
+                results.append(f"TOOL: {tool_call}")
+            if text:
+                results.append(f"TEXT: {repr(text)}")
+
+        print(f"结果数量: {len(results)}")
+        for result in results:
+            print(f"  {result}")
+
+    async def test_async_stream():
+        """测试异步流式处理"""
+        print("\n--- 异步流式处理测试 ---")
+
+        # 测试 1: 基本异步流式处理
+        print("\n测试 1 - 基本异步流:")
+        interceptor = ToolInterceptor()
+
+        async def async_chunks():
+            chunks = [
+                "开始文本 <tool_c",
+                'all>{"name": "async_test", "arg',
+                'uments": {"value": 100}}',
+                "</tool_call> 结束文本",
+            ]
+            for chunk in chunks:
+                await asyncio.sleep(0.001)  # 模拟网络延迟
+                yield chunk
+
+        results = []
+        async for tool_call, text in interceptor.process_stream(async_chunks()):
+            if tool_call:
+                results.append(f"TOOL: {tool_call}")
+            if text:
+                results.append(f"TEXT: {repr(text)}")
+
+        print(f"结果数量: {len(results)}")
+        for result in results:
+            print(f"  {result}")
+
+        # 测试 2: 复杂异步流 - 多个工具调用
+        print("\n测试 2 - 复杂异步流:")
+        interceptor = ToolInterceptor()
+
+        async def complex_async_chunks():
+            chunks = [
+                "分析开始\n",
+                '<tool_call>\n{"name": ',
+                '"analyze", "arguments": ',
+                '{"data": "sample"}}\n</tool_call>\n',
+                "分析完成，开始计算\n",
+                '<tool_call>{"name": "calculate", ',
+                '"arguments": {"expr": "2+2"}}</tool_call>\n',
+                "所有操作完成。",
+            ]
+            for chunk in chunks:
+                await asyncio.sleep(0.002)
+                yield chunk
+
+        results = []
+        async for tool_call, text in interceptor.process_stream(complex_async_chunks()):
+            if tool_call:
+                results.append(f"TOOL: {tool_call}")
+            if text:
+                results.append(
+                    f"TEXT: {repr(text[:50])}{'...' if len(text) > 50 else ''}"
+                )
+
+        print(f"结果数量: {len(results)}")
+        for result in results:
+            print(f"  {result}")
+
+        # 测试 3: 异步流中的边界情况
+        print("\n测试 3 - 异步流边界情况:")
+        interceptor = ToolInterceptor()
+
+        async def boundary_async_chunks():
+            # 极端分割情况
+            chunks = list('<tool_call>{"name": "boundary_test"}</tool_call>')
+            for chunk in chunks:
+                await asyncio.sleep(0.001)
+                yield chunk
+
+        results = []
+        async for tool_call, text in interceptor.process_stream(
+            boundary_async_chunks()
+        ):
+            if tool_call:
+                results.append(f"TOOL: {tool_call['name']}")
+            if text:
+                results.append(f"TEXT: {repr(text)}")
+
+        print(f"结果数量: {len(results)}")
+        for result in results:
+            print(f"  {result}")
+
+        # 测试 4: 异步流中的错误处理
+        print("\n测试 4 - 异步流错误处理:")
+        interceptor = ToolInterceptor()
+
+        async def error_async_chunks():
+            chunks = [
+                "正常文本 ",
+                "<tool_call>",
+                "这不是有效的JSON",
+                "</tool_call>",
+                " 继续文本",
+            ]
+            for chunk in chunks:
+                await asyncio.sleep(0.001)
+                yield chunk
+
+        results = []
+        async for tool_call, text in interceptor.process_stream(error_async_chunks()):
+            if tool_call:
+                results.append(f"TOOL: {tool_call}")
+            if text:
+                results.append(f"TEXT: {repr(text)}")
+
+        print(f"结果数量: {len(results)}")
+        for result in results:
+            print(f"  {result}")
+
+    def test_mixed_scenarios():
+        """测试混合场景"""
+        print("\n--- 混合场景测试 ---")
+
+        # 测试类型检测
+        print("\n测试 - 类型自动检测:")
+        interceptor = ToolInterceptor()
+
+        # 同步迭代器
+        sync_chunks = ["sync ", '<tool_call>{"name": "sync_test"}</tool_call>']
+        print("同步迭代器检测:")
+        sync_results = list(interceptor.process_stream(iter(sync_chunks)))
+        print(f"  同步结果: {len(sync_results)} 项")
+
+        # 测试生成器函数
+        def sync_generator():
+            yield "generator "
+            yield '<tool_call>{"name": "generator_test"}</tool_call>'
+
+        print("同步生成器检测:")
+        gen_results = list(interceptor.process_stream(sync_generator()))
+        print(f"  生成器结果: {len(gen_results)} 项")
+
+    # 运行同步测试
+    test_sync_stream()
+
+    # 运行异步测试
+    asyncio.run(test_async_stream())
+
+    # 运行混合场景测试
+    test_mixed_scenarios()
+
+
 def test_convert_tool_calls_to_openai_format():
     """测试 convert_tool_calls_to_openai_format 函数"""
     print("\n=== 测试 convert_tool_calls_to_openai_format 函数 ===")
@@ -138,5 +366,6 @@ def test_convert_tool_calls_to_openai_format():
 if __name__ == "__main__":
     test_handle_tools()
     test_tool_interceptor()
+    test_tool_interceptor_stream()
     test_convert_tool_calls_to_openai_format()
     print("\n所有测试完成！")
