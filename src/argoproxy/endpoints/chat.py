@@ -38,47 +38,6 @@ from ..utils.transports import pseudo_chunk_generator, send_off_sse
 DEFAULT_MODEL = "argo:gpt-4o"
 
 
-def transform_chat_completions_compat(
-    content: Optional[str] = None,
-    *,
-    model_name: str,
-    create_timestamp: int,
-    prompt_tokens: int,
-    is_streaming: bool = False,
-    finish_reason: FINISH_REASONS = "stop",
-    tool_calls: Optional[Union[List[Dict[str, Any]], str]] = None,
-    **kwargs,
-) -> Dict[str, Any]:
-    """
-    Transforms the custom API response into a format compatible with OpenAI's API.
-
-    This is a wrapper function that delegates to the appropriate streaming or non-streaming handler.
-    """
-    logger.warning(f"tool_calls: {tool_calls}")
-    try:
-        if is_streaming:
-            return transform_chat_completions_streaming(
-                content=content,
-                model_name=model_name,
-                create_timestamp=create_timestamp,
-                finish_reason=finish_reason,
-                tool_calls=tool_calls,
-                **kwargs,
-            )
-        else:
-            return transform_chat_completions_non_streaming(
-                content=content,
-                model_name=model_name,
-                create_timestamp=create_timestamp,
-                prompt_tokens=prompt_tokens,
-                finish_reason=finish_reason,
-                tool_calls=tool_calls,
-                **kwargs,
-            )
-    except Exception as err:
-        return {"error": f"An error occurred: {err}"}
-
-
 def transform_chat_completions_streaming(
     content: Optional[str] = None,
     *,
@@ -97,8 +56,8 @@ def transform_chat_completions_streaming(
     try:
         # Handle tool calls for streaming
         tool_calls_obj = None
-        logger.warning(f"transforming tool_calls: {tool_calls}")
         if tool_calls:
+            logger.warning(f"transforming tool_calls: {tool_calls}")
             # tool_calls_obj is None or List of ChoiceDeltaToolCall
             tool_calls_obj = [
                 tool_calls_to_openai_stream(
@@ -107,7 +66,6 @@ def transform_chat_completions_streaming(
                     api_format="chat_completion",
                 )
             ]
-            logger.warning(f"tool_calls_obj: {tool_calls_obj}")
 
         openai_response = ChatCompletionChunk(
             id=str(uuid.uuid4().hex),
@@ -397,9 +355,6 @@ async def send_streaming_request(
                     finish_reason = "stop"
 
                 # Inline handle_chunk logic for fake_stream mode
-                logger.warning(f"Handling chunk: {chunk_text}")
-                logger.warning(f"Finish reason: {finish_reason}")
-                logger.warning(f"Tool calls before openai_compat_fn: {None}")
                 if convert_to_openai:
                     # Convert the chunk to OpenAI-compatible JSON
                     chunk_json = openai_compat_fn(
@@ -417,6 +372,8 @@ async def send_streaming_request(
                     await send_off_sse(response, chunk_text.encode())
 
         else:
+            # ATTENTION:
+            # this branch is semi-stale, as upstream support to streaming mode is primitive. We shall deal with it when we need it.
             chunk_iterator = upstream_resp.content.iter_any()
             async for chunk_bytes in chunk_iterator:
                 # Inline handle_chunk logic for real streaming mode
