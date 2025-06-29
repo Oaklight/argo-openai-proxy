@@ -11,7 +11,7 @@ from loguru import logger
 
 from ..config import ArgoConfig
 from ..models import ModelRegistry
-from ..tool_calls.output_handle import convert_tool_calls_to_openai_format
+from ..tool_calls.output_handle import tool_calls_to_openai
 from ..types import (
     Response,
     ResponseCompletedEvent,
@@ -85,9 +85,7 @@ def transform_non_streaming_response(
 
         output = []
         if tool_calls:
-            output.extend(
-                convert_tool_calls_to_openai_format(tool_calls, api_format="response")
-            )
+            output.extend(tool_calls_to_openai(tool_calls, api_format="response"))
         output.append(
             ResponseOutputMessage(
                 id=f"msg_{uuid.uuid4().hex}",

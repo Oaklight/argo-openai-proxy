@@ -14,7 +14,7 @@ from ..models import ModelRegistry
 from ..tool_calls.input_handle import handle_tools
 from ..tool_calls.output_handle import (
     ToolInterceptor,
-    convert_tool_calls_to_openai_format,
+    tool_calls_to_openai,
 )
 from ..types import (
     ChatCompletion,
@@ -98,7 +98,7 @@ def transform_chat_completions_compat(
         else:
             tool_calls_obj = None
             if tool_calls:
-                tool_calls_obj = convert_tool_calls_to_openai_format(
+                tool_calls_obj = tool_calls_to_openai(
                     tool_calls, api_format="chat_completion"
                 )
 
