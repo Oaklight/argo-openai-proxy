@@ -307,40 +307,39 @@ def tool_calls_to_openai(
 
 
 def tool_calls_to_openai_stream(
-    tool_calls: List[Dict[str, Any]],
+    tool_call: Dict[str, Any],
     *,
+    tc_index: int = 0,
     api_format: Literal["chat_completion", "response"] = "chat_completion",
-) -> List[ChoiceDeltaToolCall]:
+) -> ChoiceDeltaToolCall:
     """
-    Converts a list of tool calls to OpenAI-compatible tool call objects for streaming.
+    Converts a tool call dict to OpenAI-compatible tool call objects for streaming.
 
     Args:
-        tool_calls: List of tool calls to convert.
+        tool_calls: single tool call dict to convert.
+        tc_index: The index of the tool call.
         api_format: The format to convert the tool calls to. Can be "chat_completion" or "response".
 
     Returns:
-        List of OpenAI-compatible stream tool call objects.
+        An OpenAI-compatible stream tool call object.
     """
-    openai_tool_calls = []
 
-    for i, call in enumerate(tool_calls):
-        arguments = json.dumps(call.get("arguments", ""))
-        name = call.get("name", "")
-        if api_format == "chat_completion":
-            tool_call_obj = ChoiceDeltaToolCall(
-                id=generate_id(mode="chat_completion"),
-                function=Function(name=name, arguments=arguments),
-                index=i,
-            )
-        else:
-            # tool_call_obj = ResponseFunctionToolCall(
-            #     arguments=arguments,
-            #     call_id=generate_id(mode="chat_completion"),
-            #     name=name,
-            #     id=generate_id(mode="response"),
-            #     status="completed",
-            # )
-            raise NotImplementedError("response format is not implemented yet.")
-        openai_tool_calls.append(tool_call_obj)
+    arguments = json.dumps(tool_call.get("arguments", ""))
+    name = tool_call.get("name", "")
+    if api_format == "chat_completion":
+        tool_call_obj = ChoiceDeltaToolCall(
+            id=generate_id(mode="chat_completion"),
+            function=Function(name=name, arguments=arguments),
+            index=tc_index,
+        )
+    else:
+        # tool_call_obj = ResponseFunctionToolCall(
+        #     arguments=arguments,
+        #     call_id=generate_id(mode="chat_completion"),
+        #     name=name,
+        #     id=generate_id(mode="response"),
+        #     status="completed",
+        # )
+        raise NotImplementedError("response format is not implemented yet.")
 
-    return openai_tool_calls
+    return tool_call_obj
