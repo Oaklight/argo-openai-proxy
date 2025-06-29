@@ -8,6 +8,7 @@ from loguru import logger
 
 from ..types.function_call import (
     ChatCompletionMessageToolCall,
+    ChoiceDeltaToolCall,
     Function,
     ResponseFunctionToolCall,
 )
@@ -196,20 +197,23 @@ def generate_id(
 
 def convert_tool_calls_to_openai_format(
     tool_calls: List[Dict[str, Any]],
+    *,
+    is_stream: bool = False,
     api_format: Literal["chat_completion", "response"] = "chat_completion",
 ) -> List[Union[ChatCompletionMessageToolCall, ResponseFunctionToolCall]]:
-    """
-    Convert parsed tool calls to OpenAI API format.
+    """Converts parsed tool calls to OpenAI API format.
 
-    Parameters
-    ----------
-    tool_calls : list
-        List of parsed tool calls
+    Args:
+        tool_calls: List of parsed tool calls.
+        is_stream: Whether the output is for streaming. Defaults to False.
+        api_format: Output format type, either "chat_completion" or "response".
+            Defaults to "chat_completion".
 
-    Returns
-    -------
-    list
-        List of tool calls in OpenAI function call object type
+    Returns:
+        List of tool calls in OpenAI function call object type. The specific type
+        depends on the api_format parameter:
+        - ChatCompletionMessageToolCall for "chat_completion"
+        - ResponseFunctionToolCall for "response"
     """
     openai_tool_calls = []
 
@@ -217,18 +221,24 @@ def convert_tool_calls_to_openai_format(
         arguments = json.dumps(call.get("arguments", ""))
         name = call.get("name", "")
         if api_format == "chat_completion":
-            tool_call_obj = ChatCompletionMessageToolCall(
-                id=generate_id(mode="chat_completion"),
-                function=Function(name=name, arguments=arguments),
-            )
+            if is_stream:
+                pass
+            else:
+                tool_call_obj = ChatCompletionMessageToolCall(
+                    id=generate_id(mode="chat_completion"),
+                    function=Function(name=name, arguments=arguments),
+                )
         else:
-            tool_call_obj = ResponseFunctionToolCall(
-                arguments=arguments,
-                call_id=generate_id(mode="chat_completion"),
-                name=name,
-                id=generate_id(mode="response"),
-                status="completed",
-            )
+            if is_stream:
+                pass
+            else:
+                tool_call_obj = ResponseFunctionToolCall(
+                    arguments=arguments,
+                    call_id=generate_id(mode="chat_completion"),
+                    name=name,
+                    id=generate_id(mode="response"),
+                    status="completed",
+                )
         openai_tool_calls.append(tool_call_obj)
 
     return openai_tool_calls
