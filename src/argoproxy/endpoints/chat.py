@@ -94,7 +94,7 @@ def transform_chat_completions_non_streaming(
     create_timestamp: int,
     prompt_tokens: int,
     finish_reason: FINISH_REASONS = "stop",
-    tool_calls: Optional[Union[List[Dict[str, Any]], str]] = None,
+    tool_calls: Optional[List[Dict[str, Any]]] = None,
     **kwargs,
 ) -> Dict[str, Any]:
     """
@@ -116,7 +116,7 @@ def transform_chat_completions_non_streaming(
 
         # Handle tool calls
         tool_calls_obj = None
-        if tool_calls:
+        if tool_calls and isinstance(tool_calls, list):
             tool_calls_obj = tool_calls_to_openai(
                 tool_calls, api_format="chat_completion"
             )
@@ -433,7 +433,9 @@ async def proxy_request(
             logger.info(make_bar())
 
         # Prepare the request data
-        data = prepare_chat_request_data(data, config, model_registry)
+        data = prepare_chat_request_data(
+            data, config, model_registry, convert_to_openai
+        )
 
         # Forward the modified request to the actual API using aiohttp
         async with aiohttp.ClientSession() as session:
