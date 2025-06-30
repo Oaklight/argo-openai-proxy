@@ -264,6 +264,22 @@ def generate_id(
         raise ValueError(f"Unknown mode: {mode!r}")
 
 
+@overload
+def tool_calls_to_openai(
+    tool_calls: List[Dict[str, Any]],
+    *,
+    api_format: Literal["chat_completion"] = "chat_completion",
+) -> List[ChatCompletionMessageToolCall]: ...
+
+
+@overload
+def tool_calls_to_openai(
+    tool_calls: List[Dict[str, Any]],
+    *,
+    api_format: Literal["response"],
+) -> List[ResponseFunctionToolCall]: ...
+
+
 def tool_calls_to_openai(
     tool_calls: List[Dict[str, Any]],
     *,
