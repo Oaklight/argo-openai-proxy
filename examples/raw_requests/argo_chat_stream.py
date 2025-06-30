@@ -18,7 +18,7 @@ print("Running Chat Test with Messages")
 payload = {
     "model": MODEL,
     "prompt": [
-        "Tell me something interesting about quantum mechanics.",
+        "Tell me something interesting about quantum mechanics. longer passage",
         "Wait, I changed my mind. Tell me about the history of the Internet instead.",
     ],
     "stream": True,
