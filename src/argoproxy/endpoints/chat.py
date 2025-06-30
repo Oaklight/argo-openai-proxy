@@ -181,9 +181,9 @@ def prepare_chat_request_data(
         data = handle_tools(data)
     else:
         # remove incompatible fields for direct ARGO API calls
-        data = data.pop("tools")
-        data = data.pop("tool_choice")
-        data = data.pop("parallel_tool_calls")
+        data.pop("tools", None)
+        data.pop("tool_choice", None)
+        data.pop("parallel_tool_calls", None)
 
     # Apply transformations based on model type
     if data["model"] in model_registry.option_2_input_models:
