@@ -13,6 +13,8 @@ pip install argo-proxy # install the package
 argo-proxy # run the proxy
 ```
 
+Function calling experimental: try with `pip install argo-proxy==2.7.5.alpha1`.
+
 ## NOTICE OF USAGE
 
 The machine or server making API calls to Argo must be connected to the Argonne internal network or through a VPN on an Argonne-managed computer if you are working off-site. Your instance of the argo proxy should always be on-premise at an Argonne machine. The software is provided "as is," without any warranties. By using this software, you accept that the authors, contributors, and affiliated organizations will not be liable for any damages or issues arising from its use. You are solely responsible for ensuring the software meets your requirements.
