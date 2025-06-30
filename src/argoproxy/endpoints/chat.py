@@ -292,10 +292,10 @@ async def send_streaming_request(
     }
 
     # Set response headers based on the mode
+    created_timestamp = int(time.time())
+    prompt_tokens = calculate_prompt_tokens(data, data["model"])
     if convert_to_openai:
         response_headers = {"Content-Type": "text/event-stream"}
-        created_timestamp = int(time.time())
-        prompt_tokens = calculate_prompt_tokens(data, data["model"])
     else:
         response_headers = {"Content-Type": "text/plain; charset=utf-8"}
 
@@ -335,39 +335,37 @@ async def send_streaming_request(
         response.enable_chunked_encoding()
         await response.prepare(request)
 
-        cs = ToolInterceptor()
-
         if fake_stream:
             # Get full response first
             response_data = await upstream_resp.json()
             response_text = response_data.get("response", "")
 
-            tool_calls, cleaned_text = cs.process(response_text)
+            if convert_to_openai:
+                # OpenAI conversion & tool calls logic only applies below
+                cs = ToolInterceptor()
+                tool_calls, cleaned_text = cs.process(response_text)
 
-            if tool_calls:
-                for i, tc_dict in enumerate(tool_calls):
-                    chunk_json = openai_compat_fn(
-                        None,
-                        model_name=data["model"],
-                        create_timestamp=created_timestamp,
-                        prompt_tokens=prompt_tokens,
-                        is_streaming=True,
-                        finish_reason="tool_calls",
-                        tool_calls=tc_dict,
-                        tc_index=i,
-                    )
-                    await send_off_sse(response, chunk_json)
+                if tool_calls:
+                    for i, tc_dict in enumerate(tool_calls):
+                        chunk_json = openai_compat_fn(
+                            None,
+                            model_name=data["model"],
+                            create_timestamp=created_timestamp,
+                            prompt_tokens=prompt_tokens,
+                            is_streaming=True,
+                            finish_reason="tool_calls",
+                            tool_calls=tc_dict,
+                            tc_index=i,
+                        )
+                        await send_off_sse(response, chunk_json)
 
-            total_processed = 0
-            async for chunk_text in pseudo_chunk_generator(cleaned_text):
-                total_processed += len(chunk_text)
-                finish_reason = None
-                if total_processed >= len(cleaned_text):
-                    finish_reason = "stop"
+                total_processed = 0
+                async for chunk_text in pseudo_chunk_generator(cleaned_text):
+                    total_processed += len(chunk_text)
+                    finish_reason = None
+                    if total_processed >= len(cleaned_text):
+                        finish_reason = "stop"
 
-                # Inline handle_chunk logic for fake_stream mode
-                if convert_to_openai:
-                    # Convert the chunk to OpenAI-compatible JSON
                     chunk_json = openai_compat_fn(
                         chunk_text,
                         model_name=data["model"],
@@ -378,10 +376,11 @@ async def send_streaming_request(
                         tool_calls=None,
                     )
                     await send_off_sse(response, chunk_json)
-                else:
-                    # Return the chunk as raw text
-                    await send_off_sse(response, chunk_text.encode())
 
+            else:
+                # Simple: just raw chunk streaming
+                async for chunk_text in pseudo_chunk_generator(response_text):
+                    await send_off_sse(response, chunk_text.encode())
         else:
             # ATTENTION:
             # this branch is semi-stale, as upstream support to streaming mode is primitive. We shall deal with it when we need it.
