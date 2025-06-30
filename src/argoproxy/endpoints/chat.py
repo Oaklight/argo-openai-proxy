@@ -150,7 +150,8 @@ def prepare_chat_request_data(
     data: Dict[str, Any],
     config: ArgoConfig,
     model_registry: ModelRegistry,
-    convert_to_openai: bool = True,
+    *,
+    enable_tools: bool = False,
 ) -> Dict[str, Any]:
     """
     Prepares chat request data for upstream APIs based on model type.
@@ -159,7 +160,7 @@ def prepare_chat_request_data(
         data: The incoming request data.
         config: The ArgoConfig object containing configuration settings.
         model_registry: The ModelRegistry object containing model mappings.
-        convert_to_openai: Whether the request is openai compatible, this determines whether we enables tool calls related fields.
+        enable_tools: Determines whether we enables tool calls related fields - tools, tool_choice, parallel_tool_calls.
 
     Returns:
         The modified request data.
@@ -176,7 +177,7 @@ def prepare_chat_request_data(
     if "prompt" in data and not isinstance(data["prompt"], list):
         data["prompt"] = [data["prompt"]]
 
-    if convert_to_openai:
+    if enable_tools:
         # convert tools related fields to a single system prompt
         data = handle_tools(data)
     else:
@@ -444,7 +445,7 @@ async def proxy_request(
 
         # Prepare the request data
         data = prepare_chat_request_data(
-            data, config, model_registry, convert_to_openai
+            data, config, model_registry, enable_tools=convert_to_openai
         )
 
         # Forward the modified request to the actual API using aiohttp
