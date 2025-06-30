@@ -4,7 +4,6 @@
 ![GitHub Release](https://img.shields.io/github/v/release/Oaklight/argo-proxy)
 <!-- ![GitHub Tag](https://img.shields.io/github/v/tag/Oaklight/argo-proxy) -->
 
-
 This project is a proxy application that forwards requests to an ARGO API and optionally converts the responses to be compatible with OpenAI's API format. It can be used in conjunction with [autossh-tunnel-dockerized](https://github.com/Oaklight/autossh-tunnel-dockerized) or other secure connection tools.
 
 ## TL;DR
@@ -35,6 +34,9 @@ The machine or server making API calls to Argo must be connected to the Argonne 
   - [Models](#models)
     - [Chat Models](#chat-models)
     - [Embedding Models](#embedding-models)
+  - [Tool Calls](#tool-calls)
+    - [Tool Call Examples](#tool-call-examples)
+    - [ToolRegistry](#toolregistry)
   - [Examples](#examples)
     - [Raw Requests](#raw-requests)
     - [OpenAI Client](#openai-client)
@@ -290,6 +292,25 @@ Details of how to make such override in different query flavors: [Timeout Overri
 | `ada002`                 | `argo:text-embedding-ada-002` |
 | `v3small`                | `argo:text-embedding-3-small` |
 | `v3large`                | `argo:text-embedding-3-large` |
+
+### Tool Calls
+
+The experimental tool calls (function calling) interface has been available since version v2.7.5.alpha1.
+
+- Available on both streaming and non-streaming **chat completion** endpoints
+- Responses support is under development
+- Argo passthrough and legacy completion endpoints do not support tool calling and will not be supported
+
+#### Tool Call Examples
+
+- **Function Calling OpenAI Client**: [function_calling_chat.py](examples/openai_client/function_calling_chat.py)
+- **Function Calling Raw Request**: [function_calling_chat.py](examples/raw_requests/function_calling_chat.py)
+
+For more usage details, refer to the [OpenAI documentation](https://platform.openai.com/docs/guides/function-calling).
+
+#### ToolRegistry
+
+A lightweight yet powerful Python helper library is available for various tool handling: [ToolRegistry](https://github.com/Oaklight/ToolRegistry). It works with any OpenAI-compatible API, including Argo Proxy starting from version v2.7.5.alpha1.
 
 ### Examples
 
