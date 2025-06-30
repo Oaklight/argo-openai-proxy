@@ -8,6 +8,7 @@ from argparse import RawTextHelpFormatter
 from typing import Optional
 
 from loguru import logger
+from packaging import version
 
 from .__init__ import __version__
 from .app import run
@@ -133,15 +134,16 @@ def open_in_editor(config_path: Optional[str] = None):
 def version_check() -> str:
     ver_content = [__version__]
     latest = asyncio.run(get_latest_pypi_version())
-    # logger.info(f"Argo-Proxy version: {__version__}")
 
-    if latest and latest != __version__:
-        ver_content.extend(
-            [
-                f"New version available: {latest}",
-                "Update with `pip install --upgrade argo-proxy`",
-            ]
-        )
+    if latest:
+        # Use packaging.version to compare versions correctly
+        if version.parse(latest) > version.parse(__version__):
+            ver_content.extend(
+                [
+                    f"New version available: {latest}",
+                    "Update with `pip install --upgrade argo-proxy`",
+                ]
+            )
 
     return "\n".join(ver_content)
 
