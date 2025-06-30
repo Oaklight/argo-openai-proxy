@@ -147,7 +147,10 @@ def transform_chat_completions_non_streaming(
 
 
 def prepare_chat_request_data(
-    data: Dict[str, Any], config: ArgoConfig, model_registry: ModelRegistry
+    data: Dict[str, Any],
+    config: ArgoConfig,
+    model_registry: ModelRegistry,
+    convert_to_openai: bool = True,
 ) -> Dict[str, Any]:
     """
     Prepares chat request data for upstream APIs based on model type.
@@ -156,6 +159,7 @@ def prepare_chat_request_data(
         data: The incoming request data.
         config: The ArgoConfig object containing configuration settings.
         model_registry: The ModelRegistry object containing model mappings.
+        convert_to_openai: Whether the request is openai compatible, this determines whether we enables tool calls related fields.
 
     Returns:
         The modified request data.
@@ -172,7 +176,14 @@ def prepare_chat_request_data(
     if "prompt" in data and not isinstance(data["prompt"], list):
         data["prompt"] = [data["prompt"]]
 
-    data = handle_tools(data)  # convert tools related fields to a single system prompt
+    if convert_to_openai:
+        # convert tools related fields to a single system prompt
+        data = handle_tools(data)
+    else:
+        # remove incompatible fields for direct ARGO API calls
+        data = data.pop("tools")
+        data = data.pop("tool_choice")
+        data = data.pop("parallel_tool_calls")
 
     # Apply transformations based on model type
     if data["model"] in model_registry.option_2_input_models:
