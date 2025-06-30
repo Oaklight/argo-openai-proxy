@@ -457,7 +457,7 @@ class ModelRegistry:
         # Populate the models data with the combined models
         for model_name, model_id in self.available_models.items():
             model_data["data"].append(
-                OpenAIModel(id=model_id, internal_name=model_name).model_dump()
+                OpenAIModel(id=model_name, internal_name=model_id).model_dump()
             )
 
         return model_data
