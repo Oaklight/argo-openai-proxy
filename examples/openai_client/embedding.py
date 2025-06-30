@@ -2,13 +2,13 @@ import os
 
 import openai
 
-MODEL = "argo:text-embedding-3-small"
+MODEL = os.getenv("MODEL", "argo:text-embedding-3-small")
 BASE_URL = os.getenv("BASE_URL", "http://localhost:44498")
 API_KEY = os.getenv("API_KEY", "whatever+random")
 
 client = openai.OpenAI(
     api_key=API_KEY,
-    base_url=BASE_URL,
+    base_url=f"{BASE_URL}/v1",
 )
 
 
