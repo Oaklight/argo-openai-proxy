@@ -1,5 +1,6 @@
 import inspect
 import json
+import re
 import secrets
 import string
 from typing import (
@@ -32,60 +33,39 @@ class ToolInterceptor:
         self.tool_call_buffer = ""
 
     def process(self, text: str) -> Tuple[Optional[List[dict]], str]:
-        """Non-stream mode: Extract all tool_call JSONs and text after the last </tool_call> only."""
+        """Non-stream mode: Extract all tool_call JSONs and preserve all non-tool-call text.
+
+        Returns:
+            Tuple of (list of tool calls or None, concatenated text from outside tool calls)
+        """
         tool_calls = []
-        last_tail = ""
+        text_parts = []
+        last_end = 0
 
-        # Reset state for non-stream processing
-        self.buffer = text
-        self.in_tool_call = False
-        self.tool_call_buffer = ""
+        for match in re.finditer(r"<tool_call>(.*?)</tool_call>", text, re.DOTALL):
+            # Add text before this tool call
+            if match.start() > last_end:
+                text_parts.append(text[last_end : match.start()])
 
-        while self.buffer:
-            if not self.in_tool_call:
-                start_idx = self.buffer.find("<tool_call>")
-                if start_idx == -1:
-                    # No more tool calls
-                    last_tail = self.buffer  # Only grab the tail once, no accumulation
-                    self.buffer = ""
-                else:
-                    # Found tool call start, skip any preceding text
-                    self.buffer = self.buffer[start_idx + len("<tool_call>") :]
-                    self.in_tool_call = True
-                    self.tool_call_buffer = ""
-            else:
-                end_idx = self.buffer.find("</tool_call>")
-                if end_idx == -1:
-                    # Should not happen in non-stream mode with complete text
-                    self.tool_call_buffer += self.buffer
-                    self.buffer = ""
-                else:
-                    # Found tool call end
-                    self.tool_call_buffer += self.buffer[:end_idx]
-                    try:
-                        tool_call_json = json.loads(self.tool_call_buffer.strip())
-                        tool_calls.append(tool_call_json)
-                    except json.JSONDecodeError:
-                        # Invalid JSON - ignore error marker for in-between text (as per new logic)
-                        pass
+            # Process the tool call
+            try:
+                tool_calls.append(json.loads(match.group(1).strip()))
+            except json.JSONDecodeError:
+                # On JSON error, include the raw content as text
+                text_parts.append(f"<invalid>{match.group(1)}</invalid>")
 
-                    self.buffer = self.buffer[end_idx + len("</tool_call>") :]
-                    self.in_tool_call = False
-                    self.tool_call_buffer = ""
+            last_end = match.end()
+
+        # Add any remaining text after last tool call
+        if last_end < len(text):
+            text_parts.append(text[last_end:])
 
         return (
             tool_calls if tool_calls else None,
-            last_tail.lstrip(),
+            "".join(
+                text_parts
+            ).lstrip(),  # Combine all text parts and strip leading whitespace
         )
-
-    def _could_be_partial_tag(self, text: str) -> bool:
-        """Check if text could be the start of <tool_call> or </tool_call>"""
-        for i in range(1, min(len(text) + 1, 11)):  # Max length of '</tool_call>'
-            if "<tool_call>".startswith(text[-i:]) or "</tool_call>".startswith(
-                text[-i:]
-            ):
-                return True
-        return False
 
     def _process_chunk_logic(
         self, chunk: str
