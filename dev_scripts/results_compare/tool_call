@@ -1,0 +1,136 @@
+(argo) pding@pding-x1:argo-proxy$ MODEL=argo:gpt-4.1-mini python examples/openai_client/openai_calculator_example_chat_api.py 
+2025-07-03 23:38:21.973 | INFO     | __main__:handle_tool_calls:35 - Tool calls: [ChatCompletionMessageToolCall(id='call_L4b2YiqoypS7A5aiMCSTYV', function=Function(arguments='{"with_help": true}', name='calculator-list_allowed_fns'), type='function', index=0)]
+2025-07-03 23:38:22.046 | INFO     | __main__:handle_tool_calls:49 - Messages: None
+I have retrieved a comprehensive list of available functions in the Calculator tool, including their descriptions. There is a rich variety of operations and mathematical functions, including basic arithmetic (add, subtract, multiply, divide), powers and roots (pow, sqrt, cbrt), logarithmic and exponential functions (log, ln, exp), statistical functions (min, max, sum, average, median, mode, standard_deviation), and other specialized functions like factorial, gcd, lcm, distance calculations, interest calculations, trigonometric and hyperbolic functions, combinatorial functions, and more.
+
+Next, I will proceed to run 10 different calculations for each main category of operations and functions to examine their behavior and results. I will group them as follows:
+
+1. Basic Arithmetic Operations
+2. Powers and Roots
+3. Logarithmic and Exponential Functions
+4. Statistical Functions
+5. Factorials, GCD, LCM
+6. Distance and Norm Functions
+7. Interest Calculations
+8. Trigonometric Functions
+9. Combinatorial Functions
+10. Miscellaneous Functions (such as rounding, absolute, etc.)
+
+I will begin with the first category: Basic Arithmetic Operations.
+(argo) pding@pding-x1:argo-proxy$ MODEL=gpt-4.1-mini python examples/openai_client/openai_calculator_example_chat_api.py 
+2025-07-03 23:38:36.581 | INFO     | __main__:handle_tool_calls:35 - Tool calls: [ChatCompletionMessageToolCall(id='call_tsb3B9OOUaLvSHQVmCvE4zRh', function=Function(arguments='{"with_help": true}', name='calculator-list_allowed_fns'), type='function', index=0), ChatCompletionMessageToolCall(id='call_qkwBlEsr9Dz3EZdtZu4CIdid', function=Function(arguments='{"expression": "2 + 3"}', name='calculator-evaluate'), type='function', index=0), ChatCompletionMessageToolCall(id='call_xcs3lbh7VLUeOukCDxO2HR6J', function=Function(arguments='{"expression": "10 - 4"}', name='calculator-evaluate'), type='function', index=0), ChatCompletionMessageToolCall(id='call_x6CloQBA4AvABPChDoT1md84', function=Function(arguments='{"expression": "5 * 6"}', name='calculator-evaluate'), type='function', index=0), ChatCompletionMessageToolCall(id='call_6LYiIxLKvVElstZxfSASY5IZ', function=Function(arguments='{"expression": "8 / 2"}', name='calculator-evaluate'), type='function', index=0), ChatCompletionMessageToolCall(id='call_Cm06ceJXB9TQH86qm6U7wNT9', function=Function(arguments='{"expression": "7 % 3"}', name='calculator-evaluate'), type='function', index=0), ChatCompletionMessageToolCall(id='call_3hxmkEtp323dwusIQ7y8lJCU', function=Function(arguments='{"expression": "2 ** 3"}', name='calculator-evaluate'), type='function', index=0), ChatCompletionMessageToolCall(id='call_AuWFzCstfmAcqqsOxKntfBto', function=Function(arguments='{"expression": "sqrt(16)"}', name='calculator-evaluate'), type='function', index=0), ChatCompletionMessageToolCall(id='call_s2xjx7dbu2qz08YYPQIQbDCg', function=Function(arguments='{"expression": "log(100)"}', name='calculator-evaluate'), type='function', index=0), ChatCompletionMessageToolCall(id='call_8QaFQpwnYlqI0b7RZktAa7mh', function=Function(arguments='{"expression": "sin(30)"}', name='calculator-evaluate'), type='function', index=0), ChatCompletionMessageToolCall(id='call_47ofrRlNoHf2yD6o3sJ9SMTK', function=Function(arguments='{"expression": "cos(60)"}', name='calculator-evaluate'), type='function', index=0)]
+2025-07-03 23:38:36.651 | INFO     | __main__:handle_tool_calls:49 - Messages: None
+2025-07-03 23:39:02.028 | INFO     | __main__:handle_tool_calls:35 - Tool calls: [ChatCompletionMessageToolCall(id='call_nO5y1v7ALQTf751JVFATdf29', function=Function(arguments='{"expression": "subtract(20, 7)"}', name='calculator-evaluate'), type='function', index=0), ChatCompletionMessageToolCall(id='call_6fiGV95vuRbHO8rzMYwzS75c', function=Function(arguments='{"expression": "multiply(7, 9)"}', name='calculator-evaluate'), type='function', index=0), ChatCompletionMessageToolCall(id='call_fTGL8jPBB2GMmrVnlRpYPyrR', function=Function(arguments='{"expression": "divide(45, 5)"}', name='calculator-evaluate'), type='function', index=0), ChatCompletionMessageToolCall(id='call_3tFFagnTb6dwDlUZ8L6Y8XuY', function=Function(arguments='{"expression": "floor_divide(22, 7)"}', name='calculator-evaluate'), type='function', index=0), ChatCompletionMessageToolCall(id='call_NJYmZWlBigpFJrIqiTDzb2fq', function=Function(arguments='{"expression": "mod(29, 5)"}', name='calculator-evaluate'), type='function', index=0), ChatCompletionMessageToolCall(id='call_eag75re4gf3itx5cRhknjIXi', function=Function(arguments='{"expression": "abs(-15)"}', name='calculator-evaluate'), type='function', index=0), ChatCompletionMessageToolCall(id='call_6Vmjc93wZREIoM6ZiEPibTL7', function=Function(arguments='{"expression": "round(4.678, 2)"}', name='calculator-evaluate'), type='function', index=0), ChatCompletionMessageToolCall(id='call_PcPVLhhs3iyGkW8EQzysfHtz', function=Function(arguments='{"expression": "pow(3, 4)"}', name='calculator-evaluate'), type='function', index=0), ChatCompletionMessageToolCall(id='call_EqWBqJpzsUqx6pMbRN3xlBt3', function=Function(arguments='{"expression": "cbrt(27)"}', name='calculator-evaluate'), type='function', index=0), ChatCompletionMessageToolCall(id='call_ldLztDt59GZVJnOTmqxuN7rE', function=Function(arguments='{"expression": "ln(7.389056)"}', name='calculator-evaluate'), type='function', index=0), ChatCompletionMessageToolCall(id='call_ZThEF7JuojL4kpcO88zJFQ02', function=Function(arguments='{"expression": "log(32, 2)"}', name='calculator-evaluate'), type='function', index=0), ChatCompletionMessageToolCall(id='call_cPzRRlFdnrGOQ6smbZQiQrDM', function=Function(arguments='{"expression": "exp(2)"}', name='calculator-evaluate'), type='function', index=0), ChatCompletionMessageToolCall(id='call_U6HcILDMoJ940BVblNQF2MKF', function=Function(arguments='{"expression": "min([5, 3, 9, 1, 7])"}', name='calculator-evaluate'), type='function', index=0), ChatCompletionMessageToolCall(id='call_KtMLovLasvcFl2ASvRu1oOZ3', function=Function(arguments='{"expression": "max([5, 3, 9, 1, 7])"}', name='calculator-evaluate'), type='function', index=0), ChatCompletionMessageToolCall(id='call_z6JuwGo5WGii9bNh8GtGpCFO', function=Function(arguments='{"expression": "sum([5, 3, 9, 1, 7])"}', name='calculator-evaluate'), type='function', index=0), ChatCompletionMessageToolCall(id='call_vVtIRoX3mRpaRaThCs1SwRto', function=Function(arguments='{"expression": "average([5, 3, 9, 1, 7])"}', name='calculator-evaluate'), type='function', index=0), ChatCompletionMessageToolCall(id='call_X5qJatW3iUUujKXdRUh6Nzbp', function=Function(arguments='{"expression": "median([5, 3, 9, 1, 7])"}', name='calculator-evaluate'), type='function', index=0), ChatCompletionMessageToolCall(id='call_L7ml6INX4N0V2vsr0QK0w89j', function=Function(arguments='{"expression": "mode([5, 3, 9, 1, 3])"}', name='calculator-evaluate'), type='function', index=0), ChatCompletionMessageToolCall(id='call_k5OtXNtfxpUSeHSo9JgAirsL', function=Function(arguments='{"expression": "standard_deviation([5, 3, 9, 1, 7])"}', name='calculator-evaluate'), type='function', index=0), ChatCompletionMessageToolCall(id='call_pNELGGElcXEIYlHrggwNSV1F', function=Function(arguments='{"expression": "factorial(5)"}', name='calculator-evaluate'), type='function', index=0), ChatCompletionMessageToolCall(id='call_YGMFTK5YBLKf3cIhPbvaoxQe', function=Function(arguments='{"expression": "gcd(36, 60)"}', name='calculator-evaluate'), type='function', index=0), ChatCompletionMessageToolCall(id='call_F1W0Mc3oBTjoNM9o45qnQrXM', function=Function(arguments='{"expression": "lcm(12, 18)"}', name='calculator-evaluate'), type='function', index=0), ChatCompletionMessageToolCall(id='call_z8ynWF0JWM1kDrfbaHkInBds', function=Function(arguments='{"expression": "dist([1, 2], [4, 6])"}', name='calculator-evaluate'), type='function', index=0), ChatCompletionMessageToolCall(id='call_Ds3swQvE7kmSxas6vkNLZwpK', function=Function(arguments='{"expression": "norm_euclidean([3, 4])"}', name='calculator-evaluate'), type='function', index=0), ChatCompletionMessageToolCall(id='call_SMiJUtyBiRRz49A9yDK9fSiD', function=Function(arguments='{"expression": "hypot(3, 4)"}', name='calculator-evaluate'), type='function', index=0), ChatCompletionMessageToolCall(id='call_LTL9eWYgR3Z6Zu14wQ8Vb13P', function=Function(arguments='{"expression": "simple_interest(1000, 0.05, 3)"}', name='calculator-evaluate'), type='function', index=0), ChatCompletionMessageToolCall(id='call_Kj6AccrybTkj5PH9PrvIoT38', function=Function(arguments='{"expression": "compound_interest(1000, 0.05, 3, 4)"}', name='calculator-evaluate'), type='function', index=0), ChatCompletionMessageToolCall(id='call_oZIIqSEid7TVWnlr6IsyQIEs', function=Function(arguments='{"expression": "acos(1)"}', name='calculator-evaluate'), type='function', index=0), ChatCompletionMessageToolCall(id='call_zenTTVsQjnigq17O4YU9skF7', function=Function(arguments='{"expression": "acosh(1.5)"}', name='calculator-evaluate'), type='function', index=0), ChatCompletionMessageToolCall(id='call_AVeoSi4A4XuK0jpGOICwmIUZ', function=Function(arguments='{"expression": "asin(0.5)"}', name='calculator-evaluate'), type='function', index=0), ChatCompletionMessageToolCall(id='call_Mgs7P8LfFrBsremu1N6YRx2t', function=Function(arguments='{"expression": "asinh(1)"}', name='calculator-evaluate'), type='function', index=0), ChatCompletionMessageToolCall(id='call_7ZLYpfW59XZH47yglQ7nN9AG', function=Function(arguments='{"expression": "atan(1)"}', name='calculator-evaluate'), type='function', index=0), ChatCompletionMessageToolCall(id='call_bmWhEoxkwiZt5pVYpebvSQyb', function=Function(arguments='{"expression": "atan2(4, 3)"}', name='calculator-evaluate'), type='function', index=0), ChatCompletionMessageToolCall(id='call_UI3BgcEBxRoOZr4Qi5lJE2Lr', function=Function(arguments='{"expression": "atanh(0.5)"}', name='calculator-evaluate'), type='function', index=0), ChatCompletionMessageToolCall(id='call_W5MBJu1xhokpKSYgKUwoUaLD', function=Function(arguments='{"expression": "ceil(4.2)"}', name='calculator-evaluate'), type='function', index=0), ChatCompletionMessageToolCall(id='call_cl59k7jXskAr2ciSJS99Uihj', function=Function(arguments='{"expression": "comb(5, 3)"}', name='calculator-evaluate'), type='function', index=0), ChatCompletionMessageToolCall(id='call_4vxjE1cNyqWW0dgD1UtKKwqG', function=Function(arguments='{"expression": "copysign(-3, 5)"}', name='calculator-evaluate'), type='function', index=0), ChatCompletionMessageToolCall(id='call_1eo4u5ixDisxHlGxCsbLSnwh', function=Function(arguments='{"expression": "cos(pi / 3)"}', name='calculator-evaluate'), type='function', index=0), ChatCompletionMessageToolCall(id='call_PCWHcbobatyx9OtPcnpNiZGm', function=Function(arguments='{"expression": "cosh(1)"}', name='calculator-evaluate'), type='function', index=0), ChatCompletionMessageToolCall(id='call_UHYzqUSySQ8y0w9VzsJnsdRf', function=Function(arguments='{"expression": "degrees(pi)"}', name='calculator-evaluate'), type='function', index=0), ChatCompletionMessageToolCall(id='call_LwP9shjrtpTdnz2m2ZEsafXW', function=Function(arguments='{"expression": "erf(1)"}', name='calculator-evaluate'), type='function', index=0), ChatCompletionMessageToolCall(id='call_QtMYNqvsmkGFUkzjMBV2fc1C', function=Function(arguments='{"expression": "erfc(1)"}', name='calculator-evaluate'), type='function', index=0), ChatCompletionMessageToolCall(id='call_X4idCwYhcceb4TB42TZejuf7', function=Function(arguments='{"expression": "expm1(1)"}', name='calculator-evaluate'), type='function', index=0), ChatCompletionMessageToolCall(id='call_5BuALC374q37d8VJgFyiGL4f', function=Function(arguments='{"expression": "fabs(-3.5)"}', name='calculator-evaluate'), type='function', index=0), ChatCompletionMessageToolCall(id='call_XTtyl9buB3kMDkZc7Z7RvNzv', function=Function(arguments='{"expression": "floor(4.7)"}', name='calculator-evaluate'), type='function', index=0), ChatCompletionMessageToolCall(id='call_YDsD8019DJR22fVKB2pePxBx', function=Function(arguments='{"expression": "fmod(20.5, 6)"}', name='calculator-evaluate'), type='function', index=0), ChatCompletionMessageToolCall(id='call_Vt9yTJ1B8mUmbrLY5wZwTsbO', function=Function(arguments='{"expression": "frexp(8)"}', name='calculator-evaluate'), type='function', index=0), ChatCompletionMessageToolCall(id='call_dBRjB2Ex6LJAx4BYEly6vy0j', function=Function(arguments='{"expression": "fsum([0.1, 0.1, 0.1, 0.1, 0.1])"}', name='calculator-evaluate'), type='function', index=0), ChatCompletionMessageToolCall(id='call_HxiM8F5dEdjVVZiTnkrfciPE', function=Function(arguments='{"expression": "gamma(5)"}', name='calculator-evaluate'), type='function', index=0), ChatCompletionMessageToolCall(id='call_lkHqrHvwVZKXdoNy8ZMnEvgx', function=Function(arguments='{"expression": "isfinite(1.0)"}', name='calculator-evaluate'), type='function', index=0), ChatCompletionMessageToolCall(id='call_zhQWEUYKfmD3fNk8XttRWPcz', function=Function(arguments='{"expression": "isinf(inf)"}', name='calculator-evaluate'), type='function', index=0), ChatCompletionMessageToolCall(id='call_vKbOh2Fg83Goi4k5NE0tcqGN', function=Function(arguments='{"expression": "isnan(nan)"}', name='calculator-evaluate'), type='function', index=0), ChatCompletionMessageToolCall(id='call_EaR5KKa5Aaz8HMr0AhMTovPq', function=Function(arguments='{"expression": "isqrt(27)"}', name='calculator-evaluate'), type='function', index=0), ChatCompletionMessageToolCall(id='call_OrUyXedd3axUU4bTWo2wPSMq', function=Function(arguments='{"expression": "ldexp(3, 4)"}', name='calculator-evaluate'), type='function', index=0), ChatCompletionMessageToolCall(id='call_euASB1dCNJ0WlAvKxir1nG8w', function=Function(arguments='{"expression": "lgamma(5)"}', name='calculator-evaluate'), type='function', index=0), ChatCompletionMessageToolCall(id='call_SqxZ2dG0aMmVu1n9CmVtEge3', function=Function(arguments='{"expression": "log10(1000)"}', name='calculator-evaluate'), type='function', index=0), ChatCompletionMessageToolCall(id='call_5L5w2nOjAWh7b41DPUZnAFPg', function=Function(arguments='{"expression": "log1p(0.5)"}', name='calculator-evaluate'), type='function', index=0), ChatCompletionMessageToolCall(id='call_9yoMwFCZnIoiXyOLuH7QlNQY', function=Function(arguments='{"expression": "log2(8)"}', name='calculator-evaluate'), type='function', index=0), ChatCompletionMessageToolCall(id='call_M5jgl5Lxj2WsROkE6OTIhECG', function=Function(arguments='{"expression": "modf(5.75)"}', name='calculator-evaluate'), type='function', index=0), ChatCompletionMessageToolCall(id='call_UUk25gTzDNNH1xSLps8SYnka', function=Function(arguments='{"expression": "nextafter(1.0, 2.0)"}', name='calculator-evaluate'), type='function', index=0), ChatCompletionMessageToolCall(id='call_qa41nQWVFFnRxr9NJw4Cku4n', function=Function(arguments='{"expression": "perm(5, 3)"}', name='calculator-evaluate'), type='function', index=0), ChatCompletionMessageToolCall(id='call_vJgel3AuSr4W06LQtuZRH8aV', function=Function(arguments='{"expression": "pi"}', name='calculator-evaluate'), type='function', index=0), ChatCompletionMessageToolCall(id='call_cZ3va4wzK51YeKG6PS1Dg6sp', function=Function(arguments='{"expression": "prod([1, 2, 3, 4, 5])"}', name='calculator-evaluate'), type='function', index=0), ChatCompletionMessageToolCall(id='call_wtqrpc97Cpr8dvnlpmDxjKDS', function=Function(arguments='{"expression": "radians(180)"}', name='calculator-evaluate'), type='function', index=0), ChatCompletionMessageToolCall(id='call_tykQ75il4lNOtETJPZRz4KYj', function=Function(arguments='{"expression": "remainder(20, 6)"}', name='calculator-evaluate'), type='function', index=0), ChatCompletionMessageToolCall(id='call_gIY7VfYyNC3x14DwFupHD5nc', function=Function(arguments='{"expression": "sin(pi / 6)"}', name='calculator-evaluate'), type='function', index=0), ChatCompletionMessageToolCall(id='call_oZehji2KMUiJNgtW5n1cRQZT', function=Function(arguments='{"expression": "sinh(1)"}', name='calculator-evaluate'), type='function', index=0), ChatCompletionMessageToolCall(id='call_ycUkNsBieE0h8kyfo67ypK4D', function=Function(arguments='{"expression": "tan(pi / 4)"}', name='calculator-evaluate'), type='function', index=0), ChatCompletionMessageToolCall(id='call_nxs1Pu3aoC3naP8qbFPbnUQH', function=Function(arguments='{"expression": "tanh(1)"}', name='calculator-evaluate'), type='function', index=0), ChatCompletionMessageToolCall(id='call_M6DXWA9UE1jkHXOIbGYABmVp', function=Function(arguments='{"expression": "tau"}', name='calculator-evaluate'), type='function', index=0), ChatCompletionMessageToolCall(id='call_iLvFdoYRO1EUEyHf5IFbhCcZ', function=Function(arguments='{"expression": "trunc(4.7)"}', name='calculator-evaluate'), type='function', index=0), ChatCompletionMessageToolCall(id='call_R975DG7O53ZZ7nAGhqDfm7dk', function=Function(arguments='{"expression": "ulp(1.0)"}', name='calculator-evaluate'), type='function', index=0)]
+2025-07-03 23:39:02.051 | INFO     | __main__:handle_tool_calls:49 - Messages: None
+I have examined the Calculator tool's list of allowed functions with their help descriptions and tested a variety of calculations across different categories of operations and functions. Here are the findings:
+
+1. Basic Arithmetic Operations (10 calculations):
+- 2 + 3 = 5
+- 10 - 4 = 6
+- 5 * 6 = 30
+- 8 / 2 = 4.0
+- 7 % 3 = 1
+- 2 ** 3 = 8
+- sqrt(16) = 4.0
+- log(100) = 2.0
+- sin(30) (in radians) ≈ -0.9880316240928618
+- cos(60) (in radians) ≈ -0.9524129804151563
+
+2. Additional Arithmetic Functions:
+- subtract(20, 7) = 13
+- multiply(7, 9) = 63
+- divide(45, 5) = 9.0
+- floor_divide(22, 7) = 3
+- mod(29, 5) = 4
+- abs(-15) = 15
+- round(4.678, 2) = 4.68
+- pow(3, 4) = 81
+- cbrt(27) = 3
+- ln(7.389056) ≈ 1.9999999866111924
+
+3. Logarithmic and Exponential Functions:
+- log(32, 2) = 5.0
+- exp(2) ≈ 7.38905609893065
+
+4. Statistical Functions:
+- min([5,3,9,1,7]) = 1
+- max([5,3,9,1,7]) = 9
+- sum([5,3,9,1,7]) = 25
+- average([5,3,9,1,7]) = 5.0
+- median([5,3,9,1,7]) = 5
+- mode([5,3,9,1,3]) = [3]
+- standard_deviation([5,3,9,1,7]) ≈ 2.8284271247461903
+
+5. Factorial and Number Theory Functions:
+- factorial(5) = 120
+- gcd(36, 60) = 12
+- lcm(12, 18) = 36
+
+6. Geometry and Distance Functions:
+- dist([1,2], [4,6]) = 5.0 (Euclidean by default)
+- norm_euclidean([3,4]) = 5.0
+- hypot(3,4) = 5.0
+
+7. Financial Calculations:
+- simple_interest(1000, 0.05, 3) = 150.0
+- compound_interest(1000, 0.05, 3, 4) ≈ 1160.7545177229981
+
+8. Trigonometric and Inverse Trigonometric Functions:
+- acos(1) = 0.0
+- acosh(1.5) ≈ 0.9624236501192069
+- asin(0.5) ≈ 0.5235987755982989
+- asinh(1) ≈ 0.881373587019543
+- atan(1) ≈ 0.7853981633974483
+- atan2(4, 3) ≈ 0.9272952180016122
+- atanh(0.5) ≈ 0.5493061443340548
+
+9. Rounding, Combinatorics, and Sign Functions:
+- ceil(4.2) = 5
+- comb(5, 3) = 10
+- copysign(-3, 5) = 3.0
+
+10. Miscellaneous Mathematical Functions and Constants:
+- cos(pi / 3) = 0.5
+- cosh(1) ≈ 1.5430806348152437
+- degrees(pi) = 180.0
+- erf(1) ≈ 0.8427007929497149
+- erfc(1) ≈ 0.15729920705028513
+- expm1(1) ≈ 1.718281828459045
+- fabs(-3.5) = 3.5
+- floor(4.7) = 4
+- fmod(20.5, 6) = 2.5
+- frexp(8) returns fractional and exponent parts: (0.5, 4)
+- fsum([0.1,0.1,0.1,0.1,0.1]) = 0.5 (accurate floating sum)
+- gamma(5) = 24.0
+- isfinite(1.0) = True
+- isinf(inf) = True
+- isnan(nan) = True
+- isqrt(27) = 5 (integer square root)
+- ldexp(3, 4) = 48.0 (3 * 2^4)
+- lgamma(5) ≈ 3.178053830347945
+- log10(1000) = 3.0
+- log1p(0.5) ≈ 0.4054651081081644
+- log2(8) = 3.0
+- modf(5.75) returns fractional and integer parts: (0.75, 5.0)
+- nextafter(1.0, 2.0) = 1.0000000000000002 (next float after 1 towards 2)
+- perm(5, 3) = 60 (permutations)
+- pi constant = 3.141592653589793
+- prod([1,2,3,4,5]) = 120 (product of iterable)
+- radians(180) = 3.141592653589793 (degrees to radians)
+- remainder(20, 6) = 2.0
+- sin(pi / 6) ≈ 0.49999999999999994
+- sinh(1) ≈ 1.1752011936438014
+- tan(pi / 4) ≈ 0.9999999999999999
+- tanh(1) ≈ 0.7615941559557649
+- tau constant = 6.283185307179586 (2*pi)
+- trunc(4.7) = 4 (truncate towards zero)
+- ulp(1.0) = 2.220446049250313e-16 (unit in the last place for float 1.0)
+
+Summary:
+- The Calculator tool supports a comprehensive set of arithmetic, algebraic, trigonometric, logarithmic, statistical, number theory, geometric, financial, and special mathematical functions.
+- It provides both basic operator forms and named functions for operations.
+- Supports constants such as pi, e, tau, inf, and nan.
+- Includes advanced math functions like gamma, error functions, combinatorics, etc.
+- Handles lists for aggregate functions (min, max, sum, average, median, mode, standard_deviation).
+
+Let me know if you want me to demonstrate any particular function or do further tests!
