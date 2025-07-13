@@ -7,6 +7,7 @@ from typing import Optional
 
 import aiohttp
 from loguru import logger
+from tqdm import tqdm
 
 
 class OptimizedHTTPSession:
@@ -37,16 +38,27 @@ class OptimizedHTTPSession:
             dns_cache_ttl: DNS cache TTL in seconds
             user_agent: User agent string
         """
-        self.connector = aiohttp.TCPConnector(
-            limit=total_connections,
-            limit_per_host=connections_per_host,
-            ttl_dns_cache=dns_cache_ttl,
-            use_dns_cache=True,
-            keepalive_timeout=keepalive_timeout,
-            enable_cleanup_closed=True,
-            # Enable TCP_NODELAY for lower latency
-            tcp_nodelay=True,
-        )
+        # Check aiohttp version for tcp_nodelay support
+        connector_kwargs = {
+            "limit": total_connections,
+            "limit_per_host": connections_per_host,
+            "ttl_dns_cache": dns_cache_ttl,
+            "use_dns_cache": True,
+            "keepalive_timeout": keepalive_timeout,
+            "enable_cleanup_closed": True,
+        }
+        
+        # Only add tcp_nodelay if supported (aiohttp >= 3.8.0)
+        try:
+            import inspect
+            sig = inspect.signature(aiohttp.TCPConnector.__init__)
+            if 'tcp_nodelay' in sig.parameters:
+                connector_kwargs["tcp_nodelay"] = True
+                logger.debug("TCP_NODELAY enabled for lower latency")
+        except Exception:
+            logger.debug("TCP_NODELAY not supported in this aiohttp version")
+        
+        self.connector = aiohttp.TCPConnector(**connector_kwargs)
 
         self.timeout = aiohttp.ClientTimeout(
             total=total_timeout,
@@ -58,15 +70,33 @@ class OptimizedHTTPSession:
         self.user_agent = user_agent
 
     async def create_session(self) -> aiohttp.ClientSession:
-        """Create and return the HTTP session."""
+        """Create and return the HTTP session with progress indication."""
         if self.session is None or self.session.closed:
-            self.session = aiohttp.ClientSession(
-                connector=self.connector,
-                timeout=self.timeout,
-                headers={"User-Agent": self.user_agent},
-            )
+            # Show progress for connection pool creation
+            with tqdm(
+                total=3,
+                desc="🔗 Initializing HTTP connection pool",
+                bar_format="{desc}: {percentage:3.0f}%|{bar}| {n_fmt}/{total_fmt}",
+                leave=False
+            ) as pbar:
+                pbar.set_description("🔗 Creating TCP connector")
+                await asyncio.sleep(0.1)  # Small delay to show progress
+                pbar.update(1)
+                
+                pbar.set_description("🔗 Configuring session timeouts")
+                await asyncio.sleep(0.1)
+                pbar.update(1)
+                
+                pbar.set_description("🔗 Establishing connection pool")
+                self.session = aiohttp.ClientSession(
+                    connector=self.connector,
+                    timeout=self.timeout,
+                    headers={"User-Agent": self.user_agent},
+                )
+                pbar.update(1)
+                
             logger.info(
-                f"HTTP session created with {self.connector.limit} total connections, "
+                f"✅ HTTP session created with {self.connector.limit} total connections, "
                 f"{self.connector.limit_per_host} per host"
             )
         return self.session
