@@ -1,5 +1,6 @@
 import os
 
+import aiohttp
 from aiohttp import web
 from loguru import logger
 
@@ -8,6 +9,7 @@ from .config import load_config
 from .endpoints import chat, completions, embed, extras, responses
 from .endpoints.extras import get_latest_pypi_version
 from .models import ModelRegistry
+from .performance import OptimizedHTTPSession, get_performance_config, optimize_event_loop
 
 
 async def prepare_app(app):
@@ -16,6 +18,31 @@ async def prepare_app(app):
     app["config"], _ = load_config(config_path, verbose=False)
     app["model_registry"] = ModelRegistry(config=app["config"])
     await app["model_registry"].initialize()
+    
+    # Apply event loop optimizations
+    await optimize_event_loop()
+    
+    # Get performance configuration
+    perf_config = get_performance_config()
+    logger.info(f"Performance config: {perf_config}")
+    
+    # Create optimized HTTP session
+    http_session_manager = OptimizedHTTPSession(
+        user_agent=f"argo-proxy/{__version__}",
+        **perf_config
+    )
+    
+    app["http_session_manager"] = http_session_manager
+    app["http_session"] = await http_session_manager.create_session()
+    
+    logger.info("Optimized HTTP connection pool initialized")
+
+
+async def cleanup_app(app):
+    """Clean up resources when app shuts down"""
+    if "http_session_manager" in app:
+        await app["http_session_manager"].close()
+        logger.info("HTTP session manager closed")
 
 
 # ================= Argo Direct Access =================
@@ -96,6 +123,7 @@ async def get_version(request: web.Request):
 
 app = web.Application()
 app.on_startup.append(prepare_app)
+app.on_cleanup.append(cleanup_app)
 
 # openai incompatible
 app.router.add_post("/v1/chat", proxy_argo_chat_directly)
