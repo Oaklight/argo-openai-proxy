@@ -132,44 +132,45 @@ async def proxy_request(
 
         headers: Dict[str, str] = {"Content-Type": "application/json"}
 
-        # Send transformed request to the target API using aiohttp
-        async with aiohttp.ClientSession() as session:
-            async with session.post(
-                config.argo_embedding_url, headers=headers, json=data
-            ) as resp:
-                response_data: Dict[str, Any] = await resp.json()
-                resp.raise_for_status()
+        # Use the shared HTTP session from app context for connection pooling
+        session = request.app["http_session"]
+        
+        async with session.post(
+            config.argo_embedding_url, headers=headers, json=data
+        ) as resp:
+            response_data: Dict[str, Any] = await resp.json()
+            resp.raise_for_status()
 
-                if config.verbose:
-                    logger.info(make_bar("[embed] fwd. response"))
-                    # Create a new dict with copied lists to avoid modifying the original
-                    log_data = {
-                        "embedding": [
-                            emb[:3]
-                            + ["......", f"{len(emb) - 3} elements omitted", "......"]
-                            for emb in response_data["embedding"]
-                        ]
-                    }
-                    logger.info(json.dumps(log_data, indent=4))
-                    logger.info(make_bar())
+            if config.verbose:
+                logger.info(make_bar("[embed] fwd. response"))
+                # Create a new dict with copied lists to avoid modifying the original
+                log_data = {
+                    "embedding": [
+                        emb[:3]
+                        + ["......", f"{len(emb) - 3} elements omitted", "......"]
+                        for emb in response_data["embedding"]
+                    ]
+                }
+                logger.info(json.dumps(log_data, indent=4))
+                logger.info(make_bar())
 
-                if convert_to_openai:
-                    openai_response = make_it_openai_embeddings_compat(
-                        json.dumps(response_data),
-                        data["model"],
-                        data["prompt"],
-                    )
-                    return web.json_response(
-                        openai_response,
-                        status=resp.status,
-                        content_type="application/json",
-                    )
-                else:
-                    return web.json_response(
-                        response_data,
-                        status=resp.status,
-                        content_type="application/json",
-                    )
+            if convert_to_openai:
+                openai_response = make_it_openai_embeddings_compat(
+                    json.dumps(response_data),
+                    data["model"],
+                    data["prompt"],
+                )
+                return web.json_response(
+                    openai_response,
+                    status=resp.status,
+                    content_type="application/json",
+                )
+            else:
+                return web.json_response(
+                    response_data,
+                    status=resp.status,
+                    content_type="application/json",
+                )
 
     except ValueError as err:
         return web.json_response(

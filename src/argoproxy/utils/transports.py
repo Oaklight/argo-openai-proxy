@@ -8,8 +8,8 @@ from aiohttp import web
 
 async def pseudo_chunk_generator(
     complete_text: str,
-    chunk_size: int = 20,
-    sleep_time: float = 0.02,
+    chunk_size: int = 30,
+    sleep_time: float = 0.01,
 ) -> AsyncGenerator[str, None]:
     """Generate text chunks asynchronously to simulate streaming responses.
 

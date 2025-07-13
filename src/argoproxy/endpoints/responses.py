@@ -452,24 +452,25 @@ async def proxy_request(
         # Prepare the request data
         data = prepare_request_data(data, config, model_registry)
 
-        # Forward the modified request to the actual API using aiohttp
-        async with aiohttp.ClientSession() as session:
-            if stream:
-                return await send_streaming_request(
-                    session,
-                    config.argo_url,
-                    data,
-                    request,
-                    fake_stream=True,
-                )
-            else:
-                return await send_non_streaming_request(
-                    session,
-                    config.argo_url,
-                    data,
-                    convert_to_openai=True,
-                    openai_compat_fn=transform_non_streaming_response,
-                )
+        # Use the shared HTTP session from app context for connection pooling
+        session = request.app["http_session"]
+        
+        if stream:
+            return await send_streaming_request(
+                session,
+                config.argo_url,
+                data,
+                request,
+                fake_stream=True,
+            )
+        else:
+            return await send_non_streaming_request(
+                session,
+                config.argo_url,
+                data,
+                convert_to_openai=True,
+                openai_compat_fn=transform_non_streaming_response,
+            )
 
     except ValueError as err:
         return web.json_response(
