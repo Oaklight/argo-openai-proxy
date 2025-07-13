@@ -72,28 +72,32 @@ class OptimizedHTTPSession:
     async def create_session(self) -> aiohttp.ClientSession:
         """Create and return the HTTP session with progress indication."""
         if self.session is None or self.session.closed:
-            # Show progress for connection pool creation
-            with tqdm(
-                total=3,
-                desc="🔗 Initializing HTTP connection pool",
-                bar_format="{desc}: {percentage:3.0f}%|{bar}| {n_fmt}/{total_fmt}",
-                leave=False
-            ) as pbar:
-                pbar.set_description("🔗 Creating TCP connector")
-                await asyncio.sleep(0.1)  # Small delay to show progress
-                pbar.update(1)
-                
-                pbar.set_description("🔗 Configuring session timeouts")
-                await asyncio.sleep(0.1)
-                pbar.update(1)
-                
-                pbar.set_description("🔗 Establishing connection pool")
+            # Show progress for connection pool creation only if it might take time
+            if self.connector.limit > 100:  # Only show progress for large pools
+                with tqdm(
+                    total=100,
+                    desc="🔗 Initializing HTTP connection pool",
+                    bar_format="{desc}: {percentage:3.0f}%|{bar}|",
+                    leave=False,
+                    ncols=60
+                ) as pbar:
+                    pbar.update(30)
+                    await asyncio.sleep(0.05)
+                    
+                    self.session = aiohttp.ClientSession(
+                        connector=self.connector,
+                        timeout=self.timeout,
+                        headers={"User-Agent": self.user_agent},
+                    )
+                    pbar.update(70)
+                    await asyncio.sleep(0.05)
+            else:
+                # For smaller pools, create without progress bar
                 self.session = aiohttp.ClientSession(
                     connector=self.connector,
                     timeout=self.timeout,
                     headers={"User-Agent": self.user_agent},
                 )
-                pbar.update(1)
                 
             logger.info(
                 f"✅ HTTP session created with {self.connector.limit} total connections, "

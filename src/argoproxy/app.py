@@ -123,7 +123,7 @@ async def get_version(request: web.Request):
 
 app = web.Application()
 app.on_startup.append(prepare_app)
-app.on_cleanup.append(cleanup_app)
+app.on_shutdown.append(cleanup_app)
 
 # openai incompatible
 app.router.add_post("/v1/chat", proxy_argo_chat_directly)
