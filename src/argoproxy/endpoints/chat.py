@@ -3,7 +3,7 @@ import json
 import time
 import uuid
 from http import HTTPStatus
-from typing import Any, Awaitable, Callable, Dict, List, Optional, Union
+from typing import Any, Awaitable, Callable, Dict, List, Optional, Union, cast
 
 import aiohttp
 from aiohttp import web
@@ -287,8 +287,9 @@ async def send_streaming_request(
     request: web.Request,
     convert_to_openai: bool = False,
     *,
-    openai_compat_fn: Callable[
-        ..., Dict[str, Any]
+    openai_compat_fn: Union[
+        Callable[..., Dict[str, Any]],
+        Callable[..., Awaitable[Dict[str, Any]]],
     ] = transform_chat_completions_streaming_async,
     fake_stream: bool = False,
 ) -> web.StreamResponse:
@@ -366,17 +367,30 @@ async def send_streaming_request(
 
                 if tool_calls:
                     for i, tc_dict in enumerate(tool_calls):
-                        chunk_json = openai_compat_fn(
-                            None,
-                            model_name=data["model"],
-                            create_timestamp=created_timestamp,
-                            prompt_tokens=prompt_tokens,
-                            is_streaming=True,
-                            finish_reason="tool_calls",
-                            tool_calls=tc_dict,
-                            tc_index=i,
-                        )
-                        await send_off_sse(response, chunk_json)
+                        # Ensure proper handling for both sync and async conversion functions
+                        if asyncio.iscoroutinefunction(openai_compat_fn):
+                            chunk_json = await openai_compat_fn(
+                                None,
+                                model_name=data["model"],
+                                create_timestamp=created_timestamp,
+                                prompt_tokens=prompt_tokens,
+                                is_streaming=True,
+                                finish_reason="tool_calls",
+                                tool_calls=tc_dict,
+                                tc_index=i,
+                            )
+                        else:
+                            chunk_json = openai_compat_fn(
+                                None,
+                                model_name=data["model"],
+                                create_timestamp=created_timestamp,
+                                prompt_tokens=prompt_tokens,
+                                is_streaming=True,
+                                finish_reason="tool_calls",
+                                tool_calls=tc_dict,
+                                tc_index=i,
+                            )
+                        await send_off_sse(response, cast(Dict[str, Any], chunk_json))
 
                 total_processed = 0
                 async for chunk_text in pseudo_chunk_generator(cleaned_text):
@@ -405,7 +419,7 @@ async def send_streaming_request(
                             finish_reason=finish_reason,  # May be None for ongoing chunks
                             tool_calls=None,
                         )
-                    await send_off_sse(response, chunk_json)
+                    await send_off_sse(response, cast(Dict[str, Any], chunk_json))
 
             else:
                 # Simple: just raw chunk streaming
@@ -442,7 +456,7 @@ async def send_streaming_request(
                             finish_reason=None,  # May be None for ongoing chunks
                             tool_calls=None,
                         )
-                    await send_off_sse(response, chunk_json)
+                    await send_off_sse(response, cast(Dict[str, Any], chunk_json))
                 else:
                     # Return the chunk as raw text
                     await send_off_sse(response, chunk_bytes)
