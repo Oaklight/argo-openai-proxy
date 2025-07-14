@@ -2,7 +2,7 @@ import json
 import time
 import uuid
 from http import HTTPStatus
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import Any, Awaitable, Callable, Dict, List, Optional, Union
 
 import aiohttp
 from aiohttp import web
@@ -32,7 +32,11 @@ from ..utils.input_handle import (
     handle_option_2_input,
 )
 from ..utils.misc import make_bar
-from ..utils.tokens import calculate_prompt_tokens, count_tokens
+from ..utils.tokens import (
+    calculate_prompt_tokens_async,
+    count_tokens,
+    count_tokens_async,
+)
 from ..utils.transports import pseudo_chunk_generator, send_off_sse
 
 DEFAULT_MODEL = "argo:gpt-4o"
@@ -146,6 +150,67 @@ def transform_chat_completions_non_streaming(
         return {"error": f"An error occurred in non-streaming response: {err}"}
 
 
+async def transform_chat_completions_non_streaming_async(
+    content: Optional[str] = None,
+    *,
+    model_name: str,
+    create_timestamp: int,
+    prompt_tokens: int,
+    finish_reason: FINISH_REASONS = "stop",
+    tool_calls: Optional[List[Dict[str, Any]]] = None,
+    **kwargs,
+) -> Dict[str, Any]:
+    """
+    Asynchronously transforms the custom API response into a non-streaming OpenAI-compatible format.
+    """
+    try:
+        # Calculate token usage asynchronously
+        completion_tokens = (
+            await count_tokens_async(content, model_name) if content else 0
+        )
+        if tool_calls:
+            tool_tokens = await count_tokens_async(json.dumps(tool_calls), model_name)
+            completion_tokens += tool_tokens
+        total_tokens = prompt_tokens + completion_tokens
+
+        usage = CompletionUsage(
+            prompt_tokens=prompt_tokens,
+            completion_tokens=completion_tokens,
+            total_tokens=total_tokens,
+        )
+
+        # Handle tool calls
+        tool_calls_obj = None
+        if tool_calls and isinstance(tool_calls, list):
+            tool_calls_obj = tool_calls_to_openai(
+                tool_calls, api_format="chat_completion"
+            )
+
+        openai_response = ChatCompletion(
+            id=str(uuid.uuid4().hex),
+            created=create_timestamp,
+            model=model_name,
+            choices=[
+                NonStreamChoice(
+                    index=0,
+                    message=ChatCompletionMessage(
+                        content=content,
+                        tool_calls=tool_calls_obj,
+                    ),
+                    finish_reason=finish_reason,
+                )
+            ],
+            usage=usage,
+        )
+
+        return openai_response.model_dump()
+
+    except json.JSONDecodeError as err:
+        return {"error": f"Error decoding JSON: {err}"}
+    except Exception as err:
+        return {"error": f"An error occurred in non-streaming response: {err}"}
+
+
 def prepare_chat_request_data(
     data: Dict[str, Any],
     config: ArgoConfig,
@@ -212,8 +277,8 @@ async def send_non_streaming_request(
     api_url: str,
     data: Dict[str, Any],
     convert_to_openai: bool = False,
-    openai_compat_fn: Callable[
-        ..., Dict[str, Any]
+    openai_compat_fn: Union[
+        Callable[..., Dict[str, Any]], Callable[..., Awaitable[Dict[str, Any]]]
     ] = transform_chat_completions_non_streaming,
 ) -> web.Response:
     """Sends a non-streaming request to an API and processes the response.
@@ -234,21 +299,35 @@ async def send_non_streaming_request(
         upstream_resp.raise_for_status()
 
         if convert_to_openai:
-            # Calculate prompt tokens using the unified function
-            prompt_tokens = calculate_prompt_tokens(data, data["model"])
+            # Calculate prompt tokens asynchronously
+            prompt_tokens = await calculate_prompt_tokens_async(data, data["model"])
             content = response_data["response"]
 
             cs = ToolInterceptor()
             tool_calls, clean_text = cs.process(content)
             finish_reason = "tool_calls" if tool_calls else "stop"
-            openai_response = openai_compat_fn(
-                clean_text,
-                model_name=data.get("model"),
-                create_timestamp=int(time.time()),
-                prompt_tokens=prompt_tokens,
-                finish_reason=finish_reason,
-                tool_calls=tool_calls,
-            )
+
+            # Check if the function is async and call accordingly
+            import asyncio
+
+            if asyncio.iscoroutinefunction(openai_compat_fn):
+                openai_response = await openai_compat_fn(
+                    clean_text,
+                    model_name=data.get("model"),
+                    create_timestamp=int(time.time()),
+                    prompt_tokens=prompt_tokens,
+                    finish_reason=finish_reason,
+                    tool_calls=tool_calls,
+                )
+            else:
+                openai_response = openai_compat_fn(
+                    clean_text,
+                    model_name=data.get("model"),
+                    create_timestamp=int(time.time()),
+                    prompt_tokens=prompt_tokens,
+                    finish_reason=finish_reason,
+                    tool_calls=tool_calls,
+                )
             return web.json_response(
                 openai_response,
                 status=upstream_resp.status,
@@ -294,7 +373,7 @@ async def send_streaming_request(
 
     # Set response headers based on the mode
     created_timestamp = int(time.time())
-    prompt_tokens = calculate_prompt_tokens(data, data["model"])
+    prompt_tokens = await calculate_prompt_tokens_async(data, data["model"])
     if convert_to_openai:
         response_headers = {"Content-Type": "text/event-stream"}
     else:
@@ -450,7 +529,7 @@ async def proxy_request(
 
         # Use the shared HTTP session from app context for connection pooling
         session = request.app["http_session"]
-        
+
         if stream:
             return await send_streaming_request(
                 session,
@@ -466,7 +545,7 @@ async def proxy_request(
                 config.argo_url,
                 data,
                 convert_to_openai,
-                openai_compat_fn=transform_chat_completions_non_streaming,
+                openai_compat_fn=transform_chat_completions_non_streaming_async,
             )
 
     except ValueError as err:
