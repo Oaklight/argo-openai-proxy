@@ -19,6 +19,7 @@ load_dotenv()
 BASE_URL = os.getenv("BASE_URL", "http://localhost:44500")
 MODEL = os.getenv("MODEL", "argo:gpt-4o")
 CHAT_ENDPOINT = f"{BASE_URL}/v1/chat/completions"
+STREAM = os.getenv("STREAM", "false").lower() == "true"
 
 # Configuration
 TIMEOUT_BASIC = 30.0
@@ -44,7 +45,7 @@ def create_payload(
         "model": MODEL,
         "messages": [{"role": "user", "content": PROMPT_TEMPLATE.format(topic=topic)}],
         "user": f"{user_prefix}_{request_id}",
-        "stream": True,
+        "stream": STREAM,
         "max_tokens": max_tokens,
     }
 
