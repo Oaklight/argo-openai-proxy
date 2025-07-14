@@ -12,7 +12,7 @@ from ..models import ModelRegistry
 from ..types import Completion, CompletionChoice, CompletionUsage
 from ..types.completions import FINISH_REASONS
 from ..utils.misc import make_bar
-from ..utils.tokens import count_tokens
+from ..utils.tokens import count_tokens, count_tokens_async
 from .chat import (
     prepare_chat_request_data,
     send_non_streaming_request,
@@ -81,6 +81,65 @@ def transform_completions_compat(
         return {"error": f"An error occurred: {err}"}
 
 
+async def transform_completions_compat_async(
+    content: str,
+    *,
+    model_name: str,
+    create_timestamp: int,
+    prompt_tokens: int,
+    is_streaming: bool = False,
+    finish_reason: Optional[FINISH_REASONS] = None,
+    **kwargs,  # in case of receiving tools, which is not handled in this endpoint
+) -> Dict[str, Any]:
+    """Asynchronously converts a custom API response to an OpenAI-compatible completion API response.
+
+    Args:
+        content (str): The custom API response in JSON format.
+        model_name (str): The model name used for generating the completion.
+        create_timestamp (int): Timestamp indicating when the completion was created.
+        prompt_tokens (int): Number of tokens in the input prompt.
+        is_streaming (bool, optional): Indicates if the response is in streaming mode. Defaults to False.
+        finish_reason (str, optional): Reason for the completion stop. Defaults to None.
+
+    Returns:
+        Union[Dict[str, Any], str]: OpenAI-compatible JSON response or an error message.
+    """
+    try:
+        usage = None
+        # Calculate token counts asynchronously
+        if not is_streaming:
+            completion_tokens: int = await count_tokens_async(content, model_name)
+            total_tokens: int = prompt_tokens + completion_tokens
+            usage = CompletionUsage(
+                prompt_tokens=prompt_tokens,
+                completion_tokens=completion_tokens,
+                total_tokens=total_tokens,
+            )
+
+        openai_response = Completion(
+            id=f"cmpl-{uuid.uuid4().hex}",
+            created=create_timestamp,
+            model=model_name,
+            choices=[
+                CompletionChoice(
+                    text=content,
+                    index=0,
+                    finish_reason=finish_reason or "stop",
+                )
+            ],
+            usage=usage
+            if not is_streaming
+            else None,  # Usage is not provided in streaming mode
+        )
+
+        return openai_response.model_dump()
+
+    except json.JSONDecodeError as err:
+        return {"error": f"Error decoding JSON: {err}"}
+    except Exception as err:
+        return {"error": f"An error occurred: {err}"}
+
+
 async def proxy_request(
     request: web.Request,
 ) -> Union[web.Response, web.StreamResponse]:
@@ -118,7 +177,7 @@ async def proxy_request(
 
         # Use the shared HTTP session from app context for connection pooling
         session = request.app["http_session"]
-        
+
         if stream:
             return await send_streaming_request(
                 session,
@@ -135,7 +194,7 @@ async def proxy_request(
                 config.argo_url,
                 data,
                 convert_to_openai=True,
-                openai_compat_fn=transform_completions_compat,
+                openai_compat_fn=transform_completions_compat_async,
             )
 
     except ValueError as err:

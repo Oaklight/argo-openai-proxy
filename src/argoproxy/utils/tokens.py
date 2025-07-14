@@ -1,3 +1,4 @@
+import asyncio
 from typing import List, Union
 
 import tiktoken
@@ -50,6 +51,14 @@ def count_tokens(text: Union[str, List[str]], model: str) -> int:
     return len(encoding.encode(text))
 
 
+async def count_tokens_async(text: Union[str, List[str]], model: str) -> int:
+    """
+    Asynchronously calculate token count for a given text using tiktoken.
+    Runs the token counting in a thread pool to avoid blocking the event loop.
+    """
+    return await asyncio.to_thread(count_tokens, text, model)
+
+
 def calculate_prompt_tokens(data: dict, model: str) -> int:
     """
     Calculate prompt tokens from either messages or prompt field in the request data.
@@ -72,3 +81,11 @@ def calculate_prompt_tokens(data: dict, model: str) -> int:
         prompt_tokens = count_tokens(messages_content, model)
         return prompt_tokens
     return count_tokens(data.get("prompt", ""), model)
+
+
+async def calculate_prompt_tokens_async(data: dict, model: str) -> int:
+    """
+    Asynchronously calculate prompt tokens from either messages or prompt field in the request data.
+    Runs the token calculation in a thread pool to avoid blocking the event loop.
+    """
+    return await asyncio.to_thread(calculate_prompt_tokens, data, model)

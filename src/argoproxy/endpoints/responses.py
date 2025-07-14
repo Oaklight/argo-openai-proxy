@@ -28,7 +28,11 @@ from ..types import (
     ResponseUsage,
 )
 from ..utils.misc import make_bar
-from ..utils.tokens import calculate_prompt_tokens, count_tokens
+from ..utils.tokens import (
+    calculate_prompt_tokens_async,
+    count_tokens,
+    count_tokens_async,
+)
 from ..utils.transports import send_off_sse
 from .chat import (
     prepare_chat_request_data,
@@ -75,6 +79,73 @@ def transform_non_streaming_response(
         completion_tokens = count_tokens(content, model_name)
         if tool_calls:
             tool_tokens = count_tokens(json.dumps(tool_calls), model_name)
+            completion_tokens += tool_tokens
+        total_tokens = prompt_tokens + completion_tokens
+        usage = ResponseUsage(
+            input_tokens=prompt_tokens,
+            output_tokens=completion_tokens,
+            total_tokens=total_tokens,
+        )
+
+        output = []
+        if tool_calls:
+            output.extend(tool_calls_to_openai(tool_calls, api_format="response"))
+        output.append(
+            ResponseOutputMessage(
+                id=f"msg_{uuid.uuid4().hex}",
+                status="completed",
+                content=[
+                    ResponseOutputText(
+                        text=content,
+                    )
+                ],
+            )
+        )
+
+        openai_response = Response(
+            id=f"resp_{uuid.uuid4().hex}",
+            created_at=create_timestamp,
+            model=model_name,
+            output=output,
+            status="completed",
+            usage=usage,
+        )
+
+        return openai_response.model_dump()
+
+    except json.JSONDecodeError as err:
+        logger.error(f"Error decoding JSON: {err}")
+        return {"error": f"Error decoding JSON: {err}"}
+    except Exception as err:
+        logger.error(f"An error occurred: {err}")
+        return {"error": f"An error occurred: {err}"}
+
+
+async def transform_non_streaming_response_async(
+    content: str,
+    *,
+    model_name: str,
+    create_timestamp: int,
+    prompt_tokens: int,
+    tool_calls: Optional[List[Dict[str, Any]]] = None,
+    **kwargs,
+) -> Dict[str, Any]:
+    """
+    Asynchronously transforms a non-streaming custom API response into a format compatible with OpenAI's API.
+
+    Args:
+        content: The response obtained from the custom API.
+        model_name: The name of the model that generated the completion.
+        create_timestamp: The creation timestamp of the completion.
+        prompt_tokens: The number of tokens in the input prompt.
+
+    Returns:
+        A dictionary representing the OpenAI-compatible JSON response.
+    """
+    try:
+        completion_tokens = await count_tokens_async(content, model_name)
+        if tool_calls:
+            tool_tokens = await count_tokens_async(json.dumps(tool_calls), model_name)
             completion_tokens += tool_tokens
         total_tokens = prompt_tokens + completion_tokens
         usage = ResponseUsage(
@@ -224,7 +295,7 @@ async def send_streaming_request(
     # Set response headers based on the mode
     response_headers = {"Content-Type": "text/event-stream"}
     created_timestamp = int(time.time())
-    prompt_tokens = calculate_prompt_tokens(data, data["model"])
+    prompt_tokens = await calculate_prompt_tokens_async(data, data["model"])
 
     if fake_stream:
         data["stream"] = False  # disable streaming in upstream request
@@ -401,7 +472,7 @@ async def send_streaming_request(
         sequence_number += 1
         onset_response.output.append(output_msg)
         onset_response.status = "completed"
-        output_tokens = count_tokens(cumulated_response, data["model"])
+        output_tokens = await count_tokens_async(cumulated_response, data["model"])
         onset_response.usage = ResponseUsage(
             input_tokens=prompt_tokens,
             output_tokens=output_tokens,
@@ -454,7 +525,7 @@ async def proxy_request(
 
         # Use the shared HTTP session from app context for connection pooling
         session = request.app["http_session"]
-        
+
         if stream:
             return await send_streaming_request(
                 session,
@@ -469,7 +540,7 @@ async def proxy_request(
                 config.argo_url,
                 data,
                 convert_to_openai=True,
-                openai_compat_fn=transform_non_streaming_response,
+                openai_compat_fn=transform_non_streaming_response_async,
             )
 
     except ValueError as err:
