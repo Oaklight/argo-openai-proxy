@@ -185,7 +185,7 @@ async def proxy_request(
                 data,
                 request,
                 convert_to_openai=True,
-                openai_compat_fn=transform_completions_compat,
+                openai_compat_fn=transform_completions_compat_async,
                 fake_stream=True,
             )
         else:
