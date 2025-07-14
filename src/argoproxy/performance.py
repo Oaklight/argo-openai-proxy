@@ -143,9 +143,9 @@ def get_performance_config() -> dict:
     # Get CPU count for scaling connection limits
     cpu_count = multiprocessing.cpu_count()
 
-    # Scale connection limits based on CPU cores
-    base_connections = max(50, cpu_count * 10)
-    base_per_host = max(20, cpu_count * 5)
+    # Scale connection limits based on CPU cores - increased for better concurrency
+    base_connections = max(200, cpu_count * 20)
+    base_per_host = max(50, cpu_count * 10)
 
     # Check for environment overrides
     total_connections = int(os.getenv("ARGO_PROXY_MAX_CONNECTIONS", base_connections))
