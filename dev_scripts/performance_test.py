@@ -5,11 +5,10 @@ Comprehensive testing with thread-based, async-based, and optimized connection p
 """
 
 import argparse
-import asyncio
 import os
 import statistics
 import time
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_completed
 from typing import Any, Dict, List
 
 import httpx
@@ -25,10 +24,17 @@ CHAT_ENDPOINT = f"{BASE_URL}/v1/chat/completions"
 TIMEOUT_BASIC = 30.0
 TIMEOUT_OPTIMIZED = 60.0
 PROMPT_TEMPLATE = "Explain {topic} in exactly one sentence."
+MAX_RETRIES = 2
+RETRY_DELAY = 0.5  # Initial retry delay in seconds
+CONNECTION_POOL_LIMITS = httpx.Limits(
+    max_keepalive_connections=10,
+    max_connections=20,
+    keepalive_expiry=60.0
+)
 
 
 def create_payload(
-    topic: str, request_id: int, test_mode: str = "async"
+    topic: str, request_id: int, test_mode: str = "process"
 ) -> Dict[str, Any]:
     """Create a chat completion payload."""
     max_tokens = 100  # Use consistent token count for all modes
@@ -74,230 +80,230 @@ def get_topics() -> List[str]:
     ]
 
 
+def make_request(
+    request_id: int,
+    total_requests: int,
+    test_mode: str = "process",
+    track_connection: bool = False
+) -> Dict[str, Any]:
+    """Execute a single streaming request with detailed metrics.
+    
+    Args:
+        request_id: Unique ID for this request
+        total_requests: Total number of concurrent requests
+        test_mode: Type of test ("thread" or "process")
+        track_connection: Whether to track connection reuse metrics
+        
+    Returns:
+        Dictionary containing request metrics and results
+    """
+    # Initial delay between retries (increases exponentially)
+    retry_delay = RETRY_DELAY
+    last_exception = None
+    
+    for attempt in range(MAX_RETRIES + 1):
+        topics = get_topics()
+        topic = topics[request_id % len(topics)]
+        payload = create_payload(topic, request_id, test_mode)
+        headers = {"Content-Type": "application/json"}
+
+        start_time = time.time()
+        result = {
+            "request_id": request_id,
+            "topic": topic,
+            "status_code": None,
+            "response_time": 0,
+            "first_chunk_time": 0,
+            "last_chunk_time": 0,
+            "streaming_time": 0,
+            "total_chunks": 0,
+            "total_chars": 0,
+            "error": None,
+        }
+        
+        if track_connection:
+            result["connection_reused"] = False
+
+        try:
+            with httpx.Client(
+                timeout=TIMEOUT_BASIC,
+                limits=CONNECTION_POOL_LIMITS,
+                transport=httpx.HTTPTransport(retries=0)  # We handle retries ourselves
+            ) as client:
+                # Throttle requests to avoid overwhelming the server
+                time.sleep(0.05 * (request_id % 10))
+                
+                with client.stream(
+                    "POST",
+                    CHAT_ENDPOINT,
+                    json=payload,
+                    headers=headers,
+                    timeout=TIMEOUT_BASIC
+                ) as response:
+                    result["status_code"] = response.status_code
+
+                    # Check connection reuse if requested
+                    if track_connection and hasattr(response, "extensions"):
+                        result["connection_reused"] = "network_stream" in response.extensions
+
+                    if response.status_code == 200:
+                        first_chunk = True
+                        for chunk in response.iter_bytes():
+                            if chunk:
+                                chunk_str = chunk.decode(errors="replace")
+                                result["total_chars"] += len(chunk_str)
+                                result["total_chunks"] += 1
+
+                                if first_chunk:
+                                    result["first_chunk_time"] = time.time() - start_time
+                                    first_chunk = False
+
+                                result["last_chunk_time"] = time.time() - start_time
+
+                        result["response_time"] = time.time() - start_time
+                        if result["first_chunk_time"] > 0 and result["last_chunk_time"] > 0:
+                            result["streaming_time"] = (
+                                result["last_chunk_time"] - result["first_chunk_time"]
+                            )
+                        return result  # Success - return immediately
+                    else:
+                        result["error"] = f"HTTP {response.status_code}"
+                        result["response_time"] = time.time() - start_time
+
+        except httpx.TimeoutException as e:
+            last_exception = e
+            result["error"] = f"Timeout after {TIMEOUT_BASIC}s"
+            result["response_time"] = time.time() - start_time
+        except httpx.NetworkError as e:
+            last_exception = e
+            result["error"] = f"Network error: {str(e)}"
+            result["response_time"] = time.time() - start_time
+        except Exception as e:
+            last_exception = e
+            result["error"] = f"Unexpected error: {str(e)}"
+            result["response_time"] = time.time() - start_time
+
+        # If we get here, the request failed - wait before retrying
+        if attempt < MAX_RETRIES:
+            time.sleep(retry_delay)
+            retry_delay *= 2  # Exponential backoff
+
+    # All retries failed - return the last result
+    if last_exception:
+        result["error"] = f"After {MAX_RETRIES} attempts: {result['error']}"
+    return result
+
+
 def make_thread_request(request_id: int, total_requests: int) -> Dict[str, Any]:
     """Execute a single thread-based streaming request."""
-    topics = get_topics()
-    topic = topics[request_id % len(topics)]
-    payload = create_payload(topic, request_id, "thread")
-    headers = {"Content-Type": "application/json"}
+    return make_request(request_id, total_requests, test_mode="thread")
 
-    # Scale timeout linearly with number of requests
-    timeout = max(60.0, total_requests * 3.0)
 
-    start_time = time.time()
-    result = {
-        "request_id": request_id,
-        "topic": topic,
-        "status_code": None,
-        "response_time": 0,
-        "first_chunk_time": 0,
-        "last_chunk_time": 0,
-        "streaming_time": 0,
-        "total_chunks": 0,
-        "total_chars": 0,
-        "error": None,
-    }
-
-    # Use optimized HTTP configuration
-    limits = httpx.Limits(
-        max_keepalive_connections=50, max_connections=100, keepalive_expiry=30.0
+def make_multiprocess_request(request_id: int, total_requests: int) -> Dict[str, Any]:
+    """Execute a single multiprocess streaming request with detailed metrics."""
+    return make_request(
+        request_id,
+        total_requests,
+        test_mode="process",
+        track_connection=True
     )
-    timeout_config = httpx.Timeout(connect=10.0, read=30.0, write=10.0, pool=timeout)
-
-    try:
-        with httpx.Client(limits=limits, timeout=timeout_config, http2=False) as client:
-            with client.stream(
-                "POST", CHAT_ENDPOINT, json=payload, headers=headers
-            ) as response:
-                result["status_code"] = response.status_code
-
-                if response.status_code == 200:
-                    first_chunk = True
-                    for chunk in response.iter_bytes():
-                        if chunk:
-                            chunk_str = chunk.decode(errors="replace")
-                            result["total_chars"] += len(chunk_str)
-                            result["total_chunks"] += 1
-
-                            if first_chunk:
-                                result["first_chunk_time"] = time.time() - start_time
-                                first_chunk = False
-
-                            # Update last chunk time for each chunk
-                            result["last_chunk_time"] = time.time() - start_time
-
-                    result["response_time"] = time.time() - start_time
-                    # Calculate streaming time (first to last chunk)
-                    if result["first_chunk_time"] > 0 and result["last_chunk_time"] > 0:
-                        result["streaming_time"] = (
-                            result["last_chunk_time"] - result["first_chunk_time"]
-                        )
-                else:
-                    result["error"] = f"HTTP {response.status_code}"
-                    result["response_time"] = time.time() - start_time
-
-    except Exception as e:
-        result["error"] = str(e)
-        result["response_time"] = time.time() - start_time
-
-    return result
 
 
-async def make_async_request(
-    client: httpx.AsyncClient, request_id: int
-) -> Dict[str, Any]:
-    """Execute a single async streaming request with detailed metrics."""
-    topics = get_topics()
-    topic = topics[request_id % len(topics)]
-    payload = create_payload(topic, request_id, "async")
-
-    start_time = time.time()
-    result = {
-        "request_id": request_id,
-        "topic": topic,
-        "status_code": None,
-        "response_time": 0,
-        "first_chunk_time": 0,
-        "last_chunk_time": 0,
-        "streaming_time": 0,
-        "total_chunks": 0,
-        "total_chars": 0,
-        "error": None,
-        "connection_reused": False,
-    }
-
-    try:
-        async with client.stream(
-            "POST",
-            CHAT_ENDPOINT,
-            json=payload,
-            headers={"Content-Type": "application/json"},
-        ) as response:
-            result["status_code"] = response.status_code
-
-            # Check if connection was reused (indicates connection pooling is working)
-            if (
-                hasattr(response, "extensions")
-                and "network_stream" in response.extensions
-            ):
-                result["connection_reused"] = True
-
-            if response.status_code == 200:
-                first_chunk = True
-                async for chunk in response.aiter_bytes():
-                    if chunk:
-                        chunk_str = chunk.decode(errors="replace")
-                        result["total_chars"] += len(chunk_str)
-                        result["total_chunks"] += 1
-
-                        if first_chunk:
-                            result["first_chunk_time"] = time.time() - start_time
-                            first_chunk = False
-
-                        # Update last chunk time for each chunk
-                        result["last_chunk_time"] = time.time() - start_time
-
-                result["response_time"] = time.time() - start_time
-                # Calculate streaming time (first to last chunk)
-                if result["first_chunk_time"] > 0 and result["last_chunk_time"] > 0:
-                    result["streaming_time"] = (
-                        result["last_chunk_time"] - result["first_chunk_time"]
-                    )
-            else:
-                result["error"] = f"HTTP {response.status_code}"
-
-    except Exception as e:
-        result["error"] = str(e)
-        result["response_time"] = time.time() - start_time
-
-    return result
+def format_result_line(result: Dict[str, Any], test_type: str) -> str:
+    """Format a result line for display based on test type."""
+    status_icon = "✓" if result["status_code"] == 200 else "✗"
+    prefix = f"{status_icon} "
+    
+    if test_type == "process":
+        conn_icon = "🔗" if result.get("connection_reused") else "🆕"
+        prefix += f"{conn_icon} "
+    
+    return (
+        f"{prefix}{test_type.capitalize()} Req {result['request_id']:2d}: "
+        f"Status {result['status_code']} | "
+        f"Total: {result['response_time']:.2f}s | "
+        f"First: {result.get('first_chunk_time', 0):.3f}s | "
+        f"Stream: {result.get('streaming_time', 0):.3f}s | "
+        f"Chars: {result['total_chars']:4d}"
+    )
 
 
-def run_thread_test(concurrent_requests: int) -> tuple[List[Dict[str, Any]], float]:
-    """Run thread-based parallel test."""
-    print(f"\n🔧 Thread-based Parallel Test ({concurrent_requests} requests)")
+def run_concurrent_test(
+    concurrent_requests: int,
+    test_type: str,
+    executor_class,
+    max_workers_func,
+    request_func,
+) -> tuple[List[Dict[str, Any]], float]:
+    """Run a concurrent test with the specified executor and configuration.
+    
+    Args:
+        concurrent_requests: Number of concurrent requests
+        test_type: Type of test ("thread" or "process")
+        executor_class: Executor class (ThreadPoolExecutor or ProcessPoolExecutor)
+        max_workers_func: Function to calculate max workers
+        request_func: Function to make requests (make_thread_request or make_multiprocess_request)
+    """
+    print(f"\n{'🔧' if test_type == 'thread' else '🚀'} {test_type.capitalize()}-based Parallel Test ({concurrent_requests} requests)")
     print("-" * 70)
 
     start_time = time.time()
     results = []
 
-    with ThreadPoolExecutor(max_workers=min(concurrent_requests, 20)) as executor:
+    with executor_class(max_workers=max_workers_func(concurrent_requests)) as executor:
         future_to_id = {
-            executor.submit(make_thread_request, i, concurrent_requests): i
+            executor.submit(request_func, i, concurrent_requests): i
             for i in range(concurrent_requests)
         }
 
+        # Track completion order and timing
+        start_order_time = time.time()
+        completed_count = 0
+        
         for future in as_completed(future_to_id):
             try:
                 result = future.result()
                 results.append(result)
+                completed_count += 1
+                
+                # Calculate timing stats
+                elapsed = time.time() - start_order_time
+                req_rate = completed_count / elapsed if elapsed > 0 else 0
+                
                 print(
-                    f"✓ Thread Req {result['request_id']:2d}: "
-                    f"Status {result['status_code']} | "
-                    f"Total: {result['response_time']:.2f}s | "
-                    f"First: {result.get('first_chunk_time', 0):.3f}s | "
-                    f"Stream: {result.get('streaming_time', 0):.3f}s | "
-                    f"Chars: {result['total_chars']:4d}"
+                    f"{format_result_line(result, test_type)} | "
+                    f"Completed {completed_count}/{concurrent_requests} | "
+                    f"Rate: {req_rate:.1f} req/s"
                 )
-                if result["error"]:
+                if result.get("error"):
                     print(f"  Error: {result['error']}")
             except Exception as e:
-                print(f"✗ Thread Req {future_to_id[future]}: Exception - {e}")
+                completed_count += 1
+                print(f"✗ {test_type.capitalize()} Req {future_to_id[future]}: Exception - {e}")
 
     return results, time.time() - start_time
 
 
-async def run_async_test(
-    concurrent_requests: int,
-) -> tuple[List[Dict[str, Any]], float]:
-    """Run async-based parallel test with optimized configuration."""
-    print(f"\n🚀 Async Parallel Test ({concurrent_requests} requests)")
-    print("-" * 70)
-
-    start_time = time.time()
-
-    # Use optimized configuration with scaled timeout
-    timeout = max(60.0, concurrent_requests * 3.0)
-
-    limits = httpx.Limits(
-        max_keepalive_connections=50, max_connections=100, keepalive_expiry=30.0
+def run_thread_test(concurrent_requests: int) -> tuple[List[Dict[str, Any]], float]:
+    """Run thread-based parallel test."""
+    return run_concurrent_test(
+        concurrent_requests,
+        "thread",
+        ThreadPoolExecutor,
+        lambda n: min(n, 20),
+        make_thread_request
     )
-    timeout_config = httpx.Timeout(connect=10.0, read=30.0, write=10.0, pool=timeout)
 
-    client_kwargs = {
-        "limits": limits,
-        "timeout": timeout_config,
-        "http2": False,  # Use HTTP/1.1 for better connection reuse visibility
-    }
 
-    async with httpx.AsyncClient(**client_kwargs) as client:
-        tasks = [make_async_request(client, i) for i in range(concurrent_requests)]
-        results = await asyncio.gather(*tasks, return_exceptions=True)
-
-        # Filter out exceptions and process results
-        processed_results = []
-        for i, result in enumerate(results):
-            if isinstance(result, dict):
-                processed_results.append(result)
-                status_icon = "✓" if result["status_code"] == 200 else "✗"
-                conn_icon = "🔗" if result.get("connection_reused") else "🆕"
-
-                print(
-                    f"{status_icon} {conn_icon} Async Req {result['request_id']:2d}: "
-                    f"Status {result['status_code']} | "
-                    f"Total: {result['response_time']:.2f}s | "
-                    f"First: {result.get('first_chunk_time', 0):.3f}s | "
-                    f"Stream: {result.get('streaming_time', 0):.3f}s | "
-                    f"Chars: {result['total_chars']:4d}"
-                )
-
-                if result.get("error"):
-                    print(f"    Error: {result['error']}")
-            else:
-                print(f"✗ Req {i}: Exception - {result}")
-
-    total_time = time.time() - start_time
-    return processed_results, total_time
+def run_multiprocess_test(concurrent_requests: int) -> tuple[List[Dict[str, Any]], float]:
+    """Run multiprocess-based parallel test with optimized configuration."""
+    return run_concurrent_test(
+        concurrent_requests,
+        "process",
+        ProcessPoolExecutor,
+        lambda n: min(n, os.cpu_count() * 2),
+        make_multiprocess_request
+    )
 
 
 def analyze_results(
@@ -333,7 +339,7 @@ def analyze_results(
         ]
 
         if detailed:
-            print(f"\n⏱️  Response Time Metrics:")
+            print("\n⏱️  Response Time Metrics:")
             print(f"  Average: {statistics.mean(response_times):.3f}s")
             print(f"  Median:  {statistics.median(response_times):.3f}s")
             print(f"  Min:     {min(response_times):.3f}s")
@@ -343,7 +349,7 @@ def analyze_results(
             )
 
             if first_chunk_times:
-                print(f"\n⚡ First Chunk Time Metrics:")
+                print("\n⚡ First Chunk Time Metrics:")
                 print(f"  Average: {statistics.mean(first_chunk_times):.3f}s")
                 print(f"  Median:  {statistics.median(first_chunk_times):.3f}s")
                 print(f"  Min:     {min(first_chunk_times):.3f}s")
@@ -351,9 +357,9 @@ def analyze_results(
                 print(
                     f"  StdDev:  {statistics.stdev(first_chunk_times) if len(first_chunk_times) > 1 else 0:.3f}s"
                 )
-            
+
             if streaming_times:
-                print(f"\n🌊 Streaming Time Metrics:")
+                print("\n🌊 Streaming Time Metrics:")
                 print(f"  Average: {statistics.mean(streaming_times):.3f}s")
                 print(f"  Median:  {statistics.median(streaming_times):.3f}s")
                 print(f"  Min:     {min(streaming_times):.3f}s")
@@ -373,7 +379,7 @@ def analyze_results(
                     f"First chunk time - Avg: {statistics.mean(first_chunk_times):.3f}s, "
                     f"Min: {min(first_chunk_times):.3f}s, Max: {max(first_chunk_times):.3f}s"
                 )
-            
+
             if streaming_times:
                 print(
                     f"Streaming time - Avg: {statistics.mean(streaming_times):.3f}s, "
@@ -389,7 +395,7 @@ def analyze_results(
             max(streaming_times) - min(streaming_times) if streaming_times else 0
         )
 
-        print(f"\n🎯 Performance Indicators:")
+        print("\n🎯 Performance Indicators:")
         if variance < 2.0:
             print("✅ Low response time variance - good consistency")
         else:
@@ -399,7 +405,7 @@ def analyze_results(
             print("✅ Low first chunk variance - good request handling")
         else:
             print("⚠️  High first chunk variance - potential queueing issues")
-        
+
         if streaming_variance < 1.0:
             print("✅ Low streaming variance - consistent data transfer")
         else:
@@ -417,7 +423,7 @@ def analyze_results(
         print(f"🚄 Throughput: {throughput:.2f} requests/second")
 
 
-async def main():
+def main():
     """Main test runner."""
     parser = argparse.ArgumentParser(
         description="Unified performance test for argo-proxy"
@@ -428,12 +434,9 @@ async def main():
     parser.add_argument(
         "--mode",
         "-m",
-        choices=["thread", "async", "both"],
-        default="async",
-        help="Test mode: thread, async, or both",
-    )
-    parser.add_argument(
-        "--rounds", "-r", type=int, default=1, help="Number of test rounds"
+        choices=["thread", "process", "both"],
+        default="process",
+        help="Test mode: thread, process, or both",
     )
 
     args = parser.parse_args()
@@ -442,48 +445,17 @@ async def main():
     print(f"Endpoint: {CHAT_ENDPOINT}")
     print(f"Model: {MODEL}")
     print(f"Concurrent requests: {args.requests}")
-    if args.rounds > 1:
-        print(f"Test rounds: {args.rounds}")
 
     if args.mode in ["thread", "both"]:
         thread_results, thread_time = run_thread_test(args.requests)
         analyze_results(thread_results, thread_time, "Thread-based")
 
-    if args.mode in ["async", "both"]:
-        if args.rounds > 1:
-            # Multi-round async test
-            all_results = []
-            all_times = []
-
-            for round_num in range(args.rounds):
-                print(f"\n{'=' * 20} Round {round_num + 1}/{args.rounds} {'=' * 20}")
-
-                results, total_time = await run_async_test(args.requests)
-
-                analyze_results(
-                    results, total_time, f"Async Round {round_num + 1}", detailed=True
-                )
-
-                all_results.extend(results)
-                all_times.append(total_time)
-
-                if round_num < args.rounds - 1:
-                    print("\n⏳ Waiting 2 seconds before next round...")
-                    await asyncio.sleep(2)
-
-            if args.rounds > 1:
-                print(f"\n{'=' * 20} Overall Summary {'=' * 20}")
-                successful_all = [r for r in all_results if r.get("status_code") == 200]
-                print(f"Total successful requests: {len(successful_all)}")
-                print(f"Average round time: {statistics.mean(all_times):.2f}s")
-                print(
-                    f"Overall throughput: {len(successful_all) / sum(all_times):.2f} requests/second"
-                )
-        else:
-            # Single async test
-            async_results, async_time = await run_async_test(args.requests)
-            analyze_results(async_results, async_time, "Async", detailed=True)
+    if args.mode in ["process", "both"]:
+        multiprocess_results, multiprocess_time = run_multiprocess_test(args.requests)
+        analyze_results(
+            multiprocess_results, multiprocess_time, "process", detailed=True
+        )
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()
