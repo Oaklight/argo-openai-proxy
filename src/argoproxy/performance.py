@@ -3,6 +3,9 @@ Performance optimization utilities for argo-proxy.
 """
 
 import asyncio
+import inspect
+import multiprocessing
+import os
 from typing import Optional
 
 import aiohttp
@@ -47,17 +50,16 @@ class OptimizedHTTPSession:
             "keepalive_timeout": keepalive_timeout,
             "enable_cleanup_closed": True,
         }
-        
+
         # Only add tcp_nodelay if supported (aiohttp >= 3.8.0)
         try:
-            import inspect
             sig = inspect.signature(aiohttp.TCPConnector.__init__)
-            if 'tcp_nodelay' in sig.parameters:
+            if "tcp_nodelay" in sig.parameters:
                 connector_kwargs["tcp_nodelay"] = True
                 logger.debug("TCP_NODELAY enabled for lower latency")
         except Exception:
             logger.debug("TCP_NODELAY not supported in this aiohttp version")
-        
+
         self.connector = aiohttp.TCPConnector(**connector_kwargs)
 
         self.timeout = aiohttp.ClientTimeout(
@@ -79,11 +81,11 @@ class OptimizedHTTPSession:
                     desc="🔗 Initializing HTTP connection pool",
                     bar_format="{desc}: {percentage:3.0f}%|{bar}|",
                     leave=False,
-                    ncols=60
+                    ncols=60,
                 ) as pbar:
                     pbar.update(30)
                     await asyncio.sleep(0.05)
-                    
+
                     self.session = aiohttp.ClientSession(
                         connector=self.connector,
                         timeout=self.timeout,
@@ -98,7 +100,7 @@ class OptimizedHTTPSession:
                     timeout=self.timeout,
                     headers={"User-Agent": self.user_agent},
                 )
-                
+
             logger.info(
                 f"✅ HTTP session created with {self.connector.limit} total connections, "
                 f"{self.connector.limit_per_host} per host"
@@ -137,8 +139,6 @@ async def optimize_event_loop():
 
 def get_performance_config() -> dict:
     """Get performance configuration based on system capabilities."""
-    import multiprocessing
-    import os
 
     # Get CPU count for scaling connection limits
     cpu_count = multiprocessing.cpu_count()
@@ -156,9 +156,13 @@ def get_performance_config() -> dict:
     return {
         "total_connections": total_connections,
         "connections_per_host": connections_per_host,
-        "keepalive_timeout": int(os.getenv("ARGO_PROXY_KEEPALIVE_TIMEOUT", "30")),
+        "keepalive_timeout": int(
+            os.getenv("ARGO_PROXY_KEEPALIVE_TIMEOUT", "600")
+        ),  # 10 minutes
         "connect_timeout": int(os.getenv("ARGO_PROXY_CONNECT_TIMEOUT", "10")),
-        "read_timeout": int(os.getenv("ARGO_PROXY_READ_TIMEOUT", "30")),
-        "total_timeout": int(os.getenv("ARGO_PROXY_TOTAL_TIMEOUT", "60")),
+        "read_timeout": int(os.getenv("ARGO_PROXY_READ_TIMEOUT", "600")),  # 10 minutes
+        "total_timeout": int(
+            os.getenv("ARGO_PROXY_TOTAL_TIMEOUT", "1800")
+        ),  # 30 minutes
         "dns_cache_ttl": int(os.getenv("ARGO_PROXY_DNS_CACHE_TTL", "300")),
     }
