@@ -88,6 +88,30 @@ async def get_models(request: web.Request):
     return extras.get_models(request)
 
 
+# ================= Extras =================
+
+
+async def root_endpoint(request: web.Request):
+    """Root endpoint mimicking OpenAI's welcome message"""
+    return web.json_response(
+        {
+            "message": "Welcome to the Argo-Proxy API! Documentation is available at https://oaklight.github.io/argo-openai-proxy"
+        }
+    )
+
+
+async def v1_endpoint(request: web.Request):
+    """V1 endpoint mimicking OpenAI's 404 behavior"""
+    html_content = """<html>
+<head><title>404 Not Found</title></head>
+<body>
+<center><h1>404 Not Found</h1></center>
+<hr><center>argo-proxy</center>
+</body>
+</html>"""
+    return web.Response(text=html_content, status=404, content_type="text/html")
+
+
 async def docs(request: web.Request):
     msg = "<html><body>Documentation access: Please visit <a href='https://oaklight.github.io/argo-openai-proxy'>https://oaklight.github.io/argo-openai-proxy</a> for full documentation.</body></html>"
     return web.Response(text=msg, status=200, content_type="text/html")
@@ -123,26 +147,35 @@ async def get_version(request: web.Request):
     return web.json_response(response)
 
 
-app = web.Application()
-app.on_startup.append(prepare_app)
-app.on_shutdown.append(cleanup_app)
+def create_app():
+    """Factory function to create a new application instance"""
+    app = web.Application()
+    app.on_startup.append(prepare_app)
+    app.on_shutdown.append(cleanup_app)
 
-# openai incompatible
-app.router.add_post("/v1/chat", proxy_argo_chat_directly)
-app.router.add_post("/v1/embed", proxy_embedding_directly)
+    # root endpoints
+    app.router.add_get("/", root_endpoint)
+    app.router.add_get("/v1", v1_endpoint)
 
-# openai compatible
-app.router.add_post("/v1/chat/completions", proxy_openai_chat_compatible)
-app.router.add_post("/v1/completions", proxy_openai_legacy_completions_compatible)
-app.router.add_post("/v1/responses", proxy_openai_responses_request)
-app.router.add_post("/v1/embeddings", proxy_openai_embedding_request)
-app.router.add_get("/v1/models", get_models)
+    # openai incompatible
+    app.router.add_post("/v1/chat", proxy_argo_chat_directly)
+    app.router.add_post("/v1/embed", proxy_embedding_directly)
 
-# extras
-app.router.add_get("/v1/docs", docs)
-app.router.add_get("/health", health_check)
-app.router.add_get("/version", get_version)
+    # openai compatible
+    app.router.add_post("/v1/chat/completions", proxy_openai_chat_compatible)
+    app.router.add_post("/v1/completions", proxy_openai_legacy_completions_compatible)
+    app.router.add_post("/v1/responses", proxy_openai_responses_request)
+    app.router.add_post("/v1/embeddings", proxy_openai_embedding_request)
+    app.router.add_get("/v1/models", get_models)
+
+    # extras
+    app.router.add_get("/v1/docs", docs)
+    app.router.add_get("/health", health_check)
+    app.router.add_get("/version", get_version)
+
+    return app
 
 
 def run(*, host: str = "0.0.0.0", port: int = 8080):
+    app = create_app()
     web.run_app(app, host=host, port=port)
