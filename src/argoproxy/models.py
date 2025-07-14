@@ -5,7 +5,7 @@ import json
 import urllib.request
 from collections import defaultdict
 from datetime import datetime
-from typing import Any, Dict, List, Literal, Optional, Tuple
+from typing import Any, Dict, List, Literal, Optional, Set, Tuple
 
 from loguru import logger
 from pydantic import BaseModel
@@ -68,23 +68,30 @@ _EMBED_MODELS = flatten_mapping(
     }
 )
 
+
+def filter_model_by_patterns(
+    model_dict: Dict[str, str], patterns: Set[str]
+) -> List[str]:
+    """Filter model_dict values (model_id) by given fnmatch patterns,
+    returning both the model_name (key) and model_id (value) for matches."""
+    matching = set()
+    for model_name, model_id in model_dict.items():
+        if any(fnmatch.fnmatch(model_id, pattern) for pattern in patterns):
+            matching.add(model_name)
+            matching.add(model_id)
+    return sorted(matching)
+
+
 # any models that unable to handle system prompt
 NO_SYS_MSG_PATTERNS = {
-    "argo:*o1-*",  # Matches any model name starting with 'argo:gpt-o1*' or 'argo:o1*'
-    "gpto1preview",  # Explicitly matches gpto1preview
-    "gpto1mini",  # Explicitly matches gpto1mini
-    # Removed the broad "gpto1*" pattern
+    "*o1preview",  # Explicitly matches gpto1preview
+    "*o1mini",  # Explicitly matches gpto1mini
 }
 
-NO_SYS_MSG = [
-    model
-    for model in _DEFAULT_CHAT_MODELS
-    if any(fnmatch.fnmatch(model, pattern) for pattern in NO_SYS_MSG_PATTERNS)
-] + [
-    short_name
-    for short_name in _DEFAULT_CHAT_MODELS.values()
-    if any(fnmatch.fnmatch(short_name, pattern) for pattern in NO_SYS_MSG_PATTERNS)
-]
+NO_SYS_MSG_MODELS = filter_model_by_patterns(
+    _DEFAULT_CHAT_MODELS,
+    NO_SYS_MSG_PATTERNS,
+)
 
 
 # any models that only able to handle single system prompt and no system prompt at all
@@ -92,23 +99,26 @@ OPTION_2_INPUT_PATTERNS = {
     # "*gemini*",  # Matches any model name starting with 'gemini'
     # "*claude*",  # Matches any model name starting with 'claude'
     # "gpto3",
-    # "argo:*o3",  # Matches any model name starting with 'argo:gpt-o3' or 'argo:o3'
     # "gpto4*",
-    # "argo:*o4*",
     # "gpt41*",
-    # "argo:gpt-4.1*",  # Matches any model name starting with 'argo:gpt-4.1'
 }
 
-OPTION_2_INPUT = [
-    model
-    for model in _DEFAULT_CHAT_MODELS
-    if any(fnmatch.fnmatch(model, pattern) for pattern in OPTION_2_INPUT_PATTERNS)
-] + [
-    short_name
-    for short_name in _DEFAULT_CHAT_MODELS.values()
-    if any(fnmatch.fnmatch(short_name, pattern) for pattern in OPTION_2_INPUT_PATTERNS)
-]
+OPTION_2_INPUT_MODELS = filter_model_by_patterns(
+    _DEFAULT_CHAT_MODELS,
+    OPTION_2_INPUT_PATTERNS,
+)
 
+# any models that supports native tool call
+NATIVE_TOOL_CALL_PATTERNS = {
+    "*o1",
+    "*o3*",
+    "*o4*",
+}
+
+NATIVE_TOOL_CALL_MODELS = filter_model_by_patterns(
+    _DEFAULT_CHAT_MODELS,
+    NATIVE_TOOL_CALL_PATTERNS,
+)
 
 TIKTOKEN_ENCODING_PREFIX_MAPPING = {
     "gpto": "o200k_base",  # o-series
@@ -316,8 +326,9 @@ async def determine_models_availability(
 class ModelRegistry:
     def __init__(self, config: ArgoConfig):
         self._chat_models: Dict[str, str] = {}
-        self._no_sys_msg_models = NO_SYS_MSG
-        self._option_2_input_models = OPTION_2_INPUT
+        self._no_sys_msg_models = NO_SYS_MSG_MODELS
+        self._option_2_input_models = OPTION_2_INPUT_MODELS
+        self._native_tool_call_models = NATIVE_TOOL_CALL_MODELS
 
         # these are model_name to failed_count mappings
         self._streamable_models: Dict[str, int] = defaultdict(lambda: 0)
@@ -379,23 +390,11 @@ class ModelRegistry:
             self._last_updated = datetime.now()
 
             # Update model lists based on model IDs
-            self._no_sys_msg_models = [
-                alias
-                for alias, model_id in self.available_chat_models.items()
-                if any(
-                    fnmatch.fnmatch(model_id, pattern)
-                    for pattern in NO_SYS_MSG_PATTERNS
-                )
-            ]
+            self._no_sys_msg_models = filter_model_by_patterns(self.available_chat_models, NO_SYS_MSG_PATTERNS)
 
-            self._option_2_input_models = [
-                alias
-                for alias, model_id in self.available_chat_models.items()
-                if any(
-                    fnmatch.fnmatch(model_id, pattern)
-                    for pattern in OPTION_2_INPUT_PATTERNS
-                )
-            ]
+            self._option_2_input_models = filter_model_by_patterns(self.available_chat_models, OPTION_2_INPUT_PATTERNS)
+
+            self._native_tool_call_models = filter_model_by_patterns(self.available_chat_models, NATIVE_TOOL_CALL_PATTERNS)
 
             logger.info("Model availability refreshed successfully")
         except Exception as e:
@@ -505,11 +504,15 @@ class ModelRegistry:
 
     @property
     def no_sys_msg_models(self):
-        return self._no_sys_msg_models or NO_SYS_MSG
+        return self._no_sys_msg_models or NO_SYS_MSG_MODELS
 
     @property
     def option_2_input_models(self):
-        return self._option_2_input_models or OPTION_2_INPUT
+        return self._option_2_input_models or OPTION_2_INPUT_MODELS
+
+    @property
+    def native_tool_call_models(self):
+        return self._native_tool_call_models or NATIVE_TOOL_CALL_MODELS
 
 
 if __name__ == "__main__":
@@ -527,3 +530,5 @@ if __name__ == "__main__":
     logger.info(f"Available stream models: {model_registry.streamable_models}")
     logger.info(f"Available non-stream models: {model_registry.non_streamable_models}")
     logger.info(f"Unavailable models: {model_registry.unavailable_models}")
+
+    logger.info(f"Native tool call models: {model_registry.native_tool_call_models}")
