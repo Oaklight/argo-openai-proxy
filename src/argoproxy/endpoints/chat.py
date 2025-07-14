@@ -1,3 +1,4 @@
+import asyncio
 import json
 import time
 import uuid
@@ -34,7 +35,6 @@ from ..utils.input_handle import (
 from ..utils.misc import make_bar
 from ..utils.tokens import (
     calculate_prompt_tokens_async,
-    count_tokens,
     count_tokens_async,
 )
 from ..utils.transports import pseudo_chunk_generator, send_off_sse
@@ -42,7 +42,7 @@ from ..utils.transports import pseudo_chunk_generator, send_off_sse
 DEFAULT_MODEL = "argo:gpt-4o"
 
 
-def transform_chat_completions_streaming(
+async def transform_chat_completions_streaming_async(
     content: Optional[str] = None,
     *,
     model_name: str,
@@ -89,65 +89,6 @@ def transform_chat_completions_streaming(
         return openai_response.model_dump()
     except Exception as err:
         return {"error": f"An error occurred in streaming response: {err}"}
-
-
-def transform_chat_completions_non_streaming(
-    content: Optional[str] = None,
-    *,
-    model_name: str,
-    create_timestamp: int,
-    prompt_tokens: int,
-    finish_reason: FINISH_REASONS = "stop",
-    tool_calls: Optional[List[Dict[str, Any]]] = None,
-    **kwargs,
-) -> Dict[str, Any]:
-    """
-    Transforms the custom API response into a non-streaming OpenAI-compatible format.
-    """
-    try:
-        # Calculate token usage
-        completion_tokens = count_tokens(content, model_name) if content else 0
-        if tool_calls:
-            tool_tokens = count_tokens(json.dumps(tool_calls), model_name)
-            completion_tokens += tool_tokens
-        total_tokens = prompt_tokens + completion_tokens
-
-        usage = CompletionUsage(
-            prompt_tokens=prompt_tokens,
-            completion_tokens=completion_tokens,
-            total_tokens=total_tokens,
-        )
-
-        # Handle tool calls
-        tool_calls_obj = None
-        if tool_calls and isinstance(tool_calls, list):
-            tool_calls_obj = tool_calls_to_openai(
-                tool_calls, api_format="chat_completion"
-            )
-
-        openai_response = ChatCompletion(
-            id=str(uuid.uuid4().hex),
-            created=create_timestamp,
-            model=model_name,
-            choices=[
-                NonStreamChoice(
-                    index=0,
-                    message=ChatCompletionMessage(
-                        content=content,
-                        tool_calls=tool_calls_obj,
-                    ),
-                    finish_reason=finish_reason,
-                )
-            ],
-            usage=usage,
-        )
-
-        return openai_response.model_dump()
-
-    except json.JSONDecodeError as err:
-        return {"error": f"Error decoding JSON: {err}"}
-    except Exception as err:
-        return {"error": f"An error occurred in non-streaming response: {err}"}
 
 
 async def transform_chat_completions_non_streaming_async(
@@ -279,7 +220,7 @@ async def send_non_streaming_request(
     convert_to_openai: bool = False,
     openai_compat_fn: Union[
         Callable[..., Dict[str, Any]], Callable[..., Awaitable[Dict[str, Any]]]
-    ] = transform_chat_completions_non_streaming,
+    ] = transform_chat_completions_non_streaming_async,
 ) -> web.Response:
     """Sends a non-streaming request to an API and processes the response.
 
@@ -308,8 +249,6 @@ async def send_non_streaming_request(
             finish_reason = "tool_calls" if tool_calls else "stop"
 
             # Check if the function is async and call accordingly
-            import asyncio
-
             if asyncio.iscoroutinefunction(openai_compat_fn):
                 openai_response = await openai_compat_fn(
                     clean_text,
@@ -350,7 +289,7 @@ async def send_streaming_request(
     *,
     openai_compat_fn: Callable[
         ..., Dict[str, Any]
-    ] = transform_chat_completions_streaming,
+    ] = transform_chat_completions_streaming_async,
     fake_stream: bool = False,
 ) -> web.StreamResponse:
     """Sends a streaming request to an API and streams the response to the client.
@@ -446,15 +385,26 @@ async def send_streaming_request(
                     if total_processed >= len(cleaned_text):
                         finish_reason = "stop"
 
-                    chunk_json = openai_compat_fn(
-                        chunk_text,
-                        model_name=data["model"],
-                        create_timestamp=created_timestamp,
-                        prompt_tokens=prompt_tokens,
-                        is_streaming=True,
-                        finish_reason=finish_reason,  # May be None for ongoing chunks
-                        tool_calls=None,
-                    )
+                    if asyncio.iscoroutinefunction(openai_compat_fn):
+                        chunk_json = await openai_compat_fn(
+                            chunk_text,
+                            model_name=data["model"],
+                            create_timestamp=created_timestamp,
+                            prompt_tokens=prompt_tokens,
+                            is_streaming=True,
+                            finish_reason=finish_reason,  # May be None for ongoing chunks
+                            tool_calls=None,
+                        )
+                    else:
+                        chunk_json = openai_compat_fn(
+                            chunk_text,
+                            model_name=data["model"],
+                            create_timestamp=created_timestamp,
+                            prompt_tokens=prompt_tokens,
+                            is_streaming=True,
+                            finish_reason=finish_reason,  # May be None for ongoing chunks
+                            tool_calls=None,
+                        )
                     await send_off_sse(response, chunk_json)
 
             else:
@@ -472,15 +422,26 @@ async def send_streaming_request(
                 logger.warning(f"Tool calls before openai_compat_fn: {None}")
                 if convert_to_openai:
                     # Convert the chunk to OpenAI-compatible JSON
-                    chunk_json = openai_compat_fn(
-                        chunk_bytes.decode() if chunk_bytes else None,
-                        model_name=data["model"],
-                        create_timestamp=created_timestamp,
-                        prompt_tokens=prompt_tokens,
-                        is_streaming=True,
-                        finish_reason=None,  # May be None for ongoing chunks
-                        tool_calls=None,
-                    )
+                    if asyncio.iscoroutinefunction(openai_compat_fn):
+                        chunk_json = await openai_compat_fn(
+                            chunk_bytes.decode() if chunk_bytes else None,
+                            model_name=data["model"],
+                            create_timestamp=created_timestamp,
+                            prompt_tokens=prompt_tokens,
+                            is_streaming=True,
+                            finish_reason=None,  # May be None for ongoing chunks
+                            tool_calls=None,
+                        )
+                    else:
+                        chunk_json = openai_compat_fn(
+                            chunk_bytes.decode() if chunk_bytes else None,
+                            model_name=data["model"],
+                            create_timestamp=created_timestamp,
+                            prompt_tokens=prompt_tokens,
+                            is_streaming=True,
+                            finish_reason=None,  # May be None for ongoing chunks
+                            tool_calls=None,
+                        )
                     await send_off_sse(response, chunk_json)
                 else:
                     # Return the chunk as raw text
