@@ -13,7 +13,7 @@ pip install argo-proxy # install the package
 argo-proxy # run the proxy
 ```
 
-Function calling experimental: try with `pip install argo-proxy==2.7.5.alpha1`.
+Function calling is available for Chat Completions endpoint starting from `v2.7.5`. Try with `pip install argo-proxy>=2.7.5`
 
 ## NOTICE OF USAGE
 
