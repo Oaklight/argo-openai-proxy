@@ -483,7 +483,7 @@ async def proxy_request(
     """
     config: ArgoConfig = request.app["config"]
     model_registry: ModelRegistry = request.app["model_registry"]
-
+    logger.warning('[chat] proxy_request')
     try:
         # Retrieve the incoming JSON data from request if input_data is not provided
 
@@ -501,7 +501,7 @@ async def proxy_request(
         data = prepare_chat_request_data(
             data, config, model_registry, enable_tools=convert_to_openai
         )
-
+        logger.warning(f'[chat] data: {data}')
         # Use the shared HTTP session from app context for connection pooling
         session = request.app["http_session"]
 
@@ -524,6 +524,7 @@ async def proxy_request(
             )
 
     except ValueError as err:
+        logger.error(f"ValueError: {err}")
         return web.json_response(
             {"error": str(err)},
             status=HTTPStatus.BAD_REQUEST,
@@ -531,6 +532,7 @@ async def proxy_request(
         )
     except aiohttp.ClientError as err:
         error_message = f"HTTP error occurred: {err}"
+        logger.error(error_message)
         return web.json_response(
             {"error": error_message},
             status=HTTPStatus.SERVICE_UNAVAILABLE,
@@ -538,6 +540,7 @@ async def proxy_request(
         )
     except Exception as err:
         error_message = f"An unexpected error occurred: {err}"
+        logger.error(error_message)
         return web.json_response(
             {"error": error_message},
             status=HTTPStatus.INTERNAL_SERVER_ERROR,
