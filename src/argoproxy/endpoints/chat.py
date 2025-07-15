@@ -236,8 +236,14 @@ async def send_non_streaming_request(
     """
     headers = {"Content-Type": "application/json"}
     async with session.post(api_url, headers=headers, json=data) as upstream_resp:
-        response_data = await upstream_resp.json()
         upstream_resp.raise_for_status()
+
+        try:
+            response_data = await upstream_resp.json()
+            logger.warning(f"Received JSON response: {response_data}")
+        except (aiohttp.ContentTypeError, json.JSONDecodeError):
+            response_text = await upstream_resp.text()
+            logger.warning(f"Received non-JSON response: {response_text}")
 
         if convert_to_openai:
             # Calculate prompt tokens asynchronously
@@ -357,8 +363,13 @@ async def send_streaming_request(
 
         if fake_stream:
             # Get full response first
-            response_data = await upstream_resp.json()
-            response_text = response_data.get("response", "")
+            try:
+                response_data = await upstream_resp.json()
+                response_text = response_data.get("response", "")
+            except (aiohttp.ContentTypeError, json.JSONDecodeError) as e:
+                # If response is not JSON, treat as plain text
+                response_text = await upstream_resp.text()
+                logger.warning(f"Upstream response is not JSON in fake_stream mode: {e}")
 
             if convert_to_openai:
                 # OpenAI conversion & tool calls logic only applies below
