@@ -582,6 +582,7 @@ async def proxy_request(
                 request,
                 convert_to_openai,
                 fake_stream=True,
+                openai_compat_fn=transform_chat_completions_streaming_async,
             )
         else:
             return await send_non_streaming_request(
