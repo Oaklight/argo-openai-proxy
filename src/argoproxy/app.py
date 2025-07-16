@@ -1,4 +1,7 @@
+import asyncio
 import os
+import signal
+import sys
 
 from aiohttp import web
 from loguru import logger
@@ -45,6 +48,13 @@ async def cleanup_app(app):
     if "http_session_manager" in app:
         await app["http_session_manager"].close()
         logger.info("HTTP session manager closed")
+
+    # Cancel all pending tasks (best effort)
+    pending = [t for t in asyncio.all_tasks() if t is not asyncio.current_task()]
+    if pending:
+        logger.info("Cancelling pending tasks...")
+        [task.cancel() for task in pending]
+        await asyncio.gather(*pending, return_exceptions=True)
 
 
 # ================= Argo Direct Access =================
@@ -178,4 +188,17 @@ def create_app():
 
 def run(*, host: str = "0.0.0.0", port: int = 8080):
     app = create_app()
-    web.run_app(app, host=host, port=port)
+
+    # Add this to ensure signal handlers trigger a full shutdown
+    def _force_exit(*_):
+        logger.info("Force exiting on signal")
+        sys.exit(0)
+
+    for sig in (signal.SIGINT, signal.SIGTERM):
+        signal.signal(sig, _force_exit)
+
+    try:
+        web.run_app(app, host=host, port=port)
+    except Exception as e:
+        logger.error(f"An error occurred while starting the server: {e}")
+        sys.exit(1)
