@@ -235,64 +235,76 @@ async def send_non_streaming_request(
         A web.Response with the processed JSON data.
     """
     headers = {"Content-Type": "application/json"}
+
     try:
         async with session.post(api_url, headers=headers, json=data) as upstream_resp:
             try:
                 response_data = await upstream_resp.json()
-                if response_data.get("response") is None:
-                    return web.json_response(
-                        text= "Upstream model returned no response. Please try different request parameters.",
-                        status=502,
-                    )
             except (aiohttp.ContentTypeError, json.JSONDecodeError):
                 return web.json_response(
-                    text="Upstream error: Invalid JSON response from upstream server",
+                    {
+                        "object": "error",
+                        "message": "Upstream error: Invalid JSON response from upstream server",
+                        "type": "upstream_invalid_json",
+                    },
                     status=502,
                 )
 
-            if convert_to_openai:
-                # Calculate prompt tokens asynchronously
-                prompt_tokens = await calculate_prompt_tokens_async(data, data["model"])
-
-                cs = ToolInterceptor()
-                tool_calls, clean_text = cs.process(response_data.get("response"))
-                finish_reason = "tool_calls" if tool_calls else "stop"
-
-                # Check if the function is async and call accordingly
-                if asyncio.iscoroutinefunction(openai_compat_fn):
-                    openai_response = await openai_compat_fn(
-                        clean_text,
-                        model_name=data.get("model"),
-                        create_timestamp=int(time.time()),
-                        prompt_tokens=prompt_tokens,
-                        finish_reason=finish_reason,
-                        tool_calls=tool_calls,
-                    )
-                else:
-                    openai_response = openai_compat_fn(
-                        clean_text,
-                        model_name=data.get("model"),
-                        create_timestamp=int(time.time()),
-                        prompt_tokens=prompt_tokens,
-                        finish_reason=finish_reason,
-                        tool_calls=tool_calls,
-                    )
+            content = response_data.get("response")
+            if content is None:
                 return web.json_response(
-                    openai_response,
-                    status=upstream_resp.status,
-                    content_type="application/json",
+                    {
+                        "object": "error",
+                        "message": "Upstream model returned no response. Please try different request parameters.",
+                        "type": "upstream_no_response",
+                    },
+                    status=502,
                 )
-            else:
+
+            if not convert_to_openai:  # direct pass-through
                 return web.json_response(
                     response_data,
                     status=upstream_resp.status,
                     content_type="application/json",
                 )
 
+            # convert_to_openai is True
+            prompt_tokens = await calculate_prompt_tokens_async(data, data["model"])
+            cs = ToolInterceptor()
+            tool_calls, clean_text = cs.process(content)
+            finish_reason = "tool_calls" if tool_calls else "stop"
+
+            if asyncio.iscoroutinefunction(openai_compat_fn):
+                openai_response = await openai_compat_fn(
+                    clean_text,
+                    model_name=data.get("model"),
+                    create_timestamp=int(time.time()),
+                    prompt_tokens=prompt_tokens,
+                    finish_reason=finish_reason,
+                    tool_calls=tool_calls,
+                )
+            else:
+                openai_response = openai_compat_fn(
+                    clean_text,
+                    model_name=data.get("model"),
+                    create_timestamp=int(time.time()),
+                    prompt_tokens=prompt_tokens,
+                    finish_reason=finish_reason,
+                    tool_calls=tool_calls,
+                )
+            return web.json_response(
+                openai_response,
+                status=upstream_resp.status,
+                content_type="application/json",
+            )
+
     except aiohttp.ClientResponseError as err:
-        # Return a meaningful error to the client
         return web.json_response(
-            text=f"Upstream error: {err}",
+            {
+                "object": "error",
+                "message": f"Upstream error: {err}",
+                "type": "upstream_api_error",
+            },
             status=err.status,
         )
 
