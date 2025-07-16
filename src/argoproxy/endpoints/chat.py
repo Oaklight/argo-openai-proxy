@@ -309,6 +309,121 @@ async def send_non_streaming_request(
         )
 
 
+async def _handle_fake_stream(
+    response: web.StreamResponse,
+    upstream_resp: aiohttp.ClientResponse,
+    data: Dict[str, Any],
+    created_timestamp: int,
+    prompt_tokens: int,
+    convert_to_openai: bool,
+    openai_compat_fn,
+):
+    try:
+        response_data = await upstream_resp.json()
+        response_text = response_data.get("response", "")
+    except (aiohttp.ContentTypeError, json.JSONDecodeError) as e:
+        response_text = await upstream_resp.text()
+        logger.warning(f"Upstream response is not JSON in fake_stream mode: {e}")
+    if convert_to_openai:
+        cs = ToolInterceptor()
+        tool_calls, cleaned_text = cs.process(response_text)
+        if tool_calls:
+            for i, tc_dict in enumerate(tool_calls):
+                if asyncio.iscoroutinefunction(openai_compat_fn):
+                    chunk_json = await openai_compat_fn(
+                        None,
+                        model_name=data["model"],
+                        create_timestamp=created_timestamp,
+                        prompt_tokens=prompt_tokens,
+                        is_streaming=True,
+                        finish_reason="tool_calls",
+                        tool_calls=tc_dict,
+                        tc_index=i,
+                    )
+                else:
+                    chunk_json = openai_compat_fn(
+                        None,
+                        model_name=data["model"],
+                        create_timestamp=created_timestamp,
+                        prompt_tokens=prompt_tokens,
+                        is_streaming=True,
+                        finish_reason="tool_calls",
+                        tool_calls=tc_dict,
+                        tc_index=i,
+                    )
+                await send_off_sse(response, cast(Dict[str, Any], chunk_json))
+        total_processed = 0
+        async for chunk_text in pseudo_chunk_generator(cleaned_text):
+            total_processed += len(chunk_text)
+            finish_reason = None
+            if total_processed >= len(cleaned_text):
+                finish_reason = "stop"
+            if asyncio.iscoroutinefunction(openai_compat_fn):
+                chunk_json = await openai_compat_fn(
+                    chunk_text,
+                    model_name=data["model"],
+                    create_timestamp=created_timestamp,
+                    prompt_tokens=prompt_tokens,
+                    is_streaming=True,
+                    finish_reason=finish_reason,
+                    tool_calls=None,
+                )
+            else:
+                chunk_json = openai_compat_fn(
+                    chunk_text,
+                    model_name=data["model"],
+                    create_timestamp=created_timestamp,
+                    prompt_tokens=prompt_tokens,
+                    is_streaming=True,
+                    finish_reason=finish_reason,
+                    tool_calls=None,
+                )
+            await send_off_sse(response, cast(Dict[str, Any], chunk_json))
+    else:
+        async for chunk_text in pseudo_chunk_generator(response_text):
+            await send_off_sse(response, chunk_text.encode())
+
+
+async def _handle_real_stream(
+    response: web.StreamResponse,
+    upstream_resp: aiohttp.ClientResponse,
+    data: Dict[str, Any],
+    created_timestamp: int,
+    prompt_tokens: int,
+    convert_to_openai: bool,
+    openai_compat_fn,
+):
+    chunk_iterator = upstream_resp.content.iter_any()
+    async for chunk_bytes in chunk_iterator:
+        logger.warning(f"Handling chunk: {chunk_bytes}")
+        logger.warning(f"Finish reason: {None}")
+        logger.warning(f"Tool calls before openai_compat_fn: {None}")
+        if convert_to_openai:
+            if asyncio.iscoroutinefunction(openai_compat_fn):
+                chunk_json = await openai_compat_fn(
+                    chunk_bytes.decode() if chunk_bytes else None,
+                    model_name=data["model"],
+                    create_timestamp=created_timestamp,
+                    prompt_tokens=prompt_tokens,
+                    is_streaming=True,
+                    finish_reason=None,
+                    tool_calls=None,
+                )
+            else:
+                chunk_json = openai_compat_fn(
+                    chunk_bytes.decode() if chunk_bytes else None,
+                    model_name=data["model"],
+                    create_timestamp=created_timestamp,
+                    prompt_tokens=prompt_tokens,
+                    is_streaming=True,
+                    finish_reason=None,
+                    tool_calls=None,
+                )
+            await send_off_sse(response, cast(Dict[str, Any], chunk_json))
+        else:
+            await send_off_sse(response, chunk_bytes)
+
+
 async def send_streaming_request(
     session: aiohttp.ClientSession,
     api_url: str,
@@ -357,9 +472,7 @@ async def send_streaming_request(
     try:
         async with session.post(api_url, headers=headers, json=data) as upstream_resp:
             if upstream_resp.status != 200:
-                # Read error content from upstream response
                 error_text = await upstream_resp.text()
-                # Return JSON error response to client
                 return web.json_response(
                     {
                         "error": f"Upstream API error: {upstream_resp.status} {error_text}"
@@ -391,121 +504,27 @@ async def send_streaming_request(
             await response.prepare(request)
 
             if fake_stream:
-                # Get full response first
-                try:
-                    response_data = await upstream_resp.json()
-                    response_text = response_data.get("response", "")
-                except (aiohttp.ContentTypeError, json.JSONDecodeError) as e:
-                    # If response is not JSON, treat as plain text
-                    response_text = await upstream_resp.text()
-                    logger.warning(
-                        f"Upstream response is not JSON in fake_stream mode: {e}"
-                    )
+                await _handle_fake_stream(
+                    response,
+                    upstream_resp,
+                    data,
+                    created_timestamp,
+                    prompt_tokens,
+                    convert_to_openai,
+                    openai_compat_fn,
+                )
+            else:
+                await _handle_real_stream(
+                    response,
+                    upstream_resp,
+                    data,
+                    created_timestamp,
+                    prompt_tokens,
+                    convert_to_openai,
+                    openai_compat_fn,
+                )
 
-                if convert_to_openai:
-                    # OpenAI conversion & tool calls logic only applies below
-                    cs = ToolInterceptor()
-                    tool_calls, cleaned_text = cs.process(response_text)
-
-                    if tool_calls:
-                        for i, tc_dict in enumerate(tool_calls):
-                            # Ensure proper handling for both sync and async conversion functions
-                            if asyncio.iscoroutinefunction(openai_compat_fn):
-                                chunk_json = await openai_compat_fn(
-                                    None,
-                                    model_name=data["model"],
-                                    create_timestamp=created_timestamp,
-                                    prompt_tokens=prompt_tokens,
-                                    is_streaming=True,
-                                    finish_reason="tool_calls",
-                                    tool_calls=tc_dict,
-                                    tc_index=i,
-                                )
-                            else:
-                                chunk_json = openai_compat_fn(
-                                    None,
-                                    model_name=data["model"],
-                                    create_timestamp=created_timestamp,
-                                    prompt_tokens=prompt_tokens,
-                                    is_streaming=True,
-                                    finish_reason="tool_calls",
-                                    tool_calls=tc_dict,
-                                    tc_index=i,
-                                )
-                            await send_off_sse(
-                                response, cast(Dict[str, Any], chunk_json)
-                            )
-
-                    total_processed = 0
-                    async for chunk_text in pseudo_chunk_generator(cleaned_text):
-                        total_processed += len(chunk_text)
-                        finish_reason = None
-                        if total_processed >= len(cleaned_text):
-                            finish_reason = "stop"
-
-                        if asyncio.iscoroutinefunction(openai_compat_fn):
-                            chunk_json = await openai_compat_fn(
-                                chunk_text,
-                                model_name=data["model"],
-                                create_timestamp=created_timestamp,
-                                prompt_tokens=prompt_tokens,
-                                is_streaming=True,
-                                finish_reason=finish_reason,  # May be None for ongoing chunks
-                                tool_calls=None,
-                            )
-                        else:
-                            chunk_json = openai_compat_fn(
-                                chunk_text,
-                                model_name=data["model"],
-                                create_timestamp=created_timestamp,
-                                prompt_tokens=prompt_tokens,
-                                is_streaming=True,
-                                finish_reason=finish_reason,  # May be None for ongoing chunks
-                                tool_calls=None,
-                            )
-                        await send_off_sse(response, cast(Dict[str, Any], chunk_json))
-
-                else:
-                    # Simple: just raw chunk streaming
-                    async for chunk_text in pseudo_chunk_generator(response_text):
-                        await send_off_sse(response, chunk_text.encode())
-            else:  # Real streaming mode
-                chunk_iterator = upstream_resp.content.iter_any()
-                async for chunk_bytes in chunk_iterator:
-                    # Inline handle_chunk logic for real streaming mode
-                    logger.warning(f"Handling chunk: {chunk_bytes}")
-                    logger.warning(f"Finish reason: {None}")
-                    logger.warning(f"Tool calls before openai_compat_fn: {None}")
-                    if convert_to_openai:
-                        # Convert the chunk to OpenAI-compatible JSON
-                        if asyncio.iscoroutinefunction(openai_compat_fn):
-                            chunk_json = await openai_compat_fn(
-                                chunk_bytes.decode() if chunk_bytes else None,
-                                model_name=data["model"],
-                                create_timestamp=created_timestamp,
-                                prompt_tokens=prompt_tokens,
-                                is_streaming=True,
-                                finish_reason=None,  # May be None for ongoing chunks
-                                tool_calls=None,
-                            )
-                        else:
-                            chunk_json = openai_compat_fn(
-                                chunk_bytes.decode() if chunk_bytes else None,
-                                model_name=data["model"],
-                                create_timestamp=created_timestamp,
-                                prompt_tokens=prompt_tokens,
-                                is_streaming=True,
-                                finish_reason=None,  # May be None for ongoing chunks
-                                tool_calls=None,
-                            )
-                        await send_off_sse(response, cast(Dict[str, Any], chunk_json))
-                    else:
-                        # Return the chunk as raw text
-                        await send_off_sse(response, chunk_bytes)
-
-            # Ensure response is properly closed
             await response.write_eof()
-
             return response
 
     except aiohttp.ClientResponseError as err:
