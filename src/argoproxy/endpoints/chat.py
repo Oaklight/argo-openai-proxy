@@ -348,6 +348,9 @@ async def send_streaming_request(
     else:
         response_headers = {"Content-Type": "text/plain; charset=utf-8"}
 
+    # enable fake stream in case tools shows up in request
+    if "tools" in data:
+        fake_stream = True
     if fake_stream:
         data["stream"] = False  # disable streaming in upstream request
 
