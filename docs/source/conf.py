@@ -59,7 +59,7 @@ html_search_options = {"type": "default"}
 html_theme_options = {
     # "announcement": ("v0.4.10.post1 released!"),
     "show_toc_level": 2,
-    "show_nav_level": 2,
+    "show_nav_level": 4,
     "collapse_navigation": False,
     "icon_links": [
         {
