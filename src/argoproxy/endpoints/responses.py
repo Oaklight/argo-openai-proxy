@@ -571,7 +571,6 @@ async def proxy_request(
                 config,
                 data,
                 request,
-                fake_stream=True,
             )
         else:
             return await send_non_streaming_request(

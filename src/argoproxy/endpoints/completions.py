@@ -186,7 +186,6 @@ async def proxy_request(
                 request,
                 convert_to_openai=True,
                 openai_compat_fn=transform_completions_compat_async,
-                fake_stream=True,
             )
         else:
             return await send_non_streaming_request(
