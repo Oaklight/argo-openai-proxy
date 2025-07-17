@@ -66,6 +66,13 @@ def parsing_args() -> argparse.Namespace:
     )
 
     parser.add_argument(
+        '--real-stream',
+        '-rs',
+        action='store_true',
+        help='Enable real streaming, override if `real_stream` set False or omitted in config',
+    )
+
+    parser.add_argument(
         "--edit",
         "-e",
         action="store_true",
@@ -104,6 +111,8 @@ def set_config_envs(args: argparse.Namespace):
         os.environ["VERBOSE"] = str(True)
     if args.quiet:
         os.environ["VERBOSE"] = str(False)
+    if args.real_stream:
+        os.environ["REAL_STREAM"] = str(True)
 
 
 def open_in_editor(config_path: Optional[str] = None):
