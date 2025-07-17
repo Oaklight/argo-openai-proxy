@@ -428,9 +428,6 @@ async def _handle_real_stream(
     """
     chunk_iterator = upstream_resp.content.iter_any()
     async for chunk_bytes in chunk_iterator:
-        logger.warning(f"Handling chunk: {chunk_bytes}")
-        logger.warning(f"Finish reason: {None}")
-        logger.warning(f"Tool calls before openai_compat_fn: {None}")
         if convert_to_openai:
             if asyncio.iscoroutinefunction(openai_compat_fn):
                 chunk_json = await openai_compat_fn(
