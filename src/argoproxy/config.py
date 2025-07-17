@@ -1,4 +1,5 @@
 import asyncio
+import difflib
 import json
 import os
 import threading
@@ -559,10 +560,13 @@ def validate_config(
         )
         if not config_original:
             raise ValueError("Failed to load original configuration for comparison.")
-        # prompt user with yes or no to ask for persistence of changes
-        logger.info("Configuration has been modified.")
-        _show(json.dumps(config_original, indent=4), "Original configuration:")
-        config_data.show("Current Configuration:")
+
+        # Show ndiff between original and current configuration
+        original_str = json.dumps(config_original, indent=4, sort_keys=True)
+        current_str = str(config_data)
+        diff = difflib.unified_diff(original_str.splitlines(), current_str.splitlines())
+        _show("\n"+"\n".join(diff), "Configuration diff (- original, + current):")
+
         user_decision = _get_yes_no_input(
             "Do you want to save the changes to the configuration file? [y/N]: ",
             default_choice="n",
