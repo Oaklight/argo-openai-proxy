@@ -319,8 +319,23 @@ async def _handle_fake_stream(
     created_timestamp: int,
     prompt_tokens: int,
     convert_to_openai: bool,
-    openai_compat_fn,
-):
+    openai_compat_fn: Union[
+        Callable[..., Dict[str, Any]],
+        Callable[..., Awaitable[Dict[str, Any]]],
+    ],
+) -> None:
+    """
+    Handles fake streaming by simulating chunked responses.
+
+    Args:
+        response: The web.StreamResponse object for sending SSE events.
+        upstream_resp: The upstream aiohttp.ClientResponse object.
+        data: The JSON payload of the request.
+        created_timestamp: The timestamp when the request was created.
+        prompt_tokens: The number of tokens in the input prompt.
+        convert_to_openai: If True, converts the response to OpenAI format.
+        openai_compat_fn: Function for conversion to OpenAI-compatible format.
+    """
     try:
         response_data = await upstream_resp.json()
         response_text = response_data.get("response", "")
@@ -394,8 +409,23 @@ async def _handle_real_stream(
     created_timestamp: int,
     prompt_tokens: int,
     convert_to_openai: bool,
-    openai_compat_fn,
-):
+    openai_compat_fn: Union[
+        Callable[..., Dict[str, Any]],
+        Callable[..., Awaitable[Dict[str, Any]]],
+    ],
+) -> None:
+    """
+    Handles real streaming by processing chunks from the upstream response.
+
+    Args:
+        response: The web.StreamResponse object for sending SSE events.
+        upstream_resp: The upstream aiohttp.ClientResponse object.
+        data: The JSON payload of the request.
+        created_timestamp: The timestamp when the request was created.
+        prompt_tokens: The number of tokens in the input prompt.
+        convert_to_openai: If True, converts the response to OpenAI format.
+        openai_compat_fn: Function for conversion to OpenAI-compatible format.
+    """
     chunk_iterator = upstream_resp.content.iter_any()
     async for chunk_bytes in chunk_iterator:
         logger.warning(f"Handling chunk: {chunk_bytes}")

@@ -3,7 +3,7 @@ import json
 import time
 import uuid
 from http import HTTPStatus
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import aiohttp
 from aiohttp import web
@@ -269,16 +269,26 @@ def prepare_request_data(
 
 
 async def _handle_fake_stream_events(
-    response,
-    response_data,
-    output_msg,
-    content_part,
-    output_item,
-    sequence_number,
-):
+    response: web.StreamResponse,
+    response_data: Dict[str, Any],
+    output_msg: ResponseOutputMessage,
+    content_part: ResponseContentPartAddedEvent,
+    output_item: ResponseOutputItemAddedEvent,
+    sequence_number: int,
+) -> Tuple[int, str]:
     """
-    Helper for fake streaming: yields chunks from full response with ResponseTextDeltaEvent.
-    Returns (sequence_number, cumulated_response).
+    Handles fake streaming events by simulating chunked responses.
+
+    Args:
+        response: The web.StreamResponse object for sending SSE events.
+        response_data: The JSON payload of the upstream response.
+        output_msg: The ResponseOutputMessage object for the current output.
+        content_part: The ResponseContentPartAddedEvent object for the content part.
+        output_item: The ResponseOutputItemAddedEvent object for the output item.
+        sequence_number: The current sequence number for the streaming events.
+
+    Returns:
+        A tuple containing the updated sequence number and the cumulated response text.
     """
     response_text = response_data.get("response", "")
     cumulated_response = response_text
@@ -299,16 +309,26 @@ async def _handle_fake_stream_events(
 
 
 async def _handle_real_stream_events(
-    response,
-    upstream_resp,
-    output_msg,
-    content_part,
-    output_item,
-    sequence_number,
-):
+    response: web.StreamResponse,
+    upstream_resp: aiohttp.ClientResponse,
+    output_msg: ResponseOutputMessage,
+    content_part: ResponseContentPartAddedEvent,
+    output_item: ResponseOutputItemAddedEvent,
+    sequence_number: int,
+) -> Tuple[int, str]:
     """
-    Helper for real streaming: yields chunks from upstream with ResponseTextDeltaEvent.
-    Returns (sequence_number, cumulated_response).
+    Handles real streaming events by processing chunks from the upstream response.
+
+    Args:
+        response: The web.StreamResponse object for sending SSE events.
+        upstream_resp: The upstream aiohttp.ClientResponse object.
+        output_msg: The ResponseOutputMessage object for the current output.
+        content_part: The ResponseContentPartAddedEvent object for the content part.
+        output_item: The ResponseOutputItemAddedEvent object for the output item.
+        sequence_number: The current sequence number for the streaming events.
+
+    Returns:
+        A tuple containing the updated sequence number and the cumulated response text.
     """
     cumulated_response = ""
     async for chunk in upstream_resp.content.iter_any():
