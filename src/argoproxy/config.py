@@ -46,6 +46,9 @@ class ArgoConfig:
     _argo_embedding_url: str = ""
     _argo_model_url: str = ""
 
+    # Temporary field, used for testing, expose with caution
+    _real_stream: bool = False
+
     # chat endpoint
     @property
     def argo_url(self):
@@ -75,6 +78,8 @@ class ArgoConfig:
 
     @property
     def pseudo_stream(self):
+        if self._real_stream and self._real_stream is True:
+            return False
         return True
 
     @classmethod
@@ -85,6 +90,7 @@ class ArgoConfig:
             "argo_url": "_argo_url",
             "argo_stream_url": "_argo_stream_url",
             "argo_embedding_url": "_argo_embedding_url",
+            "real_stream": "_real_stream",
         }
         valid_fields = {
             k: v for k, v in config_dict.items() if k in cls.__annotations__
