@@ -247,7 +247,7 @@ class ArgoConfig:
             message (Optional[str]): Message to display before showing the configuration.
         """
         # Use the __str__ method for formatted output
-        _show(self, message if message else "Current configuration:")
+        _show(str(self), message if message else "Current configuration:")
 
 
 def _show(body: str, message: Optional[str] = None) -> None:
@@ -404,7 +404,7 @@ def _get_valid_username(username: str = "") -> str:
 
 
 def save_config(
-    config_data: ArgoConfig, config_path: Optional[str | Path] = None
+    config_data: ArgoConfig, config_path: Optional[Union[str, Path]] = None
 ) -> str:
     """Save configuration to YAML file.
 
@@ -461,7 +461,7 @@ def _apply_env_overrides(config_data: ArgoConfig) -> ArgoConfig:
 
 @overload
 def load_config(
-    optional_path: Optional[str | Path] = None,
+    optional_path: Optional[Union[str, Path]] = None,
     *,
     env_override: bool = True,
     as_is: Literal[False] = False,
@@ -469,16 +469,16 @@ def load_config(
 ) -> Tuple[Optional[ArgoConfig], Optional[Path]]: ...
 @overload
 def load_config(
-    optional_path: Optional[str | Path] = None,
+    optional_path: Optional[Union[str, Path]] = None,
     *,
     env_override: bool = True,
-    as_is: Literal[True] = True,
+    as_is: Literal[True],
     verbose: bool = True,
 ) -> Tuple[Optional[Dict[str, Any]], Optional[Path]]: ...
 
 
 def load_config(
-    optional_path: Optional[str | Path] = None,
+    optional_path: Optional[Union[str, Path]] = None,
     *,
     env_override: bool = True,
     as_is: bool = False,
@@ -565,7 +565,7 @@ def validate_config(
         original_str = json.dumps(config_original, indent=4, sort_keys=True)
         current_str = str(config_data)
         diff = difflib.unified_diff(original_str.splitlines(), current_str.splitlines())
-        _show("\n"+"\n".join(diff), "Configuration diff (- original, + current):")
+        _show("\n" + "\n".join(diff), "Configuration diff (- original, + current):")
 
         user_decision = _get_yes_no_input(
             "Do you want to save the changes to the configuration file? [y/N]: ",
