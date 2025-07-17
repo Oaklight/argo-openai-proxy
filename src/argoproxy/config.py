@@ -256,10 +256,16 @@ class ArgoConfig:
         Args:
             message (Optional[str]): Message to display before showing the configuration.
         """
-        logger.info(message if message else "Current configuration:")
-        logger.info(make_bar())
-        logger.info(self)  # Use the __str__ method for formatted output
-        logger.info(make_bar())
+        # Use the __str__ method for formatted output
+        _show(self, message if message else "Current configuration:")
+
+
+def _show(body: str, message: Optional[str] = None) -> None:
+    """Helper to display a formatted message with a bar."""
+    logger.info(message if message else "")
+    logger.info(make_bar())
+    logger.info(body)
+    logger.info(make_bar())
 
 
 def _get_user_port_choice(prompt: str, default_port: int) -> int:
