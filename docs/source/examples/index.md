@@ -12,8 +12,8 @@ timeout_examples
 
 The experimental tool calls (function calling) interface has been available since version v2.7.5.alpha1.
 
-- **Function Calling OpenAI Client**: [function_calling_chat.py](https://github.com/Oaklight/argo-proxy/blob/main/examples/openai_client/function_calling_chat.py)
-- **Function Calling Raw Request**: [function_calling_chat.py](https://github.com/Oaklight/argo-proxy/blob/main/examples/raw_requests/function_calling_chat.py)
+- **Function Calling OpenAI Client**: [function_calling_chat.py](https://github.com/Oaklight/argo-proxy/blob/master/examples/openai_client/function_calling_chat.py)
+- **Function Calling Raw Request**: [function_calling_chat.py](https://github.com/Oaklight/argo-proxy/blob/master/examples/raw_requests/function_calling_chat.py)
 
 For more usage details, refer to the [OpenAI documentation](https://platform.openai.com/docs/guides/function-calling).
 
@@ -23,33 +23,33 @@ For examples of how to use the raw request utilities (e.g., `httpx`, `requests`)
 
 ### Direct Access to ARGO
 
-- **Direct Chat Example**: [argo_chat.py](https://github.com/Oaklight/argo-proxy/blob/main/examples/raw_requests/argo_chat.py)
-- **Direct Chat Stream Example**: [argo_chat_stream.py](https://github.com/Oaklight/argo-proxy/blob/main/examples/raw_requests/argo_chat_stream.py)
-- **Direct Embedding Example**: [argo_embed.py](https://github.com/Oaklight/argo-proxy/blob/main/examples/raw_requests/argo_embed.py)
+- **Direct Chat Example**: [argo_chat.py](https://github.com/Oaklight/argo-proxy/blob/master/examples/raw_requests/argo_chat.py)
+- **Direct Chat Stream Example**: [argo_chat_stream.py](https://github.com/Oaklight/argo-proxy/blob/master/examples/raw_requests/argo_chat_stream.py)
+- **Direct Embedding Example**: [argo_embed.py](https://github.com/Oaklight/argo-proxy/blob/master/examples/raw_requests/argo_embed.py)
 
 ### OpenAI Compatible Requests
 
-- **Chat Completions Example**: [chat_completions.py](https://github.com/Oaklight/argo-proxy/blob/main/examples/raw_requests/chat_completions.py)
-- **Chat Completions Stream Example**: [chat_completions_stream.py](https://github.com/Oaklight/argo-proxy/blob/main/examples/raw_requests/chat_completions_stream.py)
-- **Legacy Completions Example**: [legacy_completions.py](https://github.com/Oaklight/argo-proxy/blob/main/examples/raw_requests/legacy_completions.py)
-- **Legacy Completions Stream Example**: [legacy_completions_stream.py](https://github.com/Oaklight/argo-proxy/blob/main/examples/raw_requests/legacy_completions_stream.py)
-- **Responses Example**: [responses.py](https://github.com/Oaklight/argo-proxy/blob/main/examples/raw_requests/responses.py)
-- **Responses Stream Example**: [responses_stream.py](https://github.com/Oaklight/argo-proxy/blob/main/examples/raw_requests/responses_stream.py)
-- **Embedding Example**: [embedding.py](https://github.com/Oaklight/argo-proxy/blob/main/examples/raw_requests/embedding.py)
-- **o1 Mini Chat Completions Example**: [o1_mini_chat_completions.py](https://github.com/Oaklight/argo-proxy/blob/main/examples/raw_requests/o1_mini_chat_completions.py)
+- **Chat Completions Example**: [chat_completions.py](https://github.com/Oaklight/argo-proxy/blob/master/examples/raw_requests/chat_completions.py)
+- **Chat Completions Stream Example**: [chat_completions_stream.py](https://github.com/Oaklight/argo-proxy/blob/master/examples/raw_requests/chat_completions_stream.py)
+- **Legacy Completions Example**: [legacy_completions.py](https://github.com/Oaklight/argo-proxy/blob/master/examples/raw_requests/legacy_completions.py)
+- **Legacy Completions Stream Example**: [legacy_completions_stream.py](https://github.com/Oaklight/argo-proxy/blob/master/examples/raw_requests/legacy_completions_stream.py)
+- **Responses Example**: [responses.py](https://github.com/Oaklight/argo-proxy/blob/master/examples/raw_requests/responses.py)
+- **Responses Stream Example**: [responses_stream.py](https://github.com/Oaklight/argo-proxy/blob/master/examples/raw_requests/responses_stream.py)
+- **Embedding Example**: [embedding.py](https://github.com/Oaklight/argo-proxy/blob/master/examples/raw_requests/embedding.py)
+- **o1 Mini Chat Completions Example**: [o1_mini_chat_completions.py](https://github.com/Oaklight/argo-proxy/blob/master/examples/raw_requests/o1_mini_chat_completions.py)
 
 ## OpenAI Client
 
 For examples demonstrating the use case of the OpenAI client (`openai.OpenAI`), refer to:
 
-- **Chat Completions Example**: [chat_completions.py](https://github.com/Oaklight/argo-proxy/blob/main/examples/openai_client/chat_completions.py)
-- **Chat Completions Stream Example**: [chat_completions_stream.py](https://github.com/Oaklight/argo-proxy/blob/main/examples/openai_client/chat_completions_stream.py)
-- **Legacy Completions Example**: [legacy_completions.py](https://github.com/Oaklight/argo-proxy/blob/main/examples/openai_client/legacy_completions.py)
-- **Legacy Completions Stream Example**: [legacy_completions_stream.py](https://github.com/Oaklight/argo-proxy/blob/main/examples/openai_client/legacy_completions_stream.py)
-- **Responses Example**: [responses.py](https://github.com/Oaklight/argo-proxy/blob/main/examples/openai_client/responses.py)
-- **Responses Stream Example**: [responses_stream.py](https://github.com/Oaklight/argo-proxy/blob/main/examples/openai_client/responses_stream.py)
-- **Embedding Example**: [embedding.py](https://github.com/Oaklight/argo-proxy/blob/main/examples/openai_client/embedding.py)
-- **O3 Mini Simple Chatbot Example**: [o3_mini_simple_chatbot.py](https://github.com/Oaklight/argo-proxy/blob/main/examples/openai_client/o3_mini_simple_chatbot.py)
+- **Chat Completions Example**: [chat_completions.py](https://github.com/Oaklight/argo-proxy/blob/master/examples/openai_client/chat_completions.py)
+- **Chat Completions Stream Example**: [chat_completions_stream.py](https://github.com/Oaklight/argo-proxy/blob/master/examples/openai_client/chat_completions_stream.py)
+- **Legacy Completions Example**: [legacy_completions.py](https://github.com/Oaklight/argo-proxy/blob/master/examples/openai_client/legacy_completions.py)
+- **Legacy Completions Stream Example**: [legacy_completions_stream.py](https://github.com/Oaklight/argo-proxy/blob/master/examples/openai_client/legacy_completions_stream.py)
+- **Responses Example**: [responses.py](https://github.com/Oaklight/argo-proxy/blob/master/examples/openai_client/responses.py)
+- **Responses Stream Example**: [responses_stream.py](https://github.com/Oaklight/argo-proxy/blob/master/examples/openai_client/responses_stream.py)
+- **Embedding Example**: [embedding.py](https://github.com/Oaklight/argo-proxy/blob/master/examples/openai_client/embedding.py)
+- **O3 Mini Simple Chatbot Example**: [o3_mini_simple_chatbot.py](https://github.com/Oaklight/argo-proxy/blob/master/examples/openai_client/o3_mini_simple_chatbot.py)
 
 ## Project Structure
 
