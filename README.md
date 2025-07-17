@@ -2,6 +2,7 @@
 
 ![PyPI - Version](https://img.shields.io/pypi/v/argo-proxy)
 ![GitHub Release](https://img.shields.io/github/v/release/Oaklight/argo-proxy)
+
 <!-- ![GitHub Tag](https://img.shields.io/github/v/tag/Oaklight/argo-proxy) -->
 
 This project is a proxy application that forwards requests to an ARGO API and optionally converts the responses to be compatible with OpenAI's API format. It can be used in conjunction with [autossh-tunnel-dockerized](https://github.com/Oaklight/autossh-tunnel-dockerized) or other secure connection tools.
@@ -13,7 +14,7 @@ pip install argo-proxy # install the package
 argo-proxy # run the proxy
 ```
 
-Function calling is available for Chat Completions endpoint starting from `v2.7.5`. Try with `pip install argo-proxy>=2.7.5`
+Function calling is available for Chat Completions endpoint starting from `v2.7.5`. Try with `pip install "argo-proxy>=2.7.5"`
 
 ## NOTICE OF USAGE
 
@@ -26,6 +27,7 @@ The machine or server making API calls to Argo must be connected to the Argonne 
   - [Running the Application](#running-the-application)
   - [First-Time Setup](#first-time-setup)
   - [Configuration Options Reference](#configuration-options-reference)
+  - [Streaming Modes: Real Stream vs Pseudo Stream](#streaming-modes-real-stream-vs-pseudo-stream)
   - [`argo-proxy` CLI Available Options](#argo-proxy-cli-available-options)
   - [Management Utilities](#management-utilities)
 - [Usage](#usage)
@@ -72,7 +74,7 @@ The machine or server making API calls to Argo must be connected to the Argonne 
 
   or, if you decide to use dev version (make sure you are at the root of the repo cloned):
   ![GitHub Release](https://img.shields.io/github/v/release/Oaklight/argo-proxy)
-  
+
   ```bash
   pip install .
   ```
@@ -84,11 +86,11 @@ If you don't want to manually configure it, the [First-Time Setup](#first-time-s
 The application uses `config.yaml` for configuration. Here's an example:
 
 ```yaml
+argo_embedding_url: "https://apps.inside.anl.gov/argoapi/api/v1/resource/embed/"
+argo_stream_url: "https://apps-dev.inside.anl.gov/argoapi/api/v1/resource/streamchat/"
+argo_url: "https://apps-dev.inside.anl.gov/argoapi/api/v1/resource/chat/"
 port: 44497
 host: 0.0.0.0
-argo_url: "https://apps-dev.inside.anl.gov/argoapi/api/v1/resource/chat/"
-argo_stream_url: "https://apps-dev.inside.anl.gov/argoapi/api/v1/resource/streamchat/"
-argo_embedding_url: "https://apps.inside.anl.gov/argoapi/api/v1/resource/embed/"
 user: "your_username" # set during first-time setup
 verbose: true # can be changed during setup
 ```
@@ -105,7 +107,7 @@ argo-proxy [config_path]
   - current directory
   - `~/.config/argoproxy/`
   - `~/.argoproxy/`
-  The first one found will be used.
+    The first one found will be used.
 - With path: uses specified config file, if exists. Otherwise, falls back to default search.
 
   ```bash
@@ -165,13 +167,66 @@ Current configuration:
 | `argo_embedding_url` | Argo Embedding API URL                                       | Prod URL           |
 | `user`               | Your username                                                | (Set during setup) |
 | `verbose`            | Debug logging                                                | `true`             |
+| `real_stream`        | Enable real streaming mode (experimental)                    | `false`            |
+
+### Streaming Modes: Real Stream vs Pseudo Stream
+
+Argo Proxy supports two streaming modes for chat completions:
+
+#### Pseudo Stream (Default, Recommended)
+
+- **Default behavior**: Enabled by default (`real_stream: false` or omitted in config)
+- **How it works**: Receives the complete response from upstream, then simulates streaming by sending chunks to the client
+- **Advantages**:
+  - More stable and reliable experience
+  - Better error handling and recovery
+  - Consistent performance
+  - **Recommended for production use**
+
+#### Real Stream (Experimental)
+
+- **Enable via**: Set `real_stream: true` in config file or use `--real-stream` CLI flag
+- **How it works**: Directly streams chunks from the upstream API as they arrive
+- **Status**: Currently in testing phase
+- **Note**: We welcome feedback on real streaming performance and stability
+
+#### Configuration Examples
+
+**Via config file:**
+
+```yaml
+# Enable real streaming (experimental)
+real_stream: true
+
+# Or explicitly use pseudo streaming (default)
+real_stream: false
+```
+
+**Via CLI flag:**
+
+```bash
+# Enable real streaming for this session
+argo-proxy --real-stream
+
+# Use default pseudo streaming
+argo-proxy
+```
+
+#### Function Calling Behavior
+
+When using function calling (tool calls):
+
+- **Pseudo stream is automatically enforced** regardless of your configuration
+- This ensures reliable function call processing with the current prompting-based implementation
+- Users will not notice this automatic switch as the experience remains smooth
+- Native function calling support is work in progress (WIP)
 
 ### `argo-proxy` CLI Available Options
 
 ```bash
 $ argo-proxy -h
-usage: argo-proxy [-h] [--host HOST] [--port PORT] [--verbose | --quiet] [--edit]
-                  [--validate] [--show] [--version]
+usage: argo-proxy [-h] [--host HOST] [--port PORT] [--verbose | --quiet] [--real-stream]
+                  [--edit] [--validate] [--show] [--version]
                   [config]
 
 Argo Proxy CLI
@@ -185,6 +240,7 @@ options:
   --port PORT, -p PORT  Port number to bind the server to
   --verbose, -v         Enable verbose logging, override if `verbose` set False in config
   --quiet, -q           Disable verbose logging, override if `verbose` set True in config
+  --real-stream, -rs    Enable real streaming, override if `real_stream` set False or omitted in config
   --edit, -e            Open the configuration file in the system's default editor for
                         editing
   --validate, -vv       Validate the configuration file and exit
@@ -197,10 +253,12 @@ options:
 The following options help manage the configuration file:
 
 - `--edit, -e`: Open the configuration file in the system's default editor for editing.
+
   - If no config file is specified, it will search in default locations (~/.config/argoproxy/, ~/.argoproxy/, or current directory)
   - Tries common editors like nano, vi, vim (unix-like systems) or notepad (Windows)
 
 - `--validate, -vv`: Validate the configuration file and exit without starting the server.
+
   - Useful for checking config syntax and connectivity before deployment
 
 - `--show, -s`: Show the current configuration during launch.
@@ -252,31 +310,31 @@ Details of how to make such override in different query flavors: [Timeout Overri
 
 ##### OpenAI Series
 
-| Original ARGO Model Name | Argo Proxy Name                                    |
-| ------------------------ | -------------------------------------------------- |
-| `gpt35`                  | `argo:gpt-3.5-turbo`                               |
-| `gpt35large`             | `argo:gpt-3.5-turbo-16k`                           |
-| `gpt4`                   | `argo:gpt-4`                                       |
-| `gpt4large`              | `argo:gpt-4-32k`                                   |
-| `gpt4turbo`              | `argo:gpt-4-turbo`                                 |
-| `gpt4o`                  | `argo:gpt-4o`                                      |
-| `gpt4olatest`            | `argo:gpt-4o-latest`                               |
-| `gpto1preview`           | `argo:gpt-o1-preview`, `argo:o1-preview`           |
-| `gpto1mini`              | `argo:gpt-o1-mini`, `argo:o1-mini`                 |
-| `gpto3mini`              | `argo:gpt-o3-mini`, `argo:o3-mini`                 |
-| `gpto1`                  | `argo:gpt-o1`, `argo:o1`                           |
-| `gpto3`                  | `argo:gpt-o3`, `argo:o3`                           |
-| `gpto4mini`              | `argo:gpt-o4-mini`, `argo:o4-mini`                 |
-| `gpt41`                  | `argo:gpt-4.1`                                     |
-| `gpt41mini`              | `argo:gpt-4.1-mini`                                |
-| `gpt41nano`              | `argo:gpt-4.1-nano`                                |
+| Original ARGO Model Name | Argo Proxy Name                          |
+| ------------------------ | ---------------------------------------- |
+| `gpt35`                  | `argo:gpt-3.5-turbo`                     |
+| `gpt35large`             | `argo:gpt-3.5-turbo-16k`                 |
+| `gpt4`                   | `argo:gpt-4`                             |
+| `gpt4large`              | `argo:gpt-4-32k`                         |
+| `gpt4turbo`              | `argo:gpt-4-turbo`                       |
+| `gpt4o`                  | `argo:gpt-4o`                            |
+| `gpt4olatest`            | `argo:gpt-4o-latest`                     |
+| `gpto1preview`           | `argo:gpt-o1-preview`, `argo:o1-preview` |
+| `gpto1mini`              | `argo:gpt-o1-mini`, `argo:o1-mini`       |
+| `gpto3mini`              | `argo:gpt-o3-mini`, `argo:o3-mini`       |
+| `gpto1`                  | `argo:gpt-o1`, `argo:o1`                 |
+| `gpto3`                  | `argo:gpt-o3`, `argo:o3`                 |
+| `gpto4mini`              | `argo:gpt-o4-mini`, `argo:o4-mini`       |
+| `gpt41`                  | `argo:gpt-4.1`                           |
+| `gpt41mini`              | `argo:gpt-4.1-mini`                      |
+| `gpt41nano`              | `argo:gpt-4.1-nano`                      |
 
 ##### Google Gemini Series
 
-| Original ARGO Model Name | Argo Proxy Name                                    |
-| ------------------------ | -------------------------------------------------- |
-| `gemini25pro`            | `argo:gemini-2.5-pro`                              |
-| `gemini25flash`          | `argo:gemini-2.5-flash`                            |
+| Original ARGO Model Name | Argo Proxy Name         |
+| ------------------------ | ----------------------- |
+| `gemini25pro`            | `argo:gemini-2.5-pro`   |
+| `gemini25flash`          | `argo:gemini-2.5-flash` |
 
 ##### Anthropic Claude Series
 
@@ -349,73 +407,6 @@ For examples demonstrating the use case of the OpenAI client (`openai.OpenAI`), 
 - **Responses Stream Example**: [responses_stream.py](examples/openai_client/responses_stream.py)
 - **Embedding Example**: [embedding.py](examples/openai_client/embedding.py)
 - **O3 Mini Simple Chatbot Example**: [o3_mini_simple_chatbot.py](examples/openai_client/o3_mini_simple_chatbot.py)
-
-## Folder Structure
-
-The following is an overview of the project's directory structure:
-
-```bash
-$ tree -I "__pycache__|*.egg-info|dist|dev_scripts|config.yaml"
-.
-├── config.sample.yaml
-├── examples
-│   ├── openai_client
-│   │   ├── chat_completions.py
-│   │   ├── chat_completions_stream.py
-│   │   ├── embedding.py
-│   │   ├── legacy_completions.py
-│   │   ├── legacy_completions_stream.py
-│   │   ├── o3_mini_simple_chatbot.py
-│   │   ├── responses.py
-│   │   └── responses_stream.py
-│   └── raw_requests
-│       ├── argo_chat.py
-│       ├── argo_chat_stream.py
-│       ├── argo_embed.py
-│       ├── chat_completions.py
-│       ├── chat_completions_stream.py
-│       ├── embedding.py
-│       ├── legacy_completions.py
-│       ├── legacy_completions_stream.py
-│       ├── o1_mini_chat_completions.py
-│       ├── responses.py
-│       └── responses_stream.py
-├── LICENSE
-├── Makefile
-├── pyproject.toml
-├── README.md
-├── run_app.sh
-├── src
-│   └── argoproxy
-│       ├── app.py
-│       ├── cli.py
-│       ├── config.py
-│       ├── endpoints
-│       │   ├── chat.py
-│       │   ├── completions.py
-│       │   ├── embed.py
-│       │   ├── extras.py
-│       │   └── responses.py
-│       ├── __init__.py
-│       ├── models.py
-│       ├── py.typed
-│       ├── types
-│       │   ├── chat_completion.py
-│       │   ├── completions.py
-│       │   ├── embedding.py
-│       │   ├── function_call.py
-│       │   ├── __init__.py
-│       │   └── responses.py
-│       └── utils
-│           ├── input_handle.py
-│           ├── misc.py
-│           ├── models.py
-│           ├── tokens.py
-│           └── transports.py
-└── timeout_examples.md
-
-9 directories, 48 files
-```
 
 ## Bug Reports and Contributions
 
