@@ -181,7 +181,7 @@ async def proxy_request(
         if stream:
             return await send_streaming_request(
                 session,
-                config.argo_url,
+                config,
                 data,
                 request,
                 convert_to_openai=True,
@@ -191,7 +191,7 @@ async def proxy_request(
         else:
             return await send_non_streaming_request(
                 session,
-                config.argo_url,
+                config,
                 data,
                 convert_to_openai=True,
                 openai_compat_fn=transform_completions_compat_async,

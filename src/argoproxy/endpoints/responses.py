@@ -328,7 +328,7 @@ async def _handle_real_stream_events(
 
 async def send_streaming_request(
     session: aiohttp.ClientSession,
-    api_url: str,
+    config: ArgoConfig,
     data: Dict[str, Any],
     request: web.Request,
     *,
@@ -338,7 +338,7 @@ async def send_streaming_request(
 
     Args:
         session: The client session for making the request.
-        api_url: URL of the API endpoint.
+        config: The configuration object containing the API URLs.
         data: The JSON payload of the request.
         request: The web request used for streaming responses.
         convert_to_openai: If True, converts the response to OpenAI format.
@@ -357,6 +357,9 @@ async def send_streaming_request(
 
     if fake_stream:
         data["stream"] = False  # disable streaming in upstream request
+        api_url = config.argo_url
+    else:
+        api_url = config.argo_stream_url
 
     async with session.post(api_url, headers=headers, json=data) as upstream_resp:
         if upstream_resp.status != 200:
@@ -565,7 +568,7 @@ async def proxy_request(
         if stream:
             return await send_streaming_request(
                 session,
-                config.argo_url,
+                config,
                 data,
                 request,
                 fake_stream=True,
@@ -573,7 +576,7 @@ async def proxy_request(
         else:
             return await send_non_streaming_request(
                 session,
-                config.argo_url,
+                config,
                 data,
                 convert_to_openai=True,
                 openai_compat_fn=transform_non_streaming_response_async,
