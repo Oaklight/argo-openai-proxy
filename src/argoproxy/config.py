@@ -46,10 +46,75 @@ class ArgoConfig:
     argo_model_url: str = "https://apps-dev.inside.anl.gov/argoapi/api/v1/models/"
     verbose: bool = True
 
+    # New field for simplified configuration (optional)
+    argo_base_url: str = ""
+
+    def __post_init__(self):
+        """Post-initialization to handle URL construction and base URL extraction."""
+        self._handle_base_url_configuration()
+
+    def _handle_base_url_configuration(self):
+        """Handle base URL configuration logic."""
+        # If argo_base_url is provided, use it to construct all URLs
+        if self.argo_base_url:
+            self._construct_urls_from_base()
+            logger.info("Using argo_base_url to construct endpoint URLs")
+        else:
+            # If no base URL provided, extract it from existing URLs for convenience
+            self._extract_base_url_from_existing()
+
+    def _construct_urls_from_base(self):
+        """Construct specific URLs from base URL."""
+        # Ensure base URL ends with /
+        base = self.argo_base_url.rstrip("/") + "/"
+
+        # Construct specific URLs
+        self.argo_url = f"{base}resource/chat/"
+        self.argo_stream_url = f"{base}resource/streamchat/"
+        self.argo_embedding_url = f"{base}resource/embed/"
+        self.argo_model_url = f"{base}models/"
+
+    def _extract_base_url_from_existing(self):
+        """Extract base URL from existing URL configurations for convenience."""
+        # Try to extract from argo_url first
+        for url in [
+            self.argo_url,
+            self.argo_stream_url,
+            self.argo_embedding_url,
+            self.argo_model_url,
+        ]:
+            if url:
+                # Find the base URL by removing the specific endpoint
+                if "/resource/chat/" in url:
+                    self.argo_base_url = url.replace("resource/chat/", "")
+                    return
+                elif "/resource/streamchat/" in url:
+                    self.argo_base_url = url.replace("resource/streamchat/", "")
+                    return
+                elif "/resource/embed/" in url:
+                    self.argo_base_url = url.replace("resource/embed/", "")
+                    return
+                elif "/models/" in url:
+                    self.argo_base_url = url.replace("models/", "")
+                    return
+
+    @property
+    def uses_base_url(self) -> bool:
+        """Check if configuration uses argo_base_url for URL construction."""
+        return bool(self.argo_base_url)
+
     @classmethod
     def from_dict(cls, config_dict: dict):
         """Create ArgoConfig instance from a dictionary."""
-        return cls(**{k: v for k, v in config_dict.items() if k in cls.__annotations__})
+        # Filter valid fields
+        valid_fields = {
+            k: v for k, v in config_dict.items() if k in cls.__annotations__
+        }
+
+        # Create instance
+        instance = cls(**valid_fields)
+
+        return instance
 
     def to_dict(self) -> dict:
         """Convert ArgoConfig instance to a dictionary."""
