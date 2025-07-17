@@ -1,6 +1,6 @@
 # ToolRegistry Integration
 
-A lightweight yet powerful Python helper library is available for various tool handling: [ToolRegistry](https://github.com/Oaklight/ToolRegistry).
+ToolRegistry is a lightweight yet powerful Python tool management library for handling various tool calls: [ToolRegistry](https://github.com/Oaklight/ToolRegistry).
 
 ## Installation
 
@@ -8,11 +8,49 @@ A lightweight yet powerful Python helper library is available for various tool h
 pip install toolregistry
 ```
 
-## Basic Usage with ToolRegistry
+For additional feature modules, you can use:
+
+```bash
+pip install toolregistry[mcp,openapi,langchain]
+```
+
+## Basic Usage
+
+### Registering Tools
 
 ```python
 from toolregistry import ToolRegistry
+
+registry = ToolRegistry()
+
+@registry.register
+def add(a: float, b: float) -> float:
+    """Add two numbers together."""
+    return a + b
+
+@registry.register
+def subtract(a: int, b: int) -> int:
+    """Subtract the second number from the first."""
+    return a - b
+```
+
+### Getting Tool JSON Schema
+
+```python
+# Get OpenAI-compatible tool JSON schema
+tools_json = registry.get_tools_json(api_format="openai-chatcompletion")
+```
+
+Supported API formats:
+
+- `openai-chatcompletion` or `openai` (default)
+- `openai-response`
+
+## Integration with OpenAI-Compatible APIs
+
+```python
 import openai
+from toolregistry import ToolRegistry
 
 # Create registry and register functions
 registry = ToolRegistry()
@@ -29,16 +67,16 @@ def calculate(expression: str) -> float:
     # Safe calculation implementation
     return eval(expression)  # Use safe_eval in production
 
-# Use with OpenAI client
+# Use OpenAI client
 client = openai.OpenAI(
     base_url="http://localhost:44497/v1",
     api_key="dummy"
 )
 
 # Get tools from registry
-tools = registry.get_tools()
+tools = registry.get_tools_json()
 
-# Make request
+# Send request
 response = client.chat.completions.create(
     model="argo:gpt-4o",
     messages=[{"role": "user", "content": "What's 15 * 23?"}],
@@ -47,31 +85,50 @@ response = client.chat.completions.create(
 
 # Execute tool calls using registry
 if response.choices[0].message.tool_calls:
-    results = registry.execute_tool_calls(response.choices[0].message.tool_calls)
-    print(results)
+    tool_calls = response.choices[0].message.tool_calls
+
+    # Execute tool calls
+    tool_responses = registry.execute_tool_calls(tool_calls)
+    print(tool_responses)
+
+    # Reconstruct assistant and tool call messages
+    assistant_tool_messages = registry.recover_tool_call_assistant_message(
+        tool_calls, tool_responses
+    )
+
+    # Extend message history
+    messages = [{"role": "user", "content": "What's 15 * 23?"}]
+    messages.extend(assistant_tool_messages)
+
+    # Get final response
+    final_response = client.chat.completions.create(
+        model="argo:gpt-4o",
+        messages=messages
+    )
+
+    print(final_response.choices[0].message.content)
 ```
 
-## Advanced ToolRegistry Features
+## Advanced Features
 
-### Automatic Function Registration
-
-ToolRegistry automatically generates OpenAI-compatible tool schemas from your Python functions:
+### Accessing Available Tools
 
 ```python
-@registry.register
-def search_database(query: str, table: str, limit: int = 10) -> list:
-    """Search database with SQL query
-    
-    Args:
-        query: SQL query string
-        table: Table name to search
-        limit: Maximum number of results to return
-    
-    Returns:
-        List of matching records
-    """
-    # Your database implementation
-    pass
+# Get list of available tool names
+available_tools = registry.get_available_tools()
+print(available_tools)  # ['add', 'subtract']
+
+# Access as callable functions
+add_func = registry.get_callable('add')
+result = add_func(1, 2)  # 3
+
+# Or use __getitem__ method
+add_func = registry['add']
+result = add_func(4, 5)  # 9
+
+# Access as Tool objects
+add_tool = registry.get_tool("add")
+value = add_tool.run({"a": 7, "b": 8})  # 15.0
 ```
 
 ### Type Hints Support
@@ -83,8 +140,8 @@ from typing import List, Optional, Union
 
 @registry.register
 def process_data(
-    data: List[dict], 
-    operation: str, 
+    data: List[dict],
+    operation: str,
     threshold: Optional[float] = None,
     output_format: Union[str, None] = "json"
 ) -> dict:
@@ -93,236 +150,129 @@ def process_data(
     pass
 ```
 
+### Concurrent Execution Modes
+
+By default, `execute_tool_calls` uses process mode to execute tool calls in parallel:
+
+```python
+# Default uses process mode
+tool_responses = registry.execute_tool_calls(tool_calls)
+
+# Explicitly specify execution mode
+tool_responses = registry.execute_tool_calls(tool_calls, execution_mode="process")
+```
+
+## Integrating Other Tool Sources
+
+### MCP Tool Integration
+
+```python
+# Requires installation: pip install toolregistry[mcp]
+registry.register_from_mcp(server_config)
+```
+
+### OpenAPI Tool Integration
+
+```python
+# Requires installation: pip install toolregistry[openapi]
+registry.register_from_openapi(openapi_spec)
+```
+
+### LangChain Tool Integration
+
+```python
+# Requires installation: pip install toolregistry[langchain]
+registry.register_from_langchain(langchain_tools)
+```
+
+### Class Tool Integration
+
+```python
+registry.register_from_class(tool_class)
+```
+
+## Best Practices
+
+### Function Documentation
+
+Always provide clear docstrings for registered functions:
+
+```python
+@registry.register
+def complex_calculation(
+    numbers: List[float],
+    operation: str,
+    precision: int = 2
+) -> dict:
+    """Perform complex mathematical operations on a list of numbers
+
+    Args:
+        numbers: List of numbers to process
+        operation: Type of operation ('sum', 'average', 'median', 'std')
+        precision: Number of decimal places for results
+
+    Returns:
+        Dictionary containing the result and metadata
+
+    Raises:
+        ValueError: If operation is not supported
+        TypeError: If numbers list contains non-numeric values
+    """
+    # Implementation code
+    pass
+```
+
+### Security Considerations
+
+1. **Input Validation**: Always validate function parameters
+2. **Sandboxing**: Run functions in controlled environments
+3. **Access Control**: Restrict function access based on permissions
+4. **Resource Limits**: Implement timeouts and resource constraints
+
 ### Error Handling
 
 ToolRegistry provides built-in error handling for tool execution:
 
 ```python
-# Registry automatically handles exceptions
 try:
     results = registry.execute_tool_calls(tool_calls)
 except Exception as e:
     print(f"Tool execution failed: {e}")
 ```
 
-## Integration Examples
-
-### Weather Service Integration
-
-```python
-@registry.register
-def get_weather(location: str, units: str = "metric") -> dict:
-    """Get weather information for a location"""
-    # Integration with weather API
-    import requests
-    
-    api_key = "your_api_key"
-    url = f"http://api.openweathermap.org/data/2.5/weather"
-    params = {
-        "q": location,
-        "appid": api_key,
-        "units": units
-    }
-    
-    response = requests.get(url, params=params)
-    return response.json()
-```
-
-### Database Queries
-
-```python
-@registry.register
-def search_database(query: str, table: str) -> list:
-    """Search database with SQL query"""
-    # Safe database query implementation
-    import sqlite3
-    
-    conn = sqlite3.connect("database.db")
-    cursor = conn.cursor()
-    
-    # Use parameterized queries for security
-    safe_query = f"SELECT * FROM {table} WHERE content LIKE ?"
-    cursor.execute(safe_query, (f"%{query}%",))
-    
-    results = cursor.fetchall()
-    conn.close()
-    
-    return results
-```
-
-### File Operations
-
-```python
-@registry.register
-def read_file(filename: str) -> str:
-    """Read contents of a file"""
-    # Secure file reading with path validation
-    import os
-    from pathlib import Path
-    
-    # Validate file path for security
-    safe_path = Path(filename).resolve()
-    if not safe_path.is_file():
-        raise ValueError("Invalid file path")
-    
-    with open(safe_path, 'r', encoding='utf-8') as f:
-        return f.read()
-```
-
-### API Integrations
-
-```python
-@registry.register
-def call_external_api(endpoint: str, method: str = "GET", data: dict = None) -> dict:
-    """Make API calls to external services"""
-    # HTTP client implementation with security checks
-    import requests
-    
-    allowed_domains = ["api.example.com", "secure-api.service.com"]
-    
-    # Validate endpoint domain
-    from urllib.parse import urlparse
-    parsed_url = urlparse(endpoint)
-    if parsed_url.netloc not in allowed_domains:
-        raise ValueError("Unauthorized API endpoint")
-    
-    if method.upper() == "GET":
-        response = requests.get(endpoint)
-    elif method.upper() == "POST":
-        response = requests.post(endpoint, json=data)
-    else:
-        raise ValueError("Unsupported HTTP method")
-    
-    return response.json()
-```
-
-## Best Practices with ToolRegistry
-
-### Function Documentation
-
-Always provide clear docstrings for your registered functions:
-
-```python
-@registry.register
-def complex_calculation(
-    numbers: List[float], 
-    operation: str, 
-    precision: int = 2
-) -> dict:
-    """Perform complex mathematical operations on a list of numbers
-    
-    Args:
-        numbers: List of numbers to process
-        operation: Type of operation ('sum', 'average', 'median', 'std')
-        precision: Number of decimal places for results
-    
-    Returns:
-        Dictionary containing the result and metadata
-        
-    Raises:
-        ValueError: If operation is not supported
-        TypeError: If numbers list contains non-numeric values
-    """
-    # Implementation here
-    pass
-```
-
-### Security Considerations
-
-1. **Input Validation**: Always validate function arguments
-2. **Sandboxing**: Run functions in controlled environments
-3. **Access Control**: Restrict function access based on permissions
-4. **Resource Limits**: Implement timeouts and resource limits
-
-```python
-@registry.register
-def secure_function(user_input: str) -> str:
-    """Example of secure function implementation"""
-    # Input validation
-    if not isinstance(user_input, str):
-        raise TypeError("Input must be a string")
-    
-    if len(user_input) > 1000:
-        raise ValueError("Input too long")
-    
-    # Sanitize input
-    import re
-    sanitized = re.sub(r'[^\w\s-]', '', user_input)
-    
-    # Process with timeout
-    import signal
-    
-    def timeout_handler(signum, frame):
-        raise TimeoutError("Function execution timeout")
-    
-    signal.signal(signal.SIGALRM, timeout_handler)
-    signal.alarm(30)  # 30 second timeout
-    
-    try:
-        # Your function logic here
-        result = process_input(sanitized)
-        return result
-    finally:
-        signal.alarm(0)  # Cancel timeout
-```
-
-### Performance Optimization
-
-1. **Async Support**: Use async functions for I/O operations
-2. **Caching**: Cache function results when appropriate
-3. **Resource Management**: Properly manage connections and resources
-
-```python
-import asyncio
-from functools import lru_cache
-
-@registry.register
-async def async_api_call(endpoint: str) -> dict:
-    """Async API call with caching"""
-    import aiohttp
-    
-    async with aiohttp.ClientSession() as session:
-        async with session.get(endpoint) as response:
-            return await response.json()
-
-@registry.register
-@lru_cache(maxsize=128)
-def cached_calculation(value: float) -> float:
-    """Expensive calculation with caching"""
-    # Simulate expensive operation
-    import time
-    time.sleep(1)
-    return value ** 2
-```
-
-## Troubleshooting ToolRegistry
+## Troubleshooting
 
 ### Common Issues
 
-**Function not registered properly**:
-- Ensure you're using the `@registry.register` decorator
-- Check that function has proper type hints
-- Verify function docstring is present
+**Function not registered correctly**:
 
-**Tool execution fails**:
+- Ensure you're using the `@registry.register` decorator
+- Check that the function has proper type hints
+- Verify that function docstring exists
+
+**Tool execution failures**:
+
 - Check function implementation for errors
-- Validate input parameters
+- Verify input parameters
 - Review error logs for specific issues
 
 **Schema generation problems**:
+
 - Ensure all parameters have type hints
 - Use supported types (str, int, float, bool, list, dict)
-- Provide clear parameter descriptions in docstring
+- Provide clear parameter descriptions in docstrings
 
-### Debug Tips
+### Debugging Tips
 
-1. **Inspect generated schemas**: Use `registry.get_tools()` to see generated schemas
-2. **Test functions individually**: Call functions directly before using with AI
+1. **Check generated schema**: Use `registry.get_tools_json()` to view the generated schema
+2. **Test functions separately**: Call functions directly before using with AI
 3. **Enable logging**: Use Python logging to track function execution
-4. **Validate schemas**: Ensure generated schemas match OpenAI requirements
+4. **Validate schema**: Ensure generated schema meets OpenAI requirements
 
 ```python
-# Debug example
+# Debugging example
+import json
+
 registry = ToolRegistry()
 
 @registry.register
@@ -330,10 +280,19 @@ def debug_function(param: str) -> str:
     """Debug function for testing"""
     return f"Processed: {param}"
 
-# Inspect generated schema
-tools = registry.get_tools()
+# Check generated schema
+tools = registry.get_tools_json()
 print(json.dumps(tools, indent=2))
 
 # Test function directly
 result = debug_function("test")
 print(f"Direct call result: {result}")
+```
+
+## More Information
+
+For detailed examples and advanced usage, please refer to:
+
+- [ToolRegistry Official Documentation](https://github.com/Oaklight/ToolRegistry)
+- [Concurrency Modes Guide](https://toolregistry.readthedocs.io/en/latest/usage/concurrency_modes.html)
+- [Best Practices](https://toolregistry.readthedocs.io/en/latest/usage/best_practices.html)
