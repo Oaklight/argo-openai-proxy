@@ -268,7 +268,7 @@ def prepare_request_data(
     return data
 
 
-async def _handle_fake_stream_events(
+async def _handle_pseudo_stream_events(
     response: web.StreamResponse,
     response_data: Dict[str, Any],
     output_msg: ResponseOutputMessage,
@@ -352,7 +352,7 @@ async def send_streaming_request(
     data: Dict[str, Any],
     request: web.Request,
     *,
-    fake_stream: bool = False,
+    pseudo_stream: bool = False,
 ) -> web.StreamResponse:
     """Sends a streaming request to an API and streams the response to the client.
 
@@ -362,7 +362,7 @@ async def send_streaming_request(
         data: The JSON payload of the request.
         request: The web request used for streaming responses.
         convert_to_openai: If True, converts the response to OpenAI format.
-        fake_stream: If True, simulates streaming even if the upstream does not support it.
+        pseudo_stream: If True, simulates streaming even if the upstream does not support it.
     """
     headers = {
         "Content-Type": "application/json",
@@ -375,7 +375,7 @@ async def send_streaming_request(
     created_timestamp = int(time.time())
     prompt_tokens = await calculate_prompt_tokens_async(data, data["model"])
 
-    if fake_stream:
+    if pseudo_stream:
         data["stream"] = False  # disable streaming in upstream request
         api_url = config.argo_url
     else:
@@ -468,9 +468,9 @@ async def send_streaming_request(
         # =======================================
         # ResponseTextDeltaEvent, stream the response chunk by chunk
         cumulated_response = ""
-        if fake_stream:
+        if pseudo_stream:
             response_data = await upstream_resp.json()
-            sequence_number, cumulated_response = await _handle_fake_stream_events(
+            sequence_number, cumulated_response = await _handle_pseudo_stream_events(
                 response,
                 response_data,
                 output_msg,
@@ -591,6 +591,7 @@ async def proxy_request(
                 config,
                 data,
                 request,
+                pseudo_stream=config.pseudo_stream,
             )
         else:
             return await send_non_streaming_request(
