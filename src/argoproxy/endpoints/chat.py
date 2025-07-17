@@ -215,8 +215,9 @@ def prepare_chat_request_data(
 
 async def send_non_streaming_request(
     session: aiohttp.ClientSession,
-    api_url: str,
+    config: ArgoConfig,
     data: Dict[str, Any],
+    *,
     convert_to_openai: bool = False,
     openai_compat_fn: Union[
         Callable[..., Dict[str, Any]], Callable[..., Awaitable[Dict[str, Any]]]
@@ -226,7 +227,7 @@ async def send_non_streaming_request(
 
     Args:
         session: The client session for making the request.
-        api_url: URL of the API endpoint.
+        config: The configuration object containing the API URLs.
         data: The JSON payload of the request.
         convert_to_openai: If True, converts the response to OpenAI format.
         openai_compat_fn: Function for conversion to OpenAI-compatible format.
@@ -237,7 +238,9 @@ async def send_non_streaming_request(
     headers = {"Content-Type": "application/json"}
 
     try:
-        async with session.post(api_url, headers=headers, json=data) as upstream_resp:
+        async with session.post(
+            config.argo_url, headers=headers, json=data
+        ) as upstream_resp:
             try:
                 response_data = await upstream_resp.json()
             except (aiohttp.ContentTypeError, json.JSONDecodeError):
@@ -426,11 +429,11 @@ async def _handle_real_stream(
 
 async def send_streaming_request(
     session: aiohttp.ClientSession,
-    api_url: str,
+    config: ArgoConfig,
     data: Dict[str, Any],
     request: web.Request,
-    convert_to_openai: bool = False,
     *,
+    convert_to_openai: bool = False,
     openai_compat_fn: Union[
         Callable[..., Dict[str, Any]],
         Callable[..., Awaitable[Dict[str, Any]]],
@@ -441,7 +444,7 @@ async def send_streaming_request(
 
     Args:
         session: The client session for making the request.
-        api_url: URL of the API endpoint.
+        config: The configuration object containing the API URLs.
         data: The JSON payload of the request.
         request: The web request used for streaming responses.
         convert_to_openai: If True, converts the response to OpenAI format.
@@ -468,6 +471,9 @@ async def send_streaming_request(
         fake_stream = True
     if fake_stream:
         data["stream"] = False  # disable streaming in upstream request
+        api_url = config.argo_url
+    else:
+        api_url = config.argo_stream_url
 
     try:
         async with session.post(api_url, headers=headers, json=data) as upstream_resp:
@@ -577,19 +583,19 @@ async def proxy_request(
         if stream:
             return await send_streaming_request(
                 session,
-                config.argo_url,
+                config,
                 data,
                 request,
-                convert_to_openai,
+                convert_to_openai=convert_to_openai,
                 fake_stream=True,
                 openai_compat_fn=transform_chat_completions_streaming_async,
             )
         else:
             return await send_non_streaming_request(
                 session,
-                config.argo_url,
+                config,
                 data,
-                convert_to_openai,
+                convert_to_openai=convert_to_openai,
                 openai_compat_fn=transform_chat_completions_non_streaming_async,
             )
 
