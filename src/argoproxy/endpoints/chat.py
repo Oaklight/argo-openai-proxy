@@ -312,7 +312,7 @@ async def send_non_streaming_request(
         )
 
 
-async def _handle_fake_stream(
+async def _handle_pseudo_stream(
     response: web.StreamResponse,
     upstream_resp: aiohttp.ClientResponse,
     data: Dict[str, Any],
@@ -341,7 +341,7 @@ async def _handle_fake_stream(
         response_text = response_data.get("response", "")
     except (aiohttp.ContentTypeError, json.JSONDecodeError) as e:
         response_text = await upstream_resp.text()
-        logger.warning(f"Upstream response is not JSON in fake_stream mode: {e}")
+        logger.warning(f"Upstream response is not JSON in pseudo_stream mode: {e}")
     if convert_to_openai:
         cs = ToolInterceptor()
         tool_calls, cleaned_text = cs.process(response_text)
@@ -465,7 +465,7 @@ async def send_streaming_request(
         Callable[..., Dict[str, Any]],
         Callable[..., Awaitable[Dict[str, Any]]],
     ] = transform_chat_completions_streaming_async,
-    fake_stream: bool = False,
+    pseudo_stream: bool = False,
 ) -> web.StreamResponse:
     """Sends a streaming request to an API and streams the response to the client.
 
@@ -476,7 +476,7 @@ async def send_streaming_request(
         request: The web request used for streaming responses.
         convert_to_openai: If True, converts the response to OpenAI format.
         openai_compat_fn: Function for conversion to OpenAI-compatible format.
-        fake_stream: If True, simulates streaming by sending the response in chunks.
+        pseudo_stream: If True, simulates streaming by sending the response in chunks.
     """
 
     headers = {
@@ -495,8 +495,8 @@ async def send_streaming_request(
 
     # enable fake stream in case tools shows up in request
     if "tools" in data:
-        fake_stream = True
-    if fake_stream:
+        pseudo_stream = True
+    if pseudo_stream:
         data["stream"] = False  # disable streaming in upstream request
         api_url = config.argo_url
     else:
@@ -536,8 +536,8 @@ async def send_streaming_request(
             response.enable_chunked_encoding()
             await response.prepare(request)
 
-            if fake_stream:
-                await _handle_fake_stream(
+            if pseudo_stream:
+                await _handle_pseudo_stream(
                     response,
                     upstream_resp,
                     data,
@@ -615,6 +615,7 @@ async def proxy_request(
                 request,
                 convert_to_openai=convert_to_openai,
                 openai_compat_fn=transform_chat_completions_streaming_async,
+                pseudo_stream=config.pseudo_stream,
             )
         else:
             return await send_non_streaming_request(

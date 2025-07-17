@@ -73,6 +73,10 @@ class ArgoConfig:
             return self._argo_model_url
         return f"{self._argo_dev_base}models/"
 
+    @property
+    def pseudo_stream(self):
+        return True
+
     @classmethod
     def from_dict(cls, config_dict: dict):
         """Create ArgoConfig instance from a dictionary."""
