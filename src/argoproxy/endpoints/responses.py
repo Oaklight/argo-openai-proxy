@@ -268,6 +268,64 @@ def prepare_request_data(
     return data
 
 
+async def _handle_fake_stream_events(
+    response,
+    response_data,
+    output_msg,
+    content_part,
+    output_item,
+    sequence_number,
+):
+    """
+    Helper for fake streaming: yields chunks from full response with ResponseTextDeltaEvent.
+    Returns (sequence_number, cumulated_response).
+    """
+    response_text = response_data.get("response", "")
+    cumulated_response = response_text
+    chunk_size = 20
+    for i in range(0, len(response_text), chunk_size):
+        sequence_number += 1
+        chunk_text = response_text[i : i + chunk_size]
+        text_delta = transform_streaming_response(
+            json.dumps({"response": chunk_text}),
+            content_index=content_part.content_index,
+            output_index=output_item.output_index,
+            sequence_number=sequence_number,
+            id=output_msg.id,
+        )
+        await send_off_sse(response, text_delta)
+        await asyncio.sleep(0.02)
+    return sequence_number, cumulated_response
+
+
+async def _handle_real_stream_events(
+    response,
+    upstream_resp,
+    output_msg,
+    content_part,
+    output_item,
+    sequence_number,
+):
+    """
+    Helper for real streaming: yields chunks from upstream with ResponseTextDeltaEvent.
+    Returns (sequence_number, cumulated_response).
+    """
+    cumulated_response = ""
+    async for chunk in upstream_resp.content.iter_any():
+        sequence_number += 1
+        chunk_text = chunk.decode()
+        cumulated_response += chunk_text
+        text_delta = transform_streaming_response(
+            json.dumps({"response": chunk_text}),
+            content_index=content_part.content_index,
+            output_index=output_item.output_index,
+            sequence_number=sequence_number,
+            id=output_msg.id,
+        )
+        await send_off_sse(response, text_delta)
+    return sequence_number, cumulated_response
+
+
 async def send_streaming_request(
     session: aiohttp.ClientSession,
     api_url: str,
@@ -302,23 +360,20 @@ async def send_streaming_request(
 
     async with session.post(api_url, headers=headers, json=data) as upstream_resp:
         if upstream_resp.status != 200:
-            # Read error content from upstream response
             error_text = await upstream_resp.text()
-            # Return JSON error response to client
             return web.json_response(
                 {"error": f"Upstream API error: {upstream_resp.status} {error_text}"},
                 status=upstream_resp.status,
                 content_type="application/json",
             )
 
-        # Initialize the streaming response
         response_headers.update(
             {
                 k: v
                 for k, v in upstream_resp.headers.items()
                 if k.lower()
                 not in (
-                    "Content-Type",
+                    "content-type",
                     "content-encoding",
                     "transfer-encoding",
                     "content-length",  # in case of fake streaming
@@ -391,43 +446,24 @@ async def send_streaming_request(
         # ResponseTextDeltaEvent, stream the response chunk by chunk
         cumulated_response = ""
         if fake_stream:
-            # Get full response first
             response_data = await upstream_resp.json()
-            response_text = response_data.get("response", "")
-            cumulated_response = response_text
-
-            # Split into chunks of ~10 characters to simulate streaming
-            chunk_size = 20
-            for i in range(0, len(response_text), chunk_size):
-                sequence_number += 1
-                chunk_text = response_text[i : i + chunk_size]
-                # Convert the chunk to OpenAI-compatible JSON
-                text_delta = transform_streaming_response(
-                    json.dumps({"response": chunk_text}),
-                    content_index=content_part.content_index,
-                    output_index=output_item.output_index,
-                    sequence_number=sequence_number,
-                    id=output_msg.id,
-                )
-                # Wrap the JSON in SSE format
-                await send_off_sse(response, text_delta)
-                await asyncio.sleep(0.02)  # Small delay between chunks
+            sequence_number, cumulated_response = await _handle_fake_stream_events(
+                response,
+                response_data,
+                output_msg,
+                content_part,
+                output_item,
+                sequence_number,
+            )
         else:
-            async for chunk in upstream_resp.content.iter_any():
-                sequence_number += 1
-                chunk_text = chunk.decode()
-                cumulated_response += chunk_text  # for ResponseTextDoneEvent
-
-                # Convert the chunk to OpenAI-compatible JSON
-                text_delta = transform_streaming_response(
-                    json.dumps({"response": chunk_text}),
-                    content_index=content_part.content_index,
-                    output_index=output_item.output_index,
-                    sequence_number=sequence_number,
-                    id=output_msg.id,
-                )
-                # Wrap the JSON in SSE format
-                await send_off_sse(response, text_delta)
+            sequence_number, cumulated_response = await _handle_real_stream_events(
+                response,
+                upstream_resp,
+                output_msg,
+                content_part,
+                output_item,
+                sequence_number,
+            )
 
         # =======================================
         # ResponseTextDoneEvent, signal the end of the text stream
