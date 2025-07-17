@@ -7,6 +7,8 @@
 
 This project is a proxy application that forwards requests to an ARGO API and optionally converts the responses to be compatible with OpenAI's API format. It can be used in conjunction with [autossh-tunnel-dockerized](https://github.com/Oaklight/autossh-tunnel-dockerized) or other secure connection tools.
 
+For detailed information, please refer to documentation at [argo-proxy ReadtheDocs page](https://argo-proxy.readthedocs.io/en/latest/)
+
 ## TL;DR
 
 ```bash
