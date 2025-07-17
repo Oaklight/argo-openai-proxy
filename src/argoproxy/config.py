@@ -5,7 +5,7 @@ import threading
 from dataclasses import asdict, dataclass
 from hashlib import md5
 from pathlib import Path
-from typing import Any, Optional, Tuple, Union
+from typing import Any, Dict, Literal, Optional, Tuple, Union, overload
 
 import yaml  # type: ignore
 from loguru import logger
@@ -27,8 +27,6 @@ class ArgoConfig:
 
     REQUIRED_KEYS = [
         "port",
-        "argo_url",
-        "argo_embedding_url",
         "user",
     ]
 
@@ -36,89 +34,77 @@ class ArgoConfig:
     host: str = "0.0.0.0"  # Default to 0.0.0.0
     port: int = 44497
     user: str = ""
-    argo_url: str = "https://apps-dev.inside.anl.gov/argoapi/api/v1/resource/chat/"
-    argo_stream_url: str = (
-        "https://apps-dev.inside.anl.gov/argoapi/api/v1/resource/streamchat/"
-    )
-    argo_embedding_url: str = (
-        "https://apps.inside.anl.gov/argoapi/api/v1/resource/embed/"
-    )
-    argo_model_url: str = "https://apps-dev.inside.anl.gov/argoapi/api/v1/models/"
     verbose: bool = True
 
-    # New field for simplified configuration (optional)
-    argo_base_url: str = ""
+    _argo_dev_base: str = "https://apps-dev.inside.anl.gov/argoapi/api/v1/"
+    _argo_prod_base: str = "https://apps.inside.anl.gov/argoapi/api/v1/"
 
-    def __post_init__(self):
-        """Post-initialization to handle URL construction and base URL extraction."""
-        self._handle_base_url_configuration()
+    # Derived fields (to be constructed from base URL if not provided)
+    _argo_url: str = ""
+    _argo_stream_url: str = ""
+    _argo_embedding_url: str = ""
+    _argo_model_url: str = ""
 
-    def _handle_base_url_configuration(self):
-        """Handle base URL configuration logic."""
-        # If argo_base_url is provided, use it to construct all URLs
-        if self.argo_base_url:
-            self._construct_urls_from_base()
-            logger.info("Using argo_base_url to construct endpoint URLs")
-        else:
-            # If no base URL provided, extract it from existing URLs for convenience
-            self._extract_base_url_from_existing()
+    # chat endpoint
+    @property
+    def argo_url(self):
+        if self._argo_url:
+            return self._argo_url
+        return f"{self._argo_dev_base}resource/chat/"
 
-    def _construct_urls_from_base(self):
-        """Construct specific URLs from base URL."""
-        # Ensure base URL ends with /
-        base = self.argo_base_url.rstrip("/") + "/"
+    # stream chat endpoint
+    @property
+    def argo_stream_url(self):
+        if self._argo_stream_url:
+            return self._argo_stream_url
+        return f"{self._argo_dev_base}resource/streamchat/"
 
-        # Construct specific URLs
-        self.argo_url = f"{base}resource/chat/"
-        self.argo_stream_url = f"{base}resource/streamchat/"
-        self.argo_embedding_url = f"{base}resource/embed/"
-        self.argo_model_url = f"{base}models/"
-
-    def _extract_base_url_from_existing(self):
-        """Extract base URL from existing URL configurations for convenience."""
-        # Try to extract from argo_url first
-        for url in [
-            self.argo_url,
-            self.argo_stream_url,
-            self.argo_embedding_url,
-            self.argo_model_url,
-        ]:
-            if url:
-                # Find the base URL by removing the specific endpoint
-                if "/resource/chat/" in url:
-                    self.argo_base_url = url.replace("resource/chat/", "")
-                    return
-                elif "/resource/streamchat/" in url:
-                    self.argo_base_url = url.replace("resource/streamchat/", "")
-                    return
-                elif "/resource/embed/" in url:
-                    self.argo_base_url = url.replace("resource/embed/", "")
-                    return
-                elif "/models/" in url:
-                    self.argo_base_url = url.replace("models/", "")
-                    return
+    # embedding endpoint
+    @property
+    def argo_embedding_url(self):
+        if self._argo_embedding_url:
+            return self._argo_embedding_url
+        return f"{self._argo_prod_base}resource/embed/"
 
     @property
-    def uses_base_url(self) -> bool:
-        """Check if configuration uses argo_base_url for URL construction."""
-        return bool(self.argo_base_url)
+    def argo_model_url(self):
+        if self._argo_model_url:
+            return self._argo_model_url
+        return f"{self._argo_dev_base}models/"
 
     @classmethod
     def from_dict(cls, config_dict: dict):
         """Create ArgoConfig instance from a dictionary."""
-        # Filter valid fields
+        # Map property fields to internal fields if present
+        field_map = {
+            "argo_url": "_argo_url",
+            "argo_stream_url": "_argo_stream_url",
+            "argo_embedding_url": "_argo_embedding_url",
+        }
         valid_fields = {
             k: v for k, v in config_dict.items() if k in cls.__annotations__
         }
-
-        # Create instance
+        # Add mapped fields
+        for config_key, internal_key in field_map.items():
+            if config_key in config_dict:
+                valid_fields[internal_key] = config_dict[config_key]
         instance = cls(**valid_fields)
-
         return instance
 
     def to_dict(self) -> dict:
         """Convert ArgoConfig instance to a dictionary."""
-        return asdict(self)
+        serialized = asdict(self)
+        # drop all private fields
+        serialized = {k: v for k, v in serialized.items() if not k.startswith("_")}
+        # include properties except legacy_mode
+        serialized["argo_url"] = self.argo_url
+        serialized["argo_stream_url"] = self.argo_stream_url
+        serialized["argo_embedding_url"] = self.argo_embedding_url
+
+        # sort keys
+        serialized = dict(sorted(serialized.items()))
+
+        return serialized
 
     def validate(self) -> bool:
         """Validate and patch all configuration aspects.
