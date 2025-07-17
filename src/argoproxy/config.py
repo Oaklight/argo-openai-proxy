@@ -214,6 +214,9 @@ class ArgoConfig:
             logger.error("Failed to validate the following URLs: ")
             for url in failed_urls:
                 logger.error(url)
+            logger.warning(
+                "Are you running the proxy on ANL network?\nIf yes, it's likely a temporary network glitch. In case of persistent issues, check your network or reach out to ANL CELS Helpdesk.\nIf not, 1. set up VPN and try again, OR 2. deploy it on an ANL machine you can create ssh tunnel to."
+            )
 
             if not _get_yes_no_input(
                 prompt="Continue despite connectivity issue? [Y/n] ", default_choice="y"
