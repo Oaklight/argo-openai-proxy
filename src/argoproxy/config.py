@@ -466,6 +466,8 @@ def _apply_env_overrides(config_data: ArgoConfig) -> ArgoConfig:
         config_data.port = int(env_port)
     if env_verbose := os.getenv("VERBOSE"):
         config_data.verbose = env_verbose.lower() in ["true", "1", "t"]
+    if env_real_stream := os.getenv("REAL_STREAM"):
+        config_data._real_stream = env_real_stream.lower() in ["true", "1", "t"]
     return config_data
 
 
