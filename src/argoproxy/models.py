@@ -83,7 +83,7 @@ def filter_model_by_patterns(
 
 
 # any models that unable to handle system prompt
-NO_SYS_MSG_PATTERNS = {
+NO_SYS_MSG_PATTERNS: Set[str] = {
     "*o1preview",  # Explicitly matches gpto1preview
     "*o1mini",  # Explicitly matches gpto1mini
 }
@@ -95,13 +95,13 @@ NO_SYS_MSG_MODELS = filter_model_by_patterns(
 
 
 # any models that only able to handle single system prompt and no system prompt at all
-OPTION_2_INPUT_PATTERNS = {
-    # "*gemini*",  # Matches any model name starting with 'gemini'
-    # "*claude*",  # Matches any model name starting with 'claude'
-    # "gpto3",
-    # "gpto4*",
-    # "gpt41*",
-}
+OPTION_2_INPUT_PATTERNS: Set[str] = set()
+# Commented out patterns:
+# "*gemini*",  # Matches any model name starting with 'gemini'
+# "*claude*",  # Matches any model name starting with 'claude'
+# "gpto3",
+# "gpto4*",
+# "gpt41*",
 
 OPTION_2_INPUT_MODELS = filter_model_by_patterns(
     _DEFAULT_CHAT_MODELS,
@@ -109,7 +109,7 @@ OPTION_2_INPUT_MODELS = filter_model_by_patterns(
 )
 
 # any models that supports native tool call
-NATIVE_TOOL_CALL_PATTERNS = {
+NATIVE_TOOL_CALL_PATTERNS: Set[str] = {
     "*o1",
     "*o3*",
     "*o4*",
@@ -390,11 +390,17 @@ class ModelRegistry:
             self._last_updated = datetime.now()
 
             # Update model lists based on model IDs
-            self._no_sys_msg_models = filter_model_by_patterns(self.available_chat_models, NO_SYS_MSG_PATTERNS)
+            self._no_sys_msg_models = filter_model_by_patterns(
+                self.available_chat_models, NO_SYS_MSG_PATTERNS
+            )
 
-            self._option_2_input_models = filter_model_by_patterns(self.available_chat_models, OPTION_2_INPUT_PATTERNS)
+            self._option_2_input_models = filter_model_by_patterns(
+                self.available_chat_models, OPTION_2_INPUT_PATTERNS
+            )
 
-            self._native_tool_call_models = filter_model_by_patterns(self.available_chat_models, NATIVE_TOOL_CALL_PATTERNS)
+            self._native_tool_call_models = filter_model_by_patterns(
+                self.available_chat_models, NATIVE_TOOL_CALL_PATTERNS
+            )
 
             logger.info("Model availability refreshed successfully")
         except Exception as e:
