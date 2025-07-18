@@ -2,12 +2,6 @@
 
 This section provides comprehensive examples of how to use argo-proxy with different approaches and APIs.
 
-```{toctree}
-:maxdepth: 2
-
-timeout_examples
-```
-
 ## Raw Requests
 
 For examples of how to use the raw request utilities (e.g., `httpx`, `requests`), refer to:

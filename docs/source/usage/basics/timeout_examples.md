@@ -1,4 +1,4 @@
-# Timeout Override Examples
+# Timeout Override
 
 You can override the default timeout with a `timeout` parameter in your request. This parameter is optional for client request. Proxy server will keep the connection open until it finishes or client disconnects.
 

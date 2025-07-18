@@ -2,19 +2,11 @@
 
 Argo Proxy provides multiple types of endpoints to accommodate different use cases and compatibility requirements.
 
+Here we assume the service is running on `localhost:44497`. You should replace it with your actual service address.
+
 ## OpenAI Compatible Endpoints
 
 These endpoints convert responses from the ARGO API to be compatible with OpenAI's format, allowing you to use existing OpenAI client libraries and tools.
-
-### `/v1/responses`
-
-**Available from**: v2.7.0
-
-Response API endpoint for handling response-based interactions.
-
-```bash
-POST http://localhost:44497/v1/responses
-```
 
 ### `/v1/chat/completions`
 
@@ -23,13 +15,6 @@ Chat Completions API - the primary endpoint for conversational AI.
 ```bash
 POST http://localhost:44497/v1/chat/completions
 ```
-
-**Features:**
-
-- Streaming and non-streaming support
-- Function calling (tool calls) support
-- Compatible with OpenAI chat completion format
-- Automatic response format conversion
 
 ### `/v1/completions`
 
@@ -49,11 +34,15 @@ Embedding API for generating text embeddings.
 POST http://localhost:44497/v1/embeddings
 ```
 
-**Features:**
+### `/v1/responses`
 
-- Multiple embedding models support
-- Batch processing capabilities
-- OpenAI-compatible response format
+**Available from**: v2.7.0
+
+Response API - OpenAI's next generation API endpoint for handling response-based interactions. Experimental, use with caution.
+
+```bash
+POST http://localhost:44497/v1/responses
+```
 
 ### `/v1/models`
 
@@ -77,12 +66,6 @@ Proxies requests to the ARGO API without conversion.
 POST http://localhost:44497/v1/chat
 ```
 
-**Use cases:**
-
-- Direct ARGO API access
-- ARGO-specific response format requirements
-- Custom integrations that expect ARGO format
-
 ### `/v1/embed`
 
 Proxies requests to the ARGO Embedding API without conversion.
@@ -90,12 +73,6 @@ Proxies requests to the ARGO Embedding API without conversion.
 ```bash
 POST http://localhost:44497/v1/embed
 ```
-
-**Use cases:**
-
-- Direct ARGO embedding API access
-- ARGO-specific embedding features
-- Custom embedding workflows
 
 ## Utility Endpoints
 
@@ -111,8 +88,6 @@ GET http://localhost:44497/health
 
 **Use cases:**
 
-- Load balancer health checks
-- Monitoring systems
 - Service discovery
 
 ### `/version`
@@ -153,35 +128,23 @@ All endpoints support timeout override through a `timeout` parameter in your req
 POST /v1/chat/completions?timeout=120
 ```
 
-For detailed examples of timeout override in different request formats, see [Timeout Override Examples](../../../examples/timeout_examples.md).
+For detailed examples of timeout override in different request formats, see [Timeout Override Examples](timeout_examples).
 
 ## Endpoint Selection Guide
 
-### Use OpenAI Compatible Endpoints When:
+### Use OpenAI Compatible Endpoints When
 
 - Migrating from OpenAI API
 - Using existing OpenAI client libraries
 - Need standardized response formats
 - Building applications with OpenAI ecosystem tools
 
-### Use Direct ARGO Endpoints When:
+### Use Direct ARGO Endpoints When
 
 - Need ARGO-specific features
 - Require native ARGO response formats
 - Building custom integrations
 - Performance optimization for ARGO-native workflows
-
-### Recommended Endpoints by Use Case
-
-| Use Case            | Recommended Endpoint    | Reason                                  |
-| ------------------- | ----------------------- | --------------------------------------- |
-| Chat Applications   | `/v1/chat/completions`  | OpenAI compatibility, streaming support |
-| Text Embeddings     | `/v1/embeddings`        | Standard format, batch processing       |
-| Function Calling    | `/v1/chat/completions`  | Built-in tool call support              |
-| Legacy Applications | `/v1/completions`       | Backward compatibility                  |
-| Health Monitoring   | `/health`               | Simple, reliable health check           |
-| Version Tracking    | `/version`              | Update notifications                    |
-| Direct ARGO Access  | `/v1/chat`, `/v1/embed` | Native ARGO features                    |
 
 ## Error Handling
 
@@ -194,19 +157,3 @@ All endpoints return appropriate HTTP status codes:
 - **500**: Internal Server Error
 - **502**: Bad Gateway (upstream API issues)
 - **503**: Service Unavailable (server overloaded)
-
-## Rate Limiting
-
-Rate limiting is handled by the upstream ARGO API. The proxy server forwards rate limit headers when available:
-
-- `X-RateLimit-Limit`
-- `X-RateLimit-Remaining`
-- `X-RateLimit-Reset`
-
-## CORS Support
-
-The proxy server includes CORS headers for web application compatibility:
-
-- `Access-Control-Allow-Origin: *`
-- `Access-Control-Allow-Methods: GET, POST, OPTIONS`
-- `Access-Control-Allow-Headers: Content-Type, Authorization`
