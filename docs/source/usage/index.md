@@ -1,7 +1,6 @@
 # User Guide
 
 ```{toctree}
-:caption: Getting Started
 :maxdepth: 1
 
 installation

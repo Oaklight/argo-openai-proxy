@@ -20,14 +20,14 @@ verbose: true # can be changed during setup
 
 | Option               | Description                                                  | Default            |
 | -------------------- | ------------------------------------------------------------ | ------------------ |
+| `argo_embedding_url` | Argo Embedding API URL                                       | Prod URL           |
+| `argo_stream_url`    | Argo Stream API URL                                          | Dev URL (for now)  |
+| `argo_url`           | Argo Chat API URL                                            | Dev URL (for now)  |
 | `host`               | Host address to bind the server to                           | `0.0.0.0`          |
 | `port`               | Application port (random available port selected by default) | randomly assigned  |
-| `argo_url`           | Argo Chat API URL                                            | Dev URL (for now)  |
-| `argo_stream_url`    | Argo Stream API URL                                          | Dev URL (for now)  |
-| `argo_embedding_url` | Argo Embedding API URL                                       | Prod URL           |
 | `user`               | Your username                                                | (Set during setup) |
 | `verbose`            | Debug logging                                                | `true`             |
-| `real_stream`        | Enable real streaming mode (experimental)                    | `false`            |
+| `real_stream`        | Enable real streaming mode (experimental)                    | `false` (omitted)            |
 
 ## Configuration File Locations
 
@@ -43,8 +43,8 @@ The first configuration file found will be used.
 
 ### Development vs Production URLs
 
-- **Chat/Stream URLs**: Currently pointing to development environment (`apps-dev.inside.anl.gov`)
-- **Embedding URL**: Points to production environment (`apps.inside.anl.gov`)
+- **Chat/Stream URLs**: Currently pointing to development environment (`apps-dev.inside.anl.gov/argoapi/api/v1/`) as it has the latest features.
+- **Embedding URL**: Points to production environment (`apps.inside.anl.gov/argoapi/api/v1/`) as it is stable.
 
 This configuration may change as the service evolves.
 
