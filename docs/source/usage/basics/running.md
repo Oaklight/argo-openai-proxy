@@ -10,6 +10,10 @@ argo-proxy [config_path]
 
 ### Without Arguments
 
+```bash
+argo-proxy
+```
+
 Search for `config.yaml` under:
 
 - current directory
@@ -24,14 +28,6 @@ Uses specified config file, if exists. Otherwise, falls back to default search.
 
 ```bash
 argo-proxy /path/to/config.yaml
-```
-
-### Edit Mode
-
-Opens the config file in the default editor for modification:
-
-```bash
-argo-proxy --edit
 ```
 
 ## First-Time Setup
@@ -74,58 +70,12 @@ Current configuration:
 # ... proxy server starting info display ...
 ```
 
-## Management Utilities
-
-The following options help manage the configuration file:
-
-### Edit Configuration
-
-```bash
-argo-proxy --edit
-```
-
-- If no config file is specified, it will search in default locations (`~/.config/argoproxy/`, `~/.argoproxy/`, or current directory)
-- Tries common editors like nano, vi, vim (unix-like systems) or notepad (Windows)
-
-### Validate Configuration
-
-```bash
-argo-proxy --validate
-```
-
-- Validate the configuration file and exit without starting the server
-- Useful for checking config syntax and connectivity before deployment
-
-### Show Configuration
-
-```bash
-argo-proxy --show
-```
-
-- Show the current configuration during launch
-- Displays the fully resolved configuration including defaults
-- Can be used with `--validate` to just display configuration without starting the server
-
-### Combined Usage Examples
-
-```bash
-# Edit config file
-argo-proxy --edit
-
-# Validate and display config
-argo-proxy --validate --show
-
-# Show config at startup
-argo-proxy --show
-```
-
 ## Startup Process
 
 1. **Configuration Loading**: Searches for and loads configuration file
 2. **Validation**: Checks configuration syntax and required fields
 3. **Connectivity Test**: Validates connection to ARGO API endpoints
-4. **Port Binding**: Attempts to bind to specified port
-5. **Server Start**: Starts the proxy server and begins accepting requests
+4. **Server Start**: Starts the proxy server and begins accepting requests
 
 ## Troubleshooting
 
@@ -133,15 +83,5 @@ argo-proxy --show
 
 - **Port already in use**: Choose a different port or stop the conflicting service
 - **Configuration not found**: Ensure config file exists in expected locations
-- **Connectivity issues**: Check network access to ARGO API endpoints
+- **Connectivity issues**: Check network access to ARGO API endpoints. You may need to contact CELS IT for setting up firewall conduit.
 - **Permission errors**: Ensure proper file permissions for config file
-
-### Debug Mode
-
-Enable verbose logging for troubleshooting:
-
-```bash
-argo-proxy --verbose
-```
-
-Or set `verbose: true` in your configuration file.
