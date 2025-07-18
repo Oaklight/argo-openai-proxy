@@ -9,4 +9,5 @@ This section covers the fundamental aspects of using Argo Proxy, in depth.
 
 configuration
 cli
+timeout_examples
 ```
