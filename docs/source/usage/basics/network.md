@@ -32,7 +32,7 @@ Then you are good to set up the Argo proxy by following the [installation guide]
 
 It's very likely your machine/host is not configured to access Argo API service. Now you have two options:
 
-1. Submit a vector ticket to set up a firewall conduit [here](https://servicenow.anl.gov/sp?id=sc_cat_item&sys_id=c9c09caadbb408d04c6562eb8a96194d). Instructions for the ticket:
+1. Submit a [vector ticket](https://servicenow.anl.gov/sp?id=sc_cat_item&sys_id=c9c09caadbb408d04c6562eb8a96194d) to set up a firewall conduit. Instructions for the ticket:
 
 ```plaintext
  Description: "Need access to the Argo Gateway API endpoints."
