@@ -141,7 +141,6 @@ class ArgoConfig:
         self._validate_user()  # Handles empty user
         self._validate_port()  # Handles invalid port
         self._validate_urls()  # Handles URL validation with skip option
-        self._get_verbose()  # Handles verbose flag
         hash_after_validation = md5(json.dumps(self.to_dict()).encode()).hexdigest()
 
         return hash_original != hash_after_validation
@@ -229,28 +228,6 @@ class ArgoConfig:
             logger.info("Continuing with configuration despite URL issues...")
         else:
             logger.info("All URLs connectivity validated successfully.")
-
-    def _get_verbose(self) -> None:
-        """
-        Toggle verbose mode based on existing settings or user input.
-        Checks for self.verbose preset or VERBOSE environment variable first.
-        Only prompts user if first_time is True or no setting was found.
-        """
-        # Check environment variable
-        env_verbose = os.getenv("VERBOSE", "").lower()
-        if env_verbose in ("1", "true", "yes"):
-            self.verbose = True
-            logger.info("Verbose mode enabled (from environment VERBOSE)")
-        elif env_verbose in ("0", "false", "no"):
-            self.verbose = False
-            logger.info("Verbose mode disabled (from environment VERBOSE)")
-
-        # Check for existing verbosity setting
-        if self.verbose is not None:
-            return
-
-        # Only prompt if first_time or no setting was found
-        self.verbose = _get_yes_no_input(prompt="Enable verbose mode? [Y/n] ")
 
     def __str__(self) -> str:
         """Provide a formatted string representation for logger.infoing."""
