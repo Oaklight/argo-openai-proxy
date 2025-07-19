@@ -84,9 +84,13 @@ def parsing_args() -> argparse.Namespace:
 
     parser.add_argument(
         "--tool-prompting",
-        "-tp",
         action="store_true",
         help="Enable prompting-based tool calls/function calling, otherwise use native tool calls/function calling",
+    )
+    parser.add_argument(
+        "--provider-tool-format",
+        action="store_true",
+        help="Enable provider-specific tool format, user should handle the tool calls as they arrive, otherwise all tool calls will be converted to the openai format",
     )
 
     parser.add_argument(
@@ -136,6 +140,8 @@ def set_config_envs(args: argparse.Namespace):
         os.environ["REAL_STREAM"] = str(False)
     if args.tool_prompting:
         os.environ["TOOL_PROMPT"] = str(True)
+    if args.provider_tool_format:
+        os.environ["PROVIDER_TOOL_FORMAT"] = str(True)
 
 
 def open_in_editor(config_path: Optional[str] = None):

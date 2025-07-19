@@ -46,9 +46,10 @@ class ArgoConfig:
     _argo_embedding_url: str = ""
     _argo_model_url: str = ""
 
-    # Temporary field, used for testing, expose with caution
+    # CLI flags
     _real_stream: bool = True
     _tool_prompt: bool = False
+    _provider_tool_format: bool = False
 
     # chat endpoint
     @property
@@ -457,6 +458,9 @@ def _apply_env_overrides(config_data: ArgoConfig) -> ArgoConfig:
 
     if env_tool_prompt := os.getenv("TOOL_PROMPT"):
         config_data._tool_prompt = str_to_bool(env_tool_prompt)
+
+    if env_provider_tool_format := os.getenv("PROVIDER_TOOL_FORMAT"):
+        config_data._provider_tool_format = str_to_bool(env_provider_tool_format)
 
     return config_data
 
