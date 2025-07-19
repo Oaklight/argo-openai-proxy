@@ -20,10 +20,10 @@ from loguru import logger
 from pydantic import ValidationError
 
 from ..types.function_call import (
-    ChatCompletionToolChoiceOptionParam,
+    ChatCompletionNamedToolChoiceParam,
     ChatCompletionToolParam,
 )
-from ..utils.models import determine_model_family
+from ..utils.models import determine_model_family, validate_tool_choice
 
 Tools = List[Dict[str, Any]]
 ToolChoice = Union[str, Dict[str, Any], None]
@@ -241,23 +241,30 @@ def openai_tools_validator(
         try:
             ChatCompletionToolParam.model_validate(tool, strict=False)
         except ValidationError as e:
-            logger.error(f"Validation error in tool {i}: {tool} - {e}")
-            errors.append(f"Tool {i}: {tool} - {e}")
+            error_msg = f"Tool {i} validation failed: {e}"
+            logger.error(error_msg, extra={"tool_index": i, "tool_data": tool})
+            errors.append(error_msg)
 
-    # Validate tool_choice if provided
+    # Validate tool_choice
     if tool_choice is not None:
         try:
-            ChatCompletionToolChoiceOptionParam.model_validate(
-                tool_choice, strict=False
-            )
-        except ValidationError as e:
-            logger.error(f"Validation error in tool choice: {tool_choice} - {e}")
-            errors.append(f"Tool choice: {tool_choice} - {e}")
+            validate_tool_choice(tool_choice)
+        except ValueError as e:
+            error_msg = f"Tool choice validation failed: {e}"
+            logger.error(error_msg, extra={"tool_choice": tool_choice})
+            errors.append(error_msg)
 
-    # Raise all validation errors at once
+    # Raise collected errors
     if errors:
-        raise ValueError("Invalid tool parameters found:\n" + "\n".join(errors))
+        error_summary = f"Found {len(errors)} validation error(s)"
+        logger.error(
+            error_summary, extra={"error_count": len(errors), "errors": errors}
+        )
+        raise ValueError(
+            f"{error_summary}:\n" + "\n".join(f"  - {error}" for error in errors)
+        )
 
+    logger.info(f"Successfully validated {len(tools)} tools and tool_choice")
     return tools, tool_choice
 
 
