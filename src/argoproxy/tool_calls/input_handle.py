@@ -241,6 +241,7 @@ def openai_tools_validator(
         try:
             ChatCompletionToolParam.model_validate(tool)
         except ValidationError as e:
+            logger.error(f"Validation error in tool {i}: {tool} - {e}")
             errors.append(f"Tool {i}: {tool} - {e}")
 
     # Validate tool_choice if provided
@@ -248,11 +249,11 @@ def openai_tools_validator(
         try:
             ChatCompletionToolChoiceOptionParam.model_validate(tool_choice)
         except ValidationError as e:
+            logger.error(f"Validation error in tool choice: {tool_choice} - {e}")
             errors.append(f"Tool choice: {tool_choice} - {e}")
 
     # Raise all validation errors at once
     if errors:
-        logger.error(f"Validation errors in tools or tool_choice: {errors}")
         raise ValueError("Invalid tool parameters found:\n" + "\n".join(errors))
 
     return tools, tool_choice
