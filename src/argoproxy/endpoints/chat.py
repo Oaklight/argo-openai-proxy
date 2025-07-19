@@ -169,6 +169,7 @@ def prepare_chat_request_data(
         config: The ArgoConfig object containing configuration settings.
         model_registry: The ModelRegistry object containing model mappings.
         enable_tools: Determines whether we enables tool calls related fields - tools, tool_choice, parallel_tool_calls.
+        native_tools: Determines whether we use native tools or prompting-based tools.
 
     Returns:
         The modified request data.
@@ -187,7 +188,7 @@ def prepare_chat_request_data(
 
     if enable_tools:
         # convert tools related fields to a single system prompt
-        data = handle_tools(data)
+        data = handle_tools(data, config.native_tools)
     else:
         # remove incompatible fields for direct ARGO API calls
         data.pop("tools", None)
