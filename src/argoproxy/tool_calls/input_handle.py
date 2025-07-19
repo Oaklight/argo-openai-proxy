@@ -14,8 +14,9 @@ Usage
 """
 
 import json
-from typing import Any, Dict, List, Literal, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
+from loguru import logger
 from pydantic import ValidationError
 
 from ..types.function_call import (
@@ -251,6 +252,7 @@ def openai_tools_validator(
 
     # Raise all validation errors at once
     if errors:
+        logger.error(f"Validation errors in tools or tool_choice: {errors}")
         raise ValueError("Invalid tool parameters found:\n" + "\n".join(errors))
 
     return tools, tool_choice
