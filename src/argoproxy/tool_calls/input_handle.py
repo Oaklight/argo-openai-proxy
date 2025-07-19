@@ -14,7 +14,14 @@ Usage
 """
 
 import json
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Literal, Optional, Union
+
+from pydantic import ValidationError
+
+from ..types.function_call import (
+    ChatCompletionToolChoiceOptionParam,
+    ChatCompletionToolParam,
+)
 
 Tools = List[Dict[str, Any]]
 ToolChoice = Union[str, Dict[str, Any], None]
@@ -196,6 +203,93 @@ def handle_tools(data: Dict[str, Any]) -> Dict[str, Any]:
     data.pop("parallel_tool_calls", None)
 
     return data
+
+
+def model_family(model: str) -> Literal["openai", "anthropic", "google", "unknown"]:
+    """
+    Determine the model family based on the model name.
+    """
+    if "gpt" in model:
+        return "openai"
+    elif "claude" in model:
+        return "anthropic"
+    elif "gemini" in model:
+        return "google"
+    else:
+        return "unknown"
+
+
+def handle_tools_native(data: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Use native tool calls if the model supports it
+    """
+    # Check if there are tool-related fields
+    tools = data.get("tools")
+    if not tools:
+        return data
+
+    # Get tool call related parameters
+    tool_choice = data.get("tool_choice")
+
+    # Remove parallel_tool_calls from data for now
+    parallel_tool_calls = data.pop("parallel_tool_calls", False)
+
+    # use model to determine the data structure
+    model_type = model_family(data.get("model", "gpt4o"))
+
+
+def openai_tools_validator(
+    tools: List[Dict[str, Any]],
+    tool_choice: Optional[Union[str, Dict[str, Any]]] = None,
+) -> List[Dict[str, Any]]:
+    """
+    Validate the tools for OpenAI models
+    # TODO: response api needs special handling
+
+    Args:
+        tools: List of tools to validate, each tool is a json object
+        tool_choice: Tool choice to validate, can be one of "none", "auto", or a json object
+    """
+    # pydantic type as validator
+    tool_type = ChatCompletionToolParam
+
+    # collect all validation errors
+    errors = []
+    for i, tool in enumerate(tools):
+        try:
+            tool_type.model_validate(tool)
+        except ValidationError as e:
+            errors.append(f"Tool {i}: {tool} - {e}")
+
+    if tool_choice:
+        tool_choice_type = ChatCompletionToolChoiceOptionParam
+        # validate tool choice
+        try:
+            tool_choice_type.model_validate(tool_choice)
+        except ValidationError as e:
+            errors.append(f"Tool choice: {tool_choice} - {e}")
+
+    # if any errors were found, raise with all of them
+    if errors:
+        raise ValueError("Invalid tool parameters found:\n" + "\n".join(errors))
+
+    return tools
+
+
+def openai_tools_to_anthropic_tools(
+    tools: List[Dict[str, Any]],
+) -> List[Dict[str, Any]]:
+    """
+    Convert OpenAI tools to Anthropic tools
+    """
+    pass
+
+
+def openai_tools_to_google_tools(tools: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """
+    Convert OpenAI tools to Google tools
+    """
+    pass
 
 
 # ---------------------------------------------------------------------------#
