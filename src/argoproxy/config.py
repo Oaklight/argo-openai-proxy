@@ -47,7 +47,7 @@ class ArgoConfig:
     _argo_model_url: str = ""
 
     # Temporary field, used for testing, expose with caution
-    _real_stream: bool = False
+    _real_stream: bool = True
 
     # chat endpoint
     @property
