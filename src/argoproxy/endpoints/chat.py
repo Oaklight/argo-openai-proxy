@@ -606,7 +606,7 @@ async def proxy_request(
 
         # Prepare the request data
         data = prepare_chat_request_data(
-            data, config, model_registry, enable_tools=convert_to_openai
+            data, config, model_registry, enable_tools=True
         )
         # Use the shared HTTP session from app context for connection pooling
         session = request.app["http_session"]
