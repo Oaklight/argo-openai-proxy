@@ -14,6 +14,7 @@ from typing import (
 )
 
 from loguru import logger
+from pydantic import ValidationError
 
 from ..types.function_call import (
     ChatCompletionMessageToolCall,
@@ -266,14 +267,15 @@ def tool_calls_to_openai(
 
 
 def tool_calls_to_openai(
-    tool_calls: List[Dict[str, Any]],
+    tool_calls: List[Union[Dict[str, Any], ChatCompletionMessageToolCall]],
     *,
     api_format: Literal["chat_completion", "response"] = "chat_completion",
 ) -> List[Union[ChatCompletionMessageToolCall, ResponseFunctionToolCall]]:
     """Converts parsed tool calls to OpenAI API format.
 
     Args:
-        tool_calls: List of parsed tool calls.
+        tool_calls: List of parsed tool calls. Can be either dictionaries or
+            ChatCompletionMessageToolCall objects.
         api_format: Output format type, either "chat_completion" or "response".
             Defaults to "chat_completion".
 
@@ -286,14 +288,24 @@ def tool_calls_to_openai(
     openai_tool_calls = []
 
     for call in tool_calls:
-        arguments = json.dumps(call.get("arguments", ""))
-        name = call.get("name", "")
-
-        # Always create ChatCompletionMessageToolCall first
-        chat_tool_call = ChatCompletionMessageToolCall(
-            id=generate_id(mode="chat_completion"),
-            function=Function(name=name, arguments=arguments),
-        )
+        # Handle both dict and ChatCompletionMessageToolCall inputs
+        if isinstance(call, ChatCompletionMessageToolCall):
+            chat_tool_call = call
+        elif isinstance(call, dict):
+            # Check if it's already in ChatCompletionMessageToolCall format
+            try:
+                # Try to parse as ChatCompletionMessageToolCall using Pydantic
+                chat_tool_call = ChatCompletionMessageToolCall.model_validate(call)
+            except (ValidationError, TypeError):
+                # Legacy format - create from name/arguments
+                arguments = json.dumps(call.get("arguments", ""))
+                name = call.get("name", "")
+                chat_tool_call = ChatCompletionMessageToolCall(
+                    id=generate_id(mode="chat_completion"),
+                    function=Function(name=name, arguments=arguments),
+                )
+        else:
+            raise ValueError(f"Unsupported tool call type: {type(call)}")
 
         if api_format == "chat_completion":
             openai_tool_calls.append(chat_tool_call)
