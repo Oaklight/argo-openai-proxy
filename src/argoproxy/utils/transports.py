@@ -1,13 +1,13 @@
 import asyncio
 import json
 import urllib.request
-from typing import Any, AsyncGenerator, Dict, Union
+from typing import Any, AsyncGenerator, Dict, Optional, Union
 
 from aiohttp import web
 
 
 async def pseudo_chunk_generator(
-    complete_text: str,
+    complete_text: Optional[str],
     chunk_size: int = 30,
     sleep_time: float = 0.01,
 ) -> AsyncGenerator[str, None]:
@@ -28,9 +28,12 @@ async def pseudo_chunk_generator(
         " Worl"
         "d"
     """
+    if complete_text is None:
+        return
+
     for i in range(0, len(complete_text), chunk_size):
         chunk = complete_text[i : i + chunk_size]
-        await asyncio.sleep(sleep_time)  # Small delay between chunks
+        await asyncio.sleep(sleep_time)
         yield chunk
 
 
