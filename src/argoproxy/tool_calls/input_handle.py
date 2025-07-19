@@ -14,7 +14,7 @@ Usage
 """
 
 import json
-from typing import Any, Dict, List, Literal, Optional, Union
+from typing import Any, Dict, List, Literal, Optional, Tuple, Union
 
 from pydantic import ValidationError
 
