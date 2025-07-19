@@ -66,10 +66,16 @@ def parsing_args() -> argparse.Namespace:
     )
 
     parser.add_argument(
-        '--real-stream',
-        '-rs',
-        action='store_true',
-        help='Enable real streaming, override if `real_stream` set False or omitted in config',
+        "--real-stream",
+        "-rs",
+        action="store_true",
+        help="Enable real streaming, override if `real_stream` set False or omitted in config",
+    )
+    parser.add_argument(
+        "--tool-prompt",
+        "-tp",
+        action="store_true",
+        help="Enable prompting based tools",
     )
 
     parser.add_argument(
@@ -113,6 +119,8 @@ def set_config_envs(args: argparse.Namespace):
         os.environ["VERBOSE"] = str(False)
     if args.real_stream:
         os.environ["REAL_STREAM"] = str(True)
+    if args.tool_prompt:
+        os.environ["TOOL_PROMPT"] = str(True)
 
 
 def open_in_editor(config_path: Optional[str] = None):
