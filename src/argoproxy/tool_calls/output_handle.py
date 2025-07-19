@@ -318,39 +318,54 @@ def tool_calls_to_openai(
 
 
 def tool_calls_to_openai_stream(
-    tool_call: Dict[str, Any],
+    tool_call: Union[Dict[str, Any], ChatCompletionMessageToolCall],
     *,
     tc_index: int = 0,
     api_format: Literal["chat_completion", "response"] = "chat_completion",
 ) -> ChoiceDeltaToolCall:
     """
-    Converts a tool call dict to OpenAI-compatible tool call objects for streaming.
+    Converts a tool call to OpenAI-compatible tool call objects for streaming.
 
     Args:
-        tool_calls: single tool call dict to convert.
+        tool_call: Single tool call to convert. Can be either a dictionary or
+            ChatCompletionMessageToolCall object.
         tc_index: The index of the tool call.
         api_format: The format to convert the tool calls to. Can be "chat_completion" or "response".
 
     Returns:
         An OpenAI-compatible stream tool call object.
     """
+    
+    # Handle both dict and ChatCompletionMessageToolCall inputs
+    if isinstance(tool_call, ChatCompletionMessageToolCall):
+        chat_tool_call = tool_call
+    elif isinstance(tool_call, dict):
+        # Check if it's already in ChatCompletionMessageToolCall format
+        try:
+            # Try to parse as ChatCompletionMessageToolCall using Pydantic
+            chat_tool_call = ChatCompletionMessageToolCall.model_validate(tool_call)
+        except (ValidationError, TypeError):
+            # Legacy format - create from name/arguments
+            arguments = json.dumps(tool_call.get("arguments", ""))
+            name = tool_call.get("name", "")
+            chat_tool_call = ChatCompletionMessageToolCall(
+                id=generate_id(mode="chat_completion"),
+                function=Function(name=name, arguments=arguments),
+            )
+    else:
+        raise ValueError(f"Unsupported tool call type: {type(tool_call)}")
 
-    arguments = json.dumps(tool_call.get("arguments", ""))
-    name = tool_call.get("name", "")
     if api_format == "chat_completion":
         tool_call_obj = ChoiceDeltaToolCall(
-            id=generate_id(mode="chat_completion"),
-            function=Function(name=name, arguments=arguments),
+            id=chat_tool_call.id,
+            function=Function(
+                name=chat_tool_call.function.name, 
+                arguments=chat_tool_call.function.arguments
+            ),
             index=tc_index,
         )
     else:
-        # tool_call_obj = ResponseFunctionToolCall(
-        #     arguments=arguments,
-        #     call_id=generate_id(mode="chat_completion"),
-        #     name=name,
-        #     id=generate_id(mode="response"),
-        #     status="completed",
-        # )
+        # TODO: Implement response format
         raise NotImplementedError("response format is not implemented yet.")
 
     return tool_call_obj
