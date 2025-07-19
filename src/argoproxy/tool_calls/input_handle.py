@@ -239,7 +239,7 @@ def openai_tools_validator(
     # Validate tools
     for i, tool in enumerate(tools):
         try:
-            ChatCompletionToolParam.model_validate(tool)
+            ChatCompletionToolParam.model_validate(tool, strict=False)
         except ValidationError as e:
             logger.error(f"Validation error in tool {i}: {tool} - {e}")
             errors.append(f"Tool {i}: {tool} - {e}")
@@ -247,7 +247,9 @@ def openai_tools_validator(
     # Validate tool_choice if provided
     if tool_choice is not None:
         try:
-            ChatCompletionToolChoiceOptionParam.model_validate(tool_choice)
+            ChatCompletionToolChoiceOptionParam.model_validate(
+                tool_choice, strict=False
+            )
         except ValidationError as e:
             logger.error(f"Validation error in tool choice: {tool_choice} - {e}")
             errors.append(f"Tool choice: {tool_choice} - {e}")
