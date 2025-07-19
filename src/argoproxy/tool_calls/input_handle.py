@@ -128,9 +128,9 @@ def build_tool_prompt(
     )
 
 
-def handle_tools(data: Dict[str, Any]) -> Dict[str, Any]:
+def handle_tools_prompt(data: Dict[str, Any]) -> Dict[str, Any]:
     """
-    Process input data containing tool calls.
+    Process input data containing tool calls using prompt-based approach.
 
     This function will:
     1. Check if input data contains tool-related fields (tools, tool_choice, parallel_tool_calls)
@@ -340,6 +340,45 @@ def handle_tools_native(data: Dict[str, Any]) -> Dict[str, Any]:
     data["tools"] = tools
     data["tool_choice"] = tool_choice
     return data
+
+
+def handle_tools(data: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Process input data containing tool calls with fallback strategy.
+
+    This function will:
+    1. First attempt native tool handling (handle_tools_native)
+    2. If native handling validation fails, fallback to prompt-based handling (handle_tools_prompt)
+    3. Return processed data
+
+    Parameters
+    ----------
+    data : dict
+        Dictionary containing request data, may include:
+        - tools: List of tool definitions
+        - tool_choice: Tool selection preference
+        - parallel_tool_calls: Whether to allow parallel tool calls
+        - messages: Message list
+        - system: System message
+        - model: Model identifier
+
+    Returns
+    -------
+    dict
+        Processed data dictionary
+    """
+    # Check if there are tool-related fields
+    tools = data.get("tools")
+    if not tools:
+        return data
+
+    try:
+        # First attempt: try native tool handling
+        return handle_tools_native(data)
+    except (ValueError, ValidationError, NotImplementedError) as e:
+        # Fallback: use prompt-based handling if native handling fails
+        # This handles validation errors, unsupported model types, or unimplemented conversions
+        return handle_tools_prompt(data)
 
 
 # ---------------------------------------------------------------------------#
