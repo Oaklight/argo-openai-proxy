@@ -1,13 +1,10 @@
-import inspect
 import json
 import re
 import secrets
 import string
 from typing import (
     Any,
-    AsyncIterator,
     Dict,
-    Iterator,
     List,
     Literal,
     Optional,
@@ -27,13 +24,50 @@ from ..types.function_call import (
 
 
 class ToolInterceptor:
-    def __init__(self):
-        self.buffer = ""
-        self.in_tool_call = False
-        self.tool_call_buffer = ""
+    """
+    Tool interceptor that handles both prompt-based and native tool calling responses.
 
-    def process(self, text: str) -> Tuple[Optional[List[dict]], str]:
-        """Non-stream mode: Extract all tool_call JSONs and preserve all non-tool-call text.
+    This class can process:
+    1. Legacy prompt-based responses with <tool_call> tags
+    2. Native tool calling responses from different model providers
+    """
+
+    def __init__(self):
+        pass
+
+    def process(
+        self,
+        response_content: Union[str, Dict[str, Any]],
+        model_family: Literal["openai", "anthropic", "google"] = "openai",
+    ) -> Tuple[Optional[List[dict]], str]:
+        """
+        Process response content and extract tool calls.
+
+        Args:
+            response_content: Either a string (legacy format) or dict (native format)
+            model_family: Model family to determine the processing strategy
+
+        Returns:
+            Tuple of (list of tool calls or None, text content)
+        """
+        if isinstance(response_content, str):
+            # Legacy prompt-based format
+            return self._process_prompt_based(response_content)
+        elif isinstance(response_content, dict):
+            # Native tool calling format
+            return self._process_native(response_content, model_family)
+        else:
+            logger.warning(
+                f"Unexpected response content type: {type(response_content)}"
+            )
+            return None, str(response_content)
+
+    def _process_prompt_based(self, text: str) -> Tuple[Optional[List[dict]], str]:
+        """
+        Process prompt-based responses with <tool_call> tags.
+
+        Args:
+            text: Text content containing potential <tool_call> tags
 
         Returns:
             Tuple of (list of tool calls or None, concatenated text from outside tool calls)
@@ -67,147 +101,98 @@ class ToolInterceptor:
             ).lstrip(),  # Combine all text parts and strip leading whitespace
         )
 
-    def _process_chunk_logic(
-        self, chunk: str
-    ) -> List[Tuple[Optional[dict], Optional[str]]]:
-        """Core logic for processing a single chunk, returns list of (tool_call, text) tuples"""
-        results = []
-        self.buffer += chunk
-
-        while True:
-            if not self.in_tool_call:
-                start_idx = self.buffer.find("<tool_call>")
-                if start_idx == -1:
-                    # No complete tool call start found
-                    if self._could_be_partial_tag(self.buffer):
-                        # Might be partial tag at end, keep in buffer
-                        break
-                    else:
-                        # Safe to emit all as text
-                        if self.buffer:
-                            results.append((None, self.buffer))
-                        self.buffer = ""
-                        break
-                else:
-                    # Emit text before tool call
-                    if start_idx > 0:
-                        results.append((None, self.buffer[:start_idx]))
-                    self.buffer = self.buffer[start_idx + len("<tool_call>") :]
-                    self.in_tool_call = True
-                    self.tool_call_buffer = ""
-            else:
-                end_idx = self.buffer.find("</tool_call>")
-                if end_idx == -1:
-                    # End tag not found yet
-                    if self._could_be_partial_tag(self.buffer):
-                        # Might have partial end tag, keep some in buffer
-                        safe_length = max(
-                            0, len(self.buffer) - 11
-                        )  # Length of '</tool_call>'
-                        if safe_length > 0:
-                            self.tool_call_buffer += self.buffer[:safe_length]
-                            self.buffer = self.buffer[safe_length:]
-                    else:
-                        # No partial tag possible, buffer all
-                        self.tool_call_buffer += self.buffer
-                        self.buffer = ""
-                    break
-                else:
-                    # Found end tag
-                    self.tool_call_buffer += self.buffer[:end_idx]
-                    try:
-                        tool_call_json = json.loads(self.tool_call_buffer.strip())
-                        results.append((tool_call_json, None))
-                    except json.JSONDecodeError:
-                        # Invalid JSON
-                        results.append(
-                            (None, f"<invalid>{self.tool_call_buffer}</invalid>")
-                        )
-
-                    self.buffer = self.buffer[end_idx + len("</tool_call>") :]
-                    self.in_tool_call = False
-                    self.tool_call_buffer = ""
-
-        return results
-
-    def _finalize_processing(self) -> List[Tuple[Optional[dict], Optional[str]]]:
-        """Handle any remaining content after all chunks are processed"""
-        results = []
-        if self.in_tool_call:
-            # Unclosed tool call
-            if self.tool_call_buffer or self.buffer:
-                results.append(
-                    (None, f"<invalid>{self.tool_call_buffer}{self.buffer}</invalid>")
-                )
-        elif self.buffer:
-            results.append((None, self.buffer))
-        return results
-
-    @overload
-    def process_stream(
-        self, chunk_iterator: Iterator[str]
-    ) -> Iterator[Tuple[Optional[dict], Optional[str]]]: ...
-
-    @overload
-    def process_stream(
-        self, chunk_iterator: AsyncIterator[str]
-    ) -> AsyncIterator[Tuple[Optional[dict], Optional[str]]]: ...
-
-    def process_stream(
-        self, chunk_iterator: Union[Iterator[str], AsyncIterator[str]]
-    ) -> Union[
-        Iterator[Tuple[Optional[dict], Optional[str]]],
-        AsyncIterator[Tuple[Optional[dict], Optional[str]]],
-    ]:
+    def _process_native(
+        self,
+        response_data: Dict[str, Any],
+        model_family: Literal["openai", "anthropic", "google"] = "openai",
+    ) -> Tuple[Optional[List[Dict[str, Any]]], str]:
         """
-        Process chunks and yield tool calls or text as they complete.
+        Process native tool calling responses from different model providers.
 
-        The return type matches the input iterator type:
-        - If chunk_iterator is sync Iterator, returns sync Iterator
-        - If chunk_iterator is async AsyncIterator, returns AsyncIterator
+        Args:
+            response_data: Response data containing content and tool_calls
+            model: Model name to determine the processing strategy
 
-        Yields:
-            (tool_call_dict, None) when a tool_call is fully parsed
-            (None, text_chunk) for regular text between tool calls
+        Returns:
+            Tuple of (list of tool calls or None, text content)
         """
-        # Reset state
-        self.buffer = ""
-        self.in_tool_call = False
-        self.tool_call_buffer = ""
 
-        # Check if the iterator is async
-        if hasattr(chunk_iterator, "__aiter__") or inspect.isasyncgen(chunk_iterator):
-            return self._process_async_iterator(chunk_iterator)
+        if model_family == "openai":
+            return self._process_openai_native(response_data)
+        elif model_family == "anthropic":
+            return self._process_anthropic_native(response_data)
+        elif model_family == "google":
+            return self._process_google_native(response_data)
         else:
-            return self._process_sync_iterator(chunk_iterator)
+            logger.warning(
+                f"Unknown model family for model: {model_family}, falling back to OpenAI format"
+            )
+            return self._process_openai_native(response_data)
 
-    def _process_sync_iterator(
-        self, chunk_iterator: Iterator[str]
-    ) -> Iterator[Tuple[Optional[dict], Optional[str]]]:
-        """Process synchronous iterator"""
-        for chunk in chunk_iterator:
-            results = self._process_chunk_logic(chunk)
-            for result in results:
-                yield result
+    def _process_openai_native(
+        self, response_data: Dict[str, Any]
+    ) -> Tuple[Optional[List[Dict[str, Any]]], str]:
+        """
+        Process OpenAI native tool calling response format.
 
-        # Handle any remaining content
-        final_results = self._finalize_processing()
-        for result in final_results:
-            yield result
+        Expected format:
+        {
+            "content": "text response",
+            "tool_calls": [
+                {"name": "function_name", "arguments": {...}}
+            ]
+        }
 
-    async def _process_async_iterator(
-        self, chunk_iterator: AsyncIterator[str]
-    ) -> AsyncIterator[Tuple[Optional[dict], Optional[str]]]:
-        """Process asynchronous iterator"""
-        async for chunk in chunk_iterator:
-            results = self._process_chunk_logic(chunk)
-            for result in results:
-                yield result
+        Args:
+            response_data: OpenAI format response data
 
-        # Handle any remaining content
-        final_results = self._finalize_processing()
-        for result in final_results:
-            yield result
+        Returns:
+            Tuple of (list of tool calls or None, text content)
+        """
+        content = response_data.get("content", "")
+        tool_calls = response_data.get("tool_calls", [])
+
+        return tool_calls, content
+
+    def _process_anthropic_native(
+        self, response_data: Dict[str, Any]
+    ) -> Tuple[Optional[List[dict]], str]:
+        """
+        Process Anthropic native tool calling response format.
+
+        TODO: Implement Anthropic-specific tool calling format processing.
+
+        Args:
+            response_data: Anthropic format response data
+
+        Returns:
+            Tuple of (list of tool calls or None, text content)
+        """
+        # Placeholder implementation - to be implemented later
+        logger.warning(
+            "Anthropic native tool calling not implemented yet, falling back to OpenAI format"
+        )
+        raise NotImplementedError
+
+    def _process_google_native(
+        self, response_data: Dict[str, Any]
+    ) -> Tuple[Optional[List[dict]], str]:
+        """
+        Process Google native tool calling response format.
+
+        TODO: Implement Google-specific tool calling format processing.
+
+        Args:
+            response_data: Google format response data
+
+        Returns:
+            Tuple of (list of tool calls or None, text content)
+        """
+        # Placeholder implementation - to be implemented later
+        logger.warning(
+            "Google native tool calling not implemented yet, falling back to OpenAI format"
+        )
+        raise NotImplementedError
 
 
 def generate_id(

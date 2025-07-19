@@ -22,6 +22,7 @@ from ..types.function_call import (
     ChatCompletionToolChoiceOptionParam,
     ChatCompletionToolParam,
 )
+from ..utils.models import determine_model_family
 
 Tools = List[Dict[str, Any]]
 ToolChoice = Union[str, Dict[str, Any], None]
@@ -205,20 +206,6 @@ def handle_tools_prompt(data: Dict[str, Any]) -> Dict[str, Any]:
     return data
 
 
-def model_family(model: str) -> Literal["openai", "anthropic", "google", "unknown"]:
-    """
-    Determine the model family based on the model name.
-    """
-    if "gpt" in model:
-        return "openai"
-    elif "claude" in model:
-        return "anthropic"
-    elif "gemini" in model:
-        return "google"
-    else:
-        return "unknown"
-
-
 def openai_tools_validator(
     tools: List[Dict[str, Any]],
     tool_choice: Union[str, Dict[str, Any]] = "auto",
@@ -325,9 +312,10 @@ def handle_tools_native(data: Dict[str, Any]) -> Dict[str, Any]:
     parallel_tool_calls = data.pop("parallel_tool_calls", False)
 
     # use model to determine the data structure
-    model_type = model_family(data.get("model", "gpt4o"))
+    model_type = determine_model_family(data.get("model", "gpt4o"))
 
     # Validate tools and tool_choice
+    # If format is invalid, raise ValueError from openai_tools_validator
     tools, tool_choice = openai_tools_validator(tools, tool_choice)
 
     if model_type == "openai":
