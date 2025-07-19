@@ -48,6 +48,7 @@ class ArgoConfig:
 
     # Temporary field, used for testing, expose with caution
     _real_stream: bool = True
+    _tool_prompt: bool = False
 
     # chat endpoint
     @property
@@ -79,6 +80,12 @@ class ArgoConfig:
     @property
     def pseudo_stream(self):
         if self._real_stream and self._real_stream is True:
+            return False
+        return True
+
+    @property
+    def native_tools(self):
+        if self._tool_prompt and self._tool_prompt is True:
             return False
         return True
 
@@ -468,6 +475,8 @@ def _apply_env_overrides(config_data: ArgoConfig) -> ArgoConfig:
         config_data.verbose = env_verbose.lower() in ["true", "1", "t"]
     if env_real_stream := os.getenv("REAL_STREAM"):
         config_data._real_stream = env_real_stream.lower() in ["true", "1", "t"]
+    if env_tool_prompt := os.getenv("TOOL_PROMPT"):
+        config_data._tool_prompt = env_tool_prompt.lower() in ["true", "1", "t"]
     return config_data
 
 
