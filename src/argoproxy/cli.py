@@ -83,6 +83,13 @@ def parsing_args() -> argparse.Namespace:
     )
 
     parser.add_argument(
+        "--tool-prompt",
+        "-tp",
+        action="store_true",
+        help="Enable prompting based tools",
+    )
+
+    parser.add_argument(
         "--edit",
         "-e",
         action="store_true",
@@ -127,6 +134,8 @@ def set_config_envs(args: argparse.Namespace):
         os.environ["REAL_STREAM"] = str(True)
     if args.pseudo_stream:
         os.environ["REAL_STREAM"] = str(False)
+    if args.tool_prompt:
+        os.environ["TOOL_PROMPT"] = str(True)
 
 
 def open_in_editor(config_path: Optional[str] = None):
