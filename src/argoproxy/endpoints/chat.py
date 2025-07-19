@@ -34,6 +34,7 @@ from ..utils.input_handle import (
     scrutinize_message_entries,
 )
 from ..utils.misc import make_bar
+from ..utils.models import determine_model_family
 from ..utils.tokens import (
     calculate_prompt_tokens_async,
     count_tokens_async,
@@ -254,8 +255,9 @@ async def send_non_streaming_request(
                     status=502,
                 )
 
-            content = response_data.get("response")
-            if content is None:
+            # Handle both legacy and new response formats
+            response_content = response_data.get("response")
+            if response_content is None:
                 return web.json_response(
                     {
                         "object": "error",
@@ -275,7 +277,11 @@ async def send_non_streaming_request(
             # convert_to_openai is True
             prompt_tokens = await calculate_prompt_tokens_async(data, data["model"])
             cs = ToolInterceptor()
-            tool_calls, clean_text = cs.process(content)
+
+            # Process response content with the updated ToolInterceptor
+            tool_calls, clean_text = cs.process(
+                response_content, data.get("model", "gpt-4o")
+            )
             finish_reason = "tool_calls" if tool_calls else "stop"
 
             if asyncio.iscoroutinefunction(openai_compat_fn):
@@ -339,13 +345,16 @@ async def _handle_pseudo_stream(
     """
     try:
         response_data = await upstream_resp.json()
-        response_text = response_data.get("response", "")
+        response_content = response_data.get("response", "")
     except (aiohttp.ContentTypeError, json.JSONDecodeError) as e:
-        response_text = await upstream_resp.text()
+        response_content = await upstream_resp.text()
         logger.warning(f"Upstream response is not JSON in pseudo_stream mode: {e}")
     if convert_to_openai:
         cs = ToolInterceptor()
-        tool_calls, cleaned_text = cs.process(response_text)
+        # Process response content with the updated ToolInterceptor
+        tool_calls, cleaned_text = cs.process(
+            response_content, determine_model_family(data["model"])
+        )
         if tool_calls:
             for i, tc_dict in enumerate(tool_calls):
                 if asyncio.iscoroutinefunction(openai_compat_fn):
@@ -399,6 +408,14 @@ async def _handle_pseudo_stream(
                 )
             await send_off_sse(response, cast(Dict[str, Any], chunk_json))
     else:
+        # For non-OpenAI conversion, we need to handle the response_content appropriately
+        if isinstance(response_content, dict):
+            # If it's a dict, convert to string for streaming
+            response_text = response_content.get("content", "") or json.dumps(
+                response_content
+            )
+        else:
+            response_text = str(response_content)
         async for chunk_text in pseudo_chunk_generator(response_text):
             await send_off_sse(response, chunk_text.encode())
 
