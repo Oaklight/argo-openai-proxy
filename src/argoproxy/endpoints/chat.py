@@ -281,7 +281,7 @@ async def send_non_streaming_request(
 
             # Process response content with the updated ToolInterceptor
             tool_calls, clean_text = cs.process(
-                response_content, data.get("model", "gpt-4o")
+                response_content, determine_model_family(data["model"])
             )
             finish_reason = "tool_calls" if tool_calls else "stop"
 
