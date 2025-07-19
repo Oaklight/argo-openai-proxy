@@ -229,6 +229,26 @@ def generate_id(
         raise ValueError(f"Unknown mode: {mode!r}")
 
 
+def chat_completion_to_response_tool_call(
+    chat_tool_call: ChatCompletionMessageToolCall,
+) -> ResponseFunctionToolCall:
+    """Converts a ChatCompletionMessageToolCall to ResponseFunctionToolCall.
+
+    Args:
+        chat_tool_call: The ChatCompletionMessageToolCall to convert.
+
+    Returns:
+        ResponseFunctionToolCall with corresponding data.
+    """
+    return ResponseFunctionToolCall(
+        arguments=chat_tool_call.function.arguments,
+        call_id=chat_tool_call.id,
+        name=chat_tool_call.function.name,
+        id=generate_id(mode="response"),
+        status="completed",
+    )
+
+
 @overload
 def tool_calls_to_openai(
     tool_calls: List[Dict[str, Any]],
@@ -254,7 +274,6 @@ def tool_calls_to_openai(
 
     Args:
         tool_calls: List of parsed tool calls.
-        is_stream: Whether the output is for streaming. Defaults to False.
         api_format: Output format type, either "chat_completion" or "response".
             Defaults to "chat_completion".
 
@@ -269,20 +288,19 @@ def tool_calls_to_openai(
     for call in tool_calls:
         arguments = json.dumps(call.get("arguments", ""))
         name = call.get("name", "")
+
+        # Always create ChatCompletionMessageToolCall first
+        chat_tool_call = ChatCompletionMessageToolCall(
+            id=generate_id(mode="chat_completion"),
+            function=Function(name=name, arguments=arguments),
+        )
+
         if api_format == "chat_completion":
-            tool_call_obj = ChatCompletionMessageToolCall(
-                id=generate_id(mode="chat_completion"),
-                function=Function(name=name, arguments=arguments),
-            )
+            openai_tool_calls.append(chat_tool_call)
         else:
-            tool_call_obj = ResponseFunctionToolCall(
-                arguments=arguments,
-                call_id=generate_id(mode="chat_completion"),
-                name=name,
-                id=generate_id(mode="response"),
-                status="completed",
-            )
-        openai_tool_calls.append(tool_call_obj)
+            # Convert to ResponseFunctionToolCall using helper function
+            response_tool_call = chat_completion_to_response_tool_call(chat_tool_call)
+            openai_tool_calls.append(response_tool_call)
 
     return openai_tool_calls
 
