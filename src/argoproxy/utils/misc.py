@@ -92,3 +92,8 @@ def is_port_available(port: int, timeout: float = 0.1) -> bool:
         except (OSError, socket.timeout):
             continue
     return False
+
+
+def str_to_bool(value: str) -> bool:
+    """Convert string to boolean"""
+    return value.lower() in {"true", "1", "t", "yes", "on"}

@@ -12,7 +12,7 @@ import yaml  # type: ignore
 from loguru import logger
 from tqdm.asyncio import tqdm_asyncio
 
-from .utils.misc import get_random_port, is_port_available, make_bar
+from .utils.misc import get_random_port, is_port_available, make_bar, str_to_bool
 from .utils.transports import validate_api_async
 
 PATHS_TO_TRY = [
@@ -471,12 +471,16 @@ def _apply_env_overrides(config_data: ArgoConfig) -> ArgoConfig:
     """Apply environment variable overrides to the config"""
     if env_port := os.getenv("PORT"):
         config_data.port = int(env_port)
+
     if env_verbose := os.getenv("VERBOSE"):
-        config_data.verbose = env_verbose.lower() in ["true", "1", "t"]
+        config_data.verbose = str_to_bool(env_verbose)
+
     if env_real_stream := os.getenv("REAL_STREAM"):
-        config_data._real_stream = env_real_stream.lower() in ["true", "1", "t"]
+        config_data._real_stream = str_to_bool(env_real_stream)
+
     if env_tool_prompt := os.getenv("TOOL_PROMPT"):
-        config_data._tool_prompt = env_tool_prompt.lower() in ["true", "1", "t"]
+        config_data._tool_prompt = str_to_bool(env_tool_prompt)
+
     return config_data
 
 
