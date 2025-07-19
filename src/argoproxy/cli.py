@@ -65,11 +65,21 @@ def parsing_args() -> argparse.Namespace:
         help="Disable verbose logging, override if `verbose` set True in config",
     )
 
-    parser.add_argument(
-        '--real-stream',
-        '-rs',
-        action='store_true',
-        help='Enable real streaming, override if `real_stream` set False or omitted in config',
+    # Streaming mode group (mutually exclusive)
+    stream_group = parser.add_mutually_exclusive_group()
+    stream_group.add_argument(
+        "--real-stream",
+        "-rs",
+        action="store_true",
+        default=False,  # Will be handled in logic to default to True when neither option is specified
+        help="Enable real streaming (default behavior), override if `real_stream` set False in config",
+    )
+    stream_group.add_argument(
+        "--pseudo-stream",
+        "-ps",
+        action="store_true",
+        default=False,
+        help="Enable pseudo streaming, override if `real_stream` set True or omitted in config",
     )
 
     parser.add_argument(
@@ -111,8 +121,12 @@ def set_config_envs(args: argparse.Namespace):
         os.environ["VERBOSE"] = str(True)
     if args.quiet:
         os.environ["VERBOSE"] = str(False)
+
+    # Handle streaming mode: default to real stream if neither option is specified
     if args.real_stream:
         os.environ["REAL_STREAM"] = str(True)
+    if args.pseudo_stream:
+        os.environ["REAL_STREAM"] = str(False)
 
 
 def open_in_editor(config_path: Optional[str] = None):
