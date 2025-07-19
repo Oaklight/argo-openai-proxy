@@ -19,10 +19,7 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 from loguru import logger
 from pydantic import ValidationError
 
-from ..types.function_call import (
-    ChatCompletionNamedToolChoiceParam,
-    ChatCompletionToolParam,
-)
+from ..types.function_call import ChatCompletionToolParam
 from ..utils.models import determine_model_family, validate_tool_choice
 
 Tools = List[Dict[str, Any]]
@@ -342,13 +339,13 @@ def handle_tools_native(data: Dict[str, Any]) -> Dict[str, Any]:
     return data
 
 
-def handle_tools(data: Dict[str, Any]) -> Dict[str, Any]:
+def handle_tools(data: Dict[str, Any], native_tools: bool = True) -> Dict[str, Any]:
     """
     Process input data containing tool calls with fallback strategy.
 
     This function will:
-    1. First attempt native tool handling (handle_tools_native)
-    2. If native handling validation fails, fallback to prompt-based handling (handle_tools_prompt)
+    1. If native_tools=True: attempt native tool handling (handle_tools_native)
+    2. If native handling validation fails or native_tools=False: fallback to prompt-based handling (handle_tools_prompt)
     3. Return processed data
 
     Parameters
@@ -361,6 +358,8 @@ def handle_tools(data: Dict[str, Any]) -> Dict[str, Any]:
         - messages: Message list
         - system: System message
         - model: Model identifier
+    native_tools : bool, optional
+        Whether to use native tools or prompt-based tools, by default True
 
     Returns
     -------
@@ -372,12 +371,17 @@ def handle_tools(data: Dict[str, Any]) -> Dict[str, Any]:
     if not tools:
         return data
 
-    try:
-        # First attempt: try native tool handling
-        return handle_tools_native(data)
-    except (ValueError, ValidationError, NotImplementedError) as e:
-        # Fallback: use prompt-based handling if native handling fails
-        # This handles validation errors, unsupported model types, or unimplemented conversions
+    if native_tools:
+        try:
+            # First attempt: try native tool handling
+            return handle_tools_native(data)
+        except (ValueError, ValidationError, NotImplementedError) as e:
+            # Fallback: use prompt-based handling if native handling fails
+            # This handles validation errors, unsupported model types, or unimplemented conversions
+            logger.warning(f"Native tool handling failed, falling back to prompt-based: {e}")
+            return handle_tools_prompt(data)
+    else:
+        # Directly use prompt-based handling when native_tools=False
         return handle_tools_prompt(data)
 
 
