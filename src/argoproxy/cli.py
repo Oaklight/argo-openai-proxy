@@ -83,10 +83,10 @@ def parsing_args() -> argparse.Namespace:
     )
 
     parser.add_argument(
-        "--tool-prompt",
+        "--tool-prompting",
         "-tp",
         action="store_true",
-        help="Enable prompting based tools",
+        help="Enable prompting-based tool calls/function calling, otherwise use native tool calls/function calling",
     )
 
     parser.add_argument(
@@ -134,7 +134,7 @@ def set_config_envs(args: argparse.Namespace):
         os.environ["REAL_STREAM"] = str(True)
     if args.pseudo_stream:
         os.environ["REAL_STREAM"] = str(False)
-    if args.tool_prompt:
+    if args.tool_prompting:
         os.environ["TOOL_PROMPT"] = str(True)
 
 
