@@ -1,4 +1,8 @@
-from typing import Literal
+from typing import Any, Dict, Literal, Union
+
+from pydantic import ValidationError
+
+from ..types.function_call import ChatCompletionNamedToolChoiceParam
 
 
 def determine_model_family(
@@ -15,3 +19,31 @@ def determine_model_family(
         return "google"
     else:
         return "unknown"
+
+
+def validate_tool_choice(tool_choice: Union[str, Dict[str, Any]]) -> None:
+    """Helper function to validate tool_choice parameter.
+
+    Args:
+        tool_choice: The tool choice parameter to validate.
+
+    Raises:
+        ValueError: If tool_choice is invalid.
+    """
+    if isinstance(tool_choice, str):
+        valid_strings = ["none", "auto", "required"]
+        if tool_choice not in valid_strings:
+            raise ValueError(
+                f"Invalid tool_choice string '{tool_choice}'. "
+                f"Must be one of: {', '.join(valid_strings)}"
+            )
+    elif isinstance(tool_choice, dict):
+        try:
+            ChatCompletionNamedToolChoiceParam.model_validate(tool_choice, strict=False)
+        except ValidationError as e:
+            raise ValueError(f"Invalid tool_choice dict structure: {e}")
+    else:
+        raise ValueError(
+            f"Invalid tool_choice type '{type(tool_choice).__name__}'. "
+            f"Must be str or dict"
+        )
