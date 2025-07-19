@@ -15,13 +15,15 @@ class FunctionDefinitionCore(BaseModel):
 
 
 class FunctionDefinition(FunctionDefinitionCore):
-    description: Optional[str]
+    # description: Optional[str] = None
+    description: Optional[str] = None
     """
     A description of what the function does, used by the model to choose when and
     how to call the function.
     """
 
-    parameters: Optional[Dict[str, object]]
+    # parameters: Optional[Dict[str, object]] = None
+    parameters: Optional[Dict[str, object]] = None
     """The parameters the functions accepts, described as a JSON Schema object.
 
     See the [guide](https://platform.openai.com/docs/guides/function-calling) for
@@ -32,7 +34,8 @@ class FunctionDefinition(FunctionDefinitionCore):
     Omitting `parameters` defines a function with an empty parameter list.
     """
 
-    strict: Optional[bool]
+    # strict: Optional[bool] = None
+    strict: Optional[bool] = None
     """Whether to enable strict schema adherence when generating the function call.
 
     If set to true, the model will follow the exact schema defined in the
