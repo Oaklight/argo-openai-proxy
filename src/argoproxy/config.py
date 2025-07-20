@@ -590,6 +590,8 @@ def validate_config(
         config_data.show()
 
     if not config_data.pseudo_stream:
-        logger.warning("Pseudo stream is disabled. streamchat endpoint is in testing, not suitable for production.")
+        logger.warning("Stream Mode: [Real]")
+    else:
+        logger.warning("Stream Mode: [Pseudo]")
 
     return config_data
