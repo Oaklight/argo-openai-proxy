@@ -12,7 +12,7 @@ Sections:
     - Google Gemini Types (TODO)
 """
 
-from typing import Dict, Literal, Optional, TypeAlias, Union
+from typing import Dict, List, Literal, Optional, TypeAlias, Union
 
 from pydantic import BaseModel
 
@@ -191,9 +191,64 @@ class ResponseFunctionToolCall(BaseModel):
 
 
 # ======================================================================
-# 2. ANTHROPIC TYPES (TODO)
+# 2. ANTHROPIC TYPES
 # ======================================================================
-# Add Anthropic-compatible function call types here...
+
+# --------- API INPUT ---------
+class InputSchemaTyped(BaseModel):
+    type: Literal["object"]
+    properties: Optional[object] = None
+    required: Optional[List[str]] = None
+
+
+InputSchema: TypeAlias = Union[InputSchemaTyped, Dict[str, object]]
+
+
+class CacheControlEphemeralParam(BaseModel):
+    type: Literal["ephemeral"] = "ephemeral"
+
+
+class ToolParam(BaseModel):
+    input_schema: InputSchema
+    """[JSON schema](https://json-schema.org/draft/2020-12) for this tool's input.
+
+    This defines the shape of the `input` that your tool accepts and that the model
+    will produce.
+    """
+
+    name: str
+    """Name of the tool.
+
+    This is how the tool will be called by the model and in `tool_use` blocks.
+    """
+
+    cache_control: Optional[CacheControlEphemeralParam] = None
+    """Create a cache control breakpoint at this content block."""
+
+    description: str
+    """Description of what this tool does.
+
+    Tool descriptions should be as detailed as possible. The more information that
+    the model has about what the tool is and how to use it, the better it will
+    perform. You can use natural language descriptions to reinforce important
+    aspects of the tool input JSON schema.
+    """
+
+    type: Optional[Literal["custom"]] = None
+
+
+# --------- LLM OUTPUT ---------
+class ToolUseBlock(BaseModel):
+    id: str
+
+    input: object
+
+    name: str
+
+    type: Literal["tool_use"] = "tool_use"
+
+    cache_control: Optional[CacheControlEphemeralParam] = None
+    """Create a cache control breakpoint at this content block."""
 
 
 # ======================================================================
