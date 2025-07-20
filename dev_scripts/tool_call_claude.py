@@ -12,7 +12,7 @@ data = {
     "messages": [
         {
             "role": "user",
-            "content": "What tool are you now seeing? Could you check the current stock price of Apple for me?",
+            "content": "Could you check the current stock price of Apple for me?",
         },
         # {
         #     "role": "assistant",
