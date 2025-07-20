@@ -194,6 +194,7 @@ class ResponseFunctionToolCall(BaseModel):
 # 2. ANTHROPIC TYPES
 # ======================================================================
 
+
 # --------- API INPUT ---------
 class InputSchemaTyped(BaseModel):
     type: Literal["object"]
@@ -237,7 +238,41 @@ class ToolParam(BaseModel):
     type: Optional[Literal["custom"]] = None
 
 
+# used in `tool_choice`
+class ToolChoiceShared(BaseModel):
+    disable_parallel_tool_use: bool = True
+    """Whether to disable parallel tool use.
+
+    Defaults to `false`. If set to `true`, the model will output exactly one tool use.
+    """
+
+
+class ToolChoiceAnyParam(ToolChoiceShared):
+    type: Literal["any"] = "any"
+
+
+class ToolChoiceAutoParam(ToolChoiceShared):
+    type: Literal["auto"] = "auto"
+
+
+class ToolChoiceNoneParam(BaseModel):
+    type: Literal["none"] = "none"
+
+
+class ToolChoiceToolParam(ToolChoiceShared):
+    name: str
+    """The name of the tool to use."""
+
+    type: Literal["tool"] = "tool"
+
+
+ToolChoiceParam: TypeAlias = Union[
+    ToolChoiceAutoParam, ToolChoiceAnyParam, ToolChoiceToolParam, ToolChoiceNoneParam
+]
+
+
 # --------- LLM OUTPUT ---------
+# elements in `tool_calls`
 class ToolUseBlock(BaseModel):
     id: str
 
