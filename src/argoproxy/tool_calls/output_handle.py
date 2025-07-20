@@ -19,6 +19,7 @@ from pydantic import ValidationError
 from ..types.function_call import (
     ChatCompletionMessageToolCall,
     ChoiceDeltaToolCall,
+    ChoiceDeltaToolCallFunction,
     Function,
     ResponseFunctionToolCall,
 )
@@ -335,7 +336,7 @@ def tool_calls_to_openai_stream(
     Returns:
         An OpenAI-compatible stream tool call object.
     """
-    
+
     # Handle both dict and ChatCompletionMessageToolCall inputs
     if isinstance(tool_call, ChatCompletionMessageToolCall):
         chat_tool_call = tool_call
@@ -350,7 +351,10 @@ def tool_calls_to_openai_stream(
             name = tool_call.get("name", "")
             chat_tool_call = ChatCompletionMessageToolCall(
                 id=generate_id(mode="chat_completion"),
-                function=Function(name=name, arguments=arguments),
+                function=Function(
+                    name=name,
+                    arguments=arguments,
+                ),
             )
     else:
         raise ValueError(f"Unsupported tool call type: {type(tool_call)}")
@@ -358,9 +362,9 @@ def tool_calls_to_openai_stream(
     if api_format == "chat_completion":
         tool_call_obj = ChoiceDeltaToolCall(
             id=chat_tool_call.id,
-            function=Function(
-                name=chat_tool_call.function.name, 
-                arguments=chat_tool_call.function.arguments
+            function=ChoiceDeltaToolCallFunction(
+                name=chat_tool_call.function.name,
+                arguments=chat_tool_call.function.arguments,
             ),
             index=tc_index,
         )
