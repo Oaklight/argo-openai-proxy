@@ -235,7 +235,7 @@ class ToolParam(BaseModel):
     aspects of the tool input JSON schema.
     """
 
-    type: Optional[Literal["custom"]] = None
+    type: Optional[Literal["custom"]] = "custom"
 
 
 # used in `tool_choice`
