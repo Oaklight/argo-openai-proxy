@@ -31,6 +31,7 @@ from ..utils.input_handle import (
     handle_multiple_entries_prompt,
     handle_no_sys_msg,
     handle_option_2_input,
+    scrutinize_message_entries,
 )
 from ..utils.misc import make_bar
 from ..utils.tokens import (
@@ -599,6 +600,9 @@ async def proxy_request(
             logger.info(make_bar("[chat] input"))
             logger.info(json.dumps(data, indent=4))
             logger.info(make_bar())
+
+        # Scrutinize message entries to ensure text fields are strings
+        data = scrutinize_message_entries(data)
 
         # Prepare the request data
         data = prepare_chat_request_data(
