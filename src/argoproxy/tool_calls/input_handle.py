@@ -1,16 +1,18 @@
 """
-tool_prompt_template.py
------------------------
+input_handle.py
+---------------
 
-A tiny helper for converting OpenAI–style *function-calling* fields
-(`tools`, `tool_choice`, `parallel_tool_calls`) into a single system
-prompt that can be sent to models without native function-calling
-support.
+Tool call input handling module for converting between different LLM provider formats.
+
+This module provides functionality for:
+1. Prompt-based tool handling (for models without native tool support)
+2. Native tool format conversion between providers (OpenAI, Anthropic, Google)
+3. Validation and error handling
 
 Usage
 =====
->>> python -m argoproxy.utils.tool_call_template
-(or see the __main__ block below)
+>>> from argoproxy.tool_calls.input_handle import handle_tools
+>>> processed_data = handle_tools(request_data, native_tools=True)
 """
 
 import json
@@ -21,9 +23,18 @@ from pydantic import ValidationError
 
 from ..types.function_call import ChatCompletionToolParam
 from ..utils.models import determine_model_family, validate_tool_choice
+from .converters import ConverterFactory
+
+# ======================================================================
+# TYPE ALIASES
+# ======================================================================
 
 Tools = List[Dict[str, Any]]
 ToolChoice = Union[str, Dict[str, Any], None]
+
+# ======================================================================
+# PROMPT-BASED TOOL HANDLING
+# ======================================================================
 
 PROMPT_SKELETON = """You are an AI assistant that can optionally call pre-defined tools.
 Follow every rule below.
@@ -204,6 +215,11 @@ def handle_tools_prompt(data: Dict[str, Any]) -> Dict[str, Any]:
     return data
 
 
+# ======================================================================
+# VALIDATION FUNCTIONS
+# ======================================================================
+
+
 def openai_tools_validator(
     tools: List[Dict[str, Any]],
     tool_choice: Union[str, Dict[str, Any]] = "auto",
@@ -265,14 +281,27 @@ def openai_tools_validator(
     return tools, tool_choice
 
 
+# ======================================================================
+# NATIVE TOOL CONVERSION FUNCTIONS
+# ======================================================================
+
+
 def openai_tools_to_anthropic_tools(
     tools: List[Dict[str, Any]],
     tool_choice: Union[str, Dict[str, Any]] = "auto",
 ) -> Tuple[List[Dict[str, Any]], Union[str, Dict[str, Any]]]:
     """
-    Convert OpenAI tools parameters to Anthropic ones
+    Convert OpenAI tools parameters to Anthropic ones.
+
+    Args:
+        tools: List of OpenAI tool definitions
+        tool_choice: OpenAI tool choice specification
+
+    Returns:
+        Tuple of (claude_tools_dict, claude_tool_choice_dict)
     """
-    raise NotImplementedError
+    converter = ConverterFactory.get_converter("openai", "anthropic")
+    return converter.convert_tools_and_choice(tools, tool_choice)
 
 
 def openai_tools_to_google_tools(
@@ -280,9 +309,25 @@ def openai_tools_to_google_tools(
     tool_choice: Union[str, Dict[str, Any]] = "auto",
 ) -> Tuple[List[Dict[str, Any]], Union[str, Dict[str, Any]]]:
     """
-    Convert OpenAI tools parameters to Google ones
+    Convert OpenAI tools parameters to Google ones.
+
+    Args:
+        tools: List of OpenAI tool definitions
+        tool_choice: OpenAI tool choice specification
+
+    Returns:
+        Tuple of (google_tools_dict, google_tool_choice_dict)
+
+    Note:
+        TODO: Implement Google/Gemini tool conversion
     """
-    raise NotImplementedError
+    converter = ConverterFactory.get_converter("openai", "google")
+    return converter.convert_tools_and_choice(tools, tool_choice)
+
+
+# ======================================================================
+# NATIVE TOOL HANDLING
+# ======================================================================
 
 
 def handle_tools_native(data: Dict[str, Any]) -> Dict[str, Any]:
@@ -339,6 +384,11 @@ def handle_tools_native(data: Dict[str, Any]) -> Dict[str, Any]:
     return data
 
 
+# ======================================================================
+# MAIN ENTRY POINT
+# ======================================================================
+
+
 def handle_tools(data: Dict[str, Any], native_tools: bool = True) -> Dict[str, Any]:
     """
     Process input data containing tool calls with fallback strategy.
@@ -378,16 +428,19 @@ def handle_tools(data: Dict[str, Any], native_tools: bool = True) -> Dict[str, A
         except (ValueError, ValidationError, NotImplementedError) as e:
             # Fallback: use prompt-based handling if native handling fails
             # This handles validation errors, unsupported model types, or unimplemented conversions
-            logger.warning(f"Native tool handling failed, falling back to prompt-based: {e}")
+            logger.warning(
+                f"Native tool handling failed, falling back to prompt-based: {e}"
+            )
             return handle_tools_prompt(data)
     else:
         # Directly use prompt-based handling when native_tools=False
         return handle_tools_prompt(data)
 
 
-# ---------------------------------------------------------------------------#
-# Example usage
-# ---------------------------------------------------------------------------#
+# ======================================================================
+# EXAMPLE USAGE
+# ======================================================================
+
 if __name__ == "__main__":  # pragma: no cover
     # --- 1. Define tools exactly as you would for the OpenAI API ------------
     tools_example = [

@@ -23,6 +23,7 @@ from ..types.function_call import (
     Function,
     ResponseFunctionToolCall,
 )
+from .converters import ClaudeToOpenAIConverter
 
 
 class ToolInterceptor:
@@ -162,7 +163,20 @@ class ToolInterceptor:
         """
         Process Anthropic native tool calling response format.
 
-        TODO: Implement Anthropic-specific tool calling format processing.
+        Expected in-house gateway format for Anthropic models:
+        {
+            "response": {
+                "content": "I'll get the current stock price...",
+                "tool_calls": [
+                    {
+                        "id": "toolu_vrtx_01X1tcW6qR1uUoUkfpZMiXnH",
+                        "input": {"ticker": "MSFT"},
+                        "name": "get_stock_price",
+                        "type": "tool_use"
+                    }
+                ]
+            }
+        }
 
         Args:
             response_data: Anthropic format response data
@@ -170,11 +184,22 @@ class ToolInterceptor:
         Returns:
             Tuple of (list of tool calls or None, text content)
         """
-        # Placeholder implementation - to be implemented later
-        logger.warning(
-            "Anthropic native tool calling not implemented yet, falling back to OpenAI format"
-        )
-        raise NotImplementedError
+        # Extract response object if present
+        response = response_data.get("response", response_data)
+
+        # Get text content directly
+        text_content = response.get("content", "")
+
+        # Get tool calls array
+        claude_tool_calls = response.get("tool_calls", [])
+
+        # Convert Claude tool calls to OpenAI format
+        openai_tool_calls = None
+        if claude_tool_calls:
+            converter = ClaudeToOpenAIConverter()
+            openai_tool_calls = converter.convert_tool_calls(claude_tool_calls)
+
+        return openai_tool_calls, text_content
 
     def _process_google_native(
         self, response_data: Dict[str, Any]
