@@ -1,10 +1,31 @@
+"""
+function_call.py
+
+Type definitions for function calling APIs used by LLM providers.
+This file contains Pydantic models for use with OpenAI's chat-completion
+and responses APIs. Types for additional providers (Anthropic, Gemini, etc.)
+should be added to the corresponding sections below.
+
+Sections:
+    - OpenAI Types (Chat Completions & Responses)
+    - Anthropic Types (TODO)
+    - Google Gemini Types (TODO)
+"""
+
 from typing import Dict, Literal, Optional, TypeAlias, Union
 
 from pydantic import BaseModel
 
+# ======================================================================
+# 1. OPENAI TYPES (CHAT COMPLETION & RESPONSES API)
+# ======================================================================
 
-# ======================= chat completion api =======================
-# api input
+# ===========================
+# Chat Completion API SECTION
+# ===========================
+
+
+# --------- API INPUT ---------
 class FunctionDefinitionCore(BaseModel):
     name: str
     """The name of the function to be called.
@@ -15,14 +36,11 @@ class FunctionDefinitionCore(BaseModel):
 
 
 class FunctionDefinition(FunctionDefinitionCore):
-    # description: Optional[str] = None
     description: Optional[str] = None
     """
     A description of what the function does, used by the model to choose when and
     how to call the function.
     """
-
-    # parameters: Optional[Dict[str, object]] = None
     parameters: Optional[Dict[str, object]] = None
     """The parameters the functions accepts, described as a JSON Schema object.
 
@@ -33,8 +51,6 @@ class FunctionDefinition(FunctionDefinitionCore):
 
     Omitting `parameters` defines a function with an empty parameter list.
     """
-
-    # strict: Optional[bool] = None
     strict: Optional[bool] = None
     """Whether to enable strict schema adherence when generating the function call.
 
@@ -45,18 +61,16 @@ class FunctionDefinition(FunctionDefinitionCore):
     """
 
 
-# tools -- function tools
+# used in `tools`
 class ChatCompletionToolParam(BaseModel):
     function: FunctionDefinition
-
     type: Literal["function"] = "function"
     """The type of the tool. Currently, only `function` is supported."""
 
 
-# tool choice -- specific function
+# used in `tool_choice`
 class ChatCompletionNamedToolChoiceParam(BaseModel):
     function: FunctionDefinitionCore
-
     type: Literal["function"] = "function"
     """The type of the tool. Currently, only `function` is supported."""
 
@@ -66,7 +80,7 @@ ChatCompletionToolChoiceOptionParam: TypeAlias = Union[
 ]
 
 
-# llm output
+# --------- LLM OUTPUT ---------
 class Function(BaseModel):
     arguments: str
     """
@@ -75,26 +89,21 @@ class Function(BaseModel):
     hallucinate parameters not defined by your function schema. Validate the
     arguments in your code before calling your function.
     """
-
     name: str
     """The name of the function to call."""
 
-# chat-completion non-stream
+
+# elements in `tool_calls`
 class ChatCompletionMessageToolCall(BaseModel):
     id: str
     """The ID of the tool call."""
-
     function: Function
     """The function that the model called."""
-
     type: Literal["function"] = "function"
     """The type of the tool. Currently, only `function` is supported."""
 
-# chat-completion stream
-class ChoiceDeltaToolCall(ChatCompletionMessageToolCall):
-    index: int
 
-
+# funtion definition in stream deltas
 class ChoiceDeltaToolCallFunction(BaseModel):
     arguments: Optional[str] = None
     """
@@ -103,27 +112,40 @@ class ChoiceDeltaToolCallFunction(BaseModel):
     hallucinate parameters not defined by your function schema. Validate the
     arguments in your code before calling your function.
     """
-
     name: Optional[str] = None
     """The name of the function to call."""
-# ======================= responses api =======================
-# api input
 
 
-# tools -- function tools
+# used in `tool_calls` in stream deltas
+class ChoiceDeltaToolCall(BaseModel):
+    index: int
+
+    id: Optional[str] = None
+    """The ID of the tool call."""
+
+    function: Optional[ChoiceDeltaToolCallFunction] = None
+
+    type: Optional[Literal["function"]] = None
+    """The type of the tool. Currently, only `function` is supported."""
+
+
+# =====================
+# Responses API SECTION
+# =====================
+
+
+# --------- API INPUT ---------
 class FunctionTool(BaseModel):
+    """API INPUT"""
+
     name: str
     """The name of the function to call."""
-
     parameters: Optional[Dict[str, object]] = None
     """A JSON schema object describing the parameters of the function."""
-
     strict: Optional[bool] = None
     """Whether to enforce strict parameter validation. Default `true`."""
-
     type: Literal["function"] = "function"
     """The type of the function tool. Always `function`."""
-
     description: Optional[str] = None
     """A description of the function.
 
@@ -131,11 +153,11 @@ class FunctionTool(BaseModel):
     """
 
 
-# tool choice -- specific function
 class ToolChoiceFunctionParam(BaseModel):
+    """API INPUT"""
+
     name: str
     """The name of the function to call."""
-
     type: Literal["function"] = "function"
     """For function calling, the type is always `function`."""
 
@@ -143,28 +165,38 @@ class ToolChoiceFunctionParam(BaseModel):
 ToolChoice: TypeAlias = Union[
     Literal["none", "auto", "required"], ToolChoiceFunctionParam
 ]
+# (API INPUT: as tool_choice argument in responses API)
 
 
-# llm output
+# --------- LLM OUTPUT ---------
 class ResponseFunctionToolCall(BaseModel):
+    """LLM OUTPUT"""
+
     arguments: str
     """A JSON string of the arguments to pass to the function."""
-
     call_id: str
     """The unique ID of the function tool call generated by the model."""
-
     name: str
     """The name of the function to run."""
-
     type: Literal["function_call"] = "function_call"
     """The type of the function tool call. Always `function_call`."""
-
     id: Optional[str] = None
     """The unique ID of the function tool call."""
-
     status: Optional[Literal["in_progress", "completed", "incomplete"]] = None
     """The status of the item.
 
     One of `in_progress`, `completed`, or `incomplete`. Populated when items are
     returned via API.
     """
+
+
+# ======================================================================
+# 2. ANTHROPIC TYPES (TODO)
+# ======================================================================
+# Add Anthropic-compatible function call types here...
+
+
+# ======================================================================
+# 3. GOOGLE GEMINI TYPES (TODO)
+# ======================================================================
+# Add Google Gemini-compatible function call types here...
