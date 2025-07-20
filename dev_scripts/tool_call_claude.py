@@ -61,6 +61,7 @@ data = {
         }
     ],
     "tool_choice": {"type": "auto"},
+    # "type": "custom",
 }
 # Convert the dict to JSON
 payload = json.dumps(data)
