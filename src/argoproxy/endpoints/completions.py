@@ -11,6 +11,7 @@ from ..config import ArgoConfig
 from ..models import ModelRegistry
 from ..types import Completion, CompletionChoice, CompletionUsage
 from ..types.completions import FINISH_REASONS
+from ..utils.input_handle import scrutinize_message_entries
 from ..utils.misc import make_bar
 from ..utils.tokens import count_tokens, count_tokens_async
 from .chat import (
@@ -171,6 +172,9 @@ async def proxy_request(
             logger.info(make_bar("[completion] input"))
             logger.info(json.dumps(data, indent=4))
             logger.info(make_bar())
+
+        # Scrutinize message entries to ensure text fields are strings
+        data = scrutinize_message_entries(data)
 
         # Prepare the request data
         data = prepare_chat_request_data(data, config, model_registry)

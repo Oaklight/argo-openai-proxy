@@ -100,3 +100,46 @@ def handle_no_sys_msg(data: Dict[str, Any]) -> Dict[str, Any]:
         del data["system"]
 
     return data
+
+
+def scrutinize_message_entries(data: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Scrutinizes entries in messages, ensuring each entry's text is a string.
+    Uses str() to force casting for non-string text values.
+
+    Args:
+        data (Dict[str, Any]): Dictionary containing message data.
+
+    Returns:
+        Dict[str, Any]: Updated dictionary with string-casted text entries.
+    """
+    if "messages" in data and isinstance(data["messages"], list):
+        for message in data["messages"]:
+            if "content" in message:
+                content = message["content"]
+                
+                # Handle list-type content (multipart messages)
+                if isinstance(content, list):
+                    for part in content:
+                        if isinstance(part, dict) and "text" in part:
+                            part["text"] = str(part["text"])
+                
+                # Handle string-type content
+                else:
+                    message["content"] = str(content)
+    
+    # Handle system messages if they exist as separate entries
+    if "system" in data:
+        if isinstance(data["system"], list):
+            data["system"] = [str(msg) for msg in data["system"]]
+        else:
+            data["system"] = str(data["system"])
+    
+    # Handle prompt messages if they exist as separate entries
+    if "prompt" in data:
+        if isinstance(data["prompt"], list):
+            data["prompt"] = [str(msg) for msg in data["prompt"]]
+        else:
+            data["prompt"] = str(data["prompt"])
+    
+    return data
