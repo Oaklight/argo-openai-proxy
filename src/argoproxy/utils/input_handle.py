@@ -77,54 +77,6 @@ def handle_option_2_input(data: Dict[str, Any]) -> Dict[str, Any]:
     return data
 
 
-def normalize_system_message_content(data: Dict[str, Any]) -> Dict[str, Any]:
-    """
-    Normalizes content field for system/developer role messages.
-    
-    Converts List[Dict] content to a single string for system/developer roles.
-    
-    Args:
-        data: The request data containing messages.
-        
-    Returns:
-        The modified request data with normalized content.
-        
-    Example:
-        Input message:
-        {
-            "role": "system",
-            "content": [{"type": "text", "text": "You are a helpful assistant"}]
-        }
-        
-        Output message:
-        {
-            "role": "system",
-            "content": "You are a helpful assistant"
-        }
-    """
-    if "messages" in data and isinstance(data["messages"], list):
-        for message in data["messages"]:
-            if (
-                message.get("role") in ("system", "developer")
-                and "content" in message
-                and isinstance(message["content"], list)
-            ):
-                # Extract text from list of content parts
-                text_parts = []
-                for part in message["content"]:
-                    if isinstance(part, dict) and part.get("type") == "text" and "text" in part:
-                        text_parts.append(str(part["text"]))
-                
-                # Join all text parts into a single string
-                if text_parts:
-                    message["content"] = "\n\n".join(text_parts).strip()
-                else:
-                    # Fallback: convert the entire list to string if no text parts found
-                    message["content"] = str(message["content"])
-    
-    return data
-
-
 def handle_no_sys_msg(data: Dict[str, Any]) -> Dict[str, Any]:
     """
     Changes 'system' messages to 'user' and merges into 'prompt'.
@@ -150,44 +102,103 @@ def handle_no_sys_msg(data: Dict[str, Any]) -> Dict[str, Any]:
     return data
 
 
+def normalize_system_message_content(
+    messages: List[Dict[str, Any]],
+) -> List[Dict[str, Any]]:
+    """
+    Normalizes content field for system/developer role messages.
+
+    Converts List[Dict] content to a single string for system/developer roles.
+
+    Args:
+        messages: List of message dictionaries.
+
+    Returns:
+        The modified messages list with normalized content.
+
+    Example:
+        Input message:
+        [{
+            "role": "system",
+            "content": [{"type": "text", "text": "You are a helpful assistant"}]
+        }]
+
+        Output message:
+        [{
+            "role": "system",
+            "content": "You are a helpful assistant"
+        }]
+    """
+    for message in messages:
+        # Skip if not system/developer role or content is not a list
+        if (
+            message.get("role") not in ("system", "developer")
+            or "content" not in message
+            or not isinstance(message["content"], list)
+        ):
+            continue
+
+        # Extract text from content parts
+        text_parts = [
+            str(part["text"])
+            for part in message["content"]
+            if isinstance(part, dict) and part.get("type") == "text" and "text" in part
+        ]
+
+        # Update content
+        message["content"] = (
+            "\n\n".join(text_parts).strip() if text_parts else str(message["content"])
+        )
+
+    return messages
+
+
 def scrutinize_message_entries(data: Dict[str, Any]) -> Dict[str, Any]:
     """
-    Scrutinizes entries in messages, ensuring each entry's text is a string.
-    Uses str() to force casting for non-string text values.
+    Scrutinizes and normalizes message entries, ensuring proper content formatting.
+
+    This function:
+    1. Converts List[Dict] content to strings for system/developer role messages
+    2. Ensures standalone system/prompt fields are properly cast to strings
 
     Args:
         data (Dict[str, Any]): Dictionary containing message data.
 
     Returns:
-        Dict[str, Any]: Updated dictionary with string-casted text entries.
+        Dict[str, Any]: Updated dictionary with normalized content.
+
+    Example:
+        Input:
+        {
+            "messages": [{
+                "role": "system",
+                "content": [{"type": "text", "text": "You are a helpful assistant"}]
+            }],
+            "system": ["Additional system prompt"],
+            "prompt": 42
+        }
+
+        Output:
+        {
+            "messages": [{
+                "role": "system",
+                "content": "You are a helpful assistant"
+            }],
+            "system": ["Additional system prompt"],
+            "prompt": "42"
+        }
     """
+    # Process messages array
     if "messages" in data and isinstance(data["messages"], list):
-        for message in data["messages"]:
-            if "content" in message:
-                content = message["content"]
-                
-                # Handle list-type content (multipart messages)
-                if isinstance(content, list):
-                    for part in content:
-                        if isinstance(part, dict) and "text" in part:
-                            part["text"] = str(part["text"])
-                
-                # Handle string-type content
-                else:
-                    message["content"] = str(content)
-    
-    # Handle system messages if they exist as separate entries
-    if "system" in data:
-        if isinstance(data["system"], list):
-            data["system"] = [str(msg) for msg in data["system"]]
-        else:
-            data["system"] = str(data["system"])
-    
-    # Handle prompt messages if they exist as separate entries
-    if "prompt" in data:
-        if isinstance(data["prompt"], list):
-            data["prompt"] = [str(msg) for msg in data["prompt"]]
-        else:
-            data["prompt"] = str(data["prompt"])
-    
+        # First normalize system/developer messages
+        data["messages"] = normalize_system_message_content(data["messages"])
+
+    # Handle standalone system/prompt fields
+    for field in ("system", "prompt"):
+        if field in data:
+            if isinstance(data[field], list):
+                data[field] = [str(item) for item in data[field]]
+            else:
+                data[field] = str(data[field])
+
     return data

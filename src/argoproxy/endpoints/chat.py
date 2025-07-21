@@ -31,7 +31,6 @@ from ..utils.input_handle import (
     handle_multiple_entries_prompt,
     handle_no_sys_msg,
     handle_option_2_input,
-    normalize_system_message_content,
     scrutinize_message_entries,
 )
 from ..utils.misc import make_bar
@@ -190,6 +189,8 @@ def prepare_chat_request_data(
     Returns:
         The modified request data.
     """
+    # Scrutinize and normalize message entries (includes system/developer content normalization)
+    data = scrutinize_message_entries(data)
 
     # Automatically replace or insert user information
     data["user"] = config.user
@@ -202,9 +203,6 @@ def prepare_chat_request_data(
     # Convert prompt to list if necessary
     if "prompt" in data and not isinstance(data["prompt"], list):
         data["prompt"] = [data["prompt"]]
-
-    # Normalize system/developer content from List[Dict] to string
-    data = normalize_system_message_content(data)
 
     if enable_tools:
         model_family = determine_model_family(data["model"])
@@ -646,10 +644,7 @@ async def proxy_request(
             logger.info(json.dumps(data, indent=4))
             logger.info(make_bar())
 
-        # Scrutinize message entries to ensure text fields are strings
-        data = scrutinize_message_entries(data)
-
-        # Prepare the request data
+        # Prepare the request data (includes message scrutinization and normalization)
         data = prepare_chat_request_data(
             data, config, model_registry, enable_tools=True
         )
