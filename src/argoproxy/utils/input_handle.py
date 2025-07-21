@@ -181,7 +181,7 @@ def ensure_user_message_exists(messages: List[Dict[str, Any]]) -> List[Dict[str,
 
     # If no user messages found, append a void user message
     if not has_user_message:
-        messages.append({"role": "user", "content": ""})
+        messages.append({"role": "user", "content": "follow the instructions"})
 
     return messages
 
