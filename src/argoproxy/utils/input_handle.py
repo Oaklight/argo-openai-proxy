@@ -77,6 +77,54 @@ def handle_option_2_input(data: Dict[str, Any]) -> Dict[str, Any]:
     return data
 
 
+def normalize_system_message_content(data: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Normalizes content field for system/developer role messages.
+    
+    Converts List[Dict] content to a single string for system/developer roles.
+    
+    Args:
+        data: The request data containing messages.
+        
+    Returns:
+        The modified request data with normalized content.
+        
+    Example:
+        Input message:
+        {
+            "role": "system",
+            "content": [{"type": "text", "text": "You are a helpful assistant"}]
+        }
+        
+        Output message:
+        {
+            "role": "system",
+            "content": "You are a helpful assistant"
+        }
+    """
+    if "messages" in data and isinstance(data["messages"], list):
+        for message in data["messages"]:
+            if (
+                message.get("role") in ("system", "developer")
+                and "content" in message
+                and isinstance(message["content"], list)
+            ):
+                # Extract text from list of content parts
+                text_parts = []
+                for part in message["content"]:
+                    if isinstance(part, dict) and part.get("type") == "text" and "text" in part:
+                        text_parts.append(str(part["text"]))
+                
+                # Join all text parts into a single string
+                if text_parts:
+                    message["content"] = "\n\n".join(text_parts).strip()
+                else:
+                    # Fallback: convert the entire list to string if no text parts found
+                    message["content"] = str(message["content"])
+    
+    return data
+
+
 def handle_no_sys_msg(data: Dict[str, Any]) -> Dict[str, Any]:
     """
     Changes 'system' messages to 'user' and merges into 'prompt'.

@@ -31,6 +31,7 @@ from ..utils.input_handle import (
     handle_multiple_entries_prompt,
     handle_no_sys_msg,
     handle_option_2_input,
+    normalize_system_message_content,
     scrutinize_message_entries,
 )
 from ..utils.misc import make_bar
@@ -172,6 +173,7 @@ def prepare_chat_request_data(
     Returns:
         The modified request data.
     """
+
     # Automatically replace or insert user information
     data["user"] = config.user
 
@@ -183,6 +185,9 @@ def prepare_chat_request_data(
     # Convert prompt to list if necessary
     if "prompt" in data and not isinstance(data["prompt"], list):
         data["prompt"] = [data["prompt"]]
+
+    # Normalize system/developer content from List[Dict] to string
+    data = normalize_system_message_content(data)
 
     if enable_tools:
         # convert tools related fields to a single system prompt
