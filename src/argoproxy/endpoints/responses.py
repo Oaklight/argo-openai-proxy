@@ -27,7 +27,6 @@ from ..types import (
     ResponseTextDoneEvent,
     ResponseUsage,
 )
-from ..utils.input_handle import scrutinize_message_entries
 from ..utils.misc import make_bar
 from ..utils.tokens import (
     calculate_prompt_tokens_async,
@@ -580,10 +579,7 @@ async def proxy_request(
             logger.info(json.dumps(data, indent=4))
             logger.info(make_bar())
 
-        # Scrutinize message entries to ensure text fields are strings
-        data = scrutinize_message_entries(data)
-
-        # Prepare the request data
+        # Prepare the request data (includes message scrutinization and normalization)
         data = prepare_request_data(data, config, model_registry)
 
         # Use the shared HTTP session from app context for connection pooling
