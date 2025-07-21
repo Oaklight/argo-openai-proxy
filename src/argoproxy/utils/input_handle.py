@@ -153,6 +153,39 @@ def normalize_system_message_content(
     return messages
 
 
+def ensure_user_message_exists(messages: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """
+    Ensures at least one user message exists in the messages list.
+
+    If no user messages are found, adds a void user message to maintain
+    proper conversation flow for models that require user input.
+
+    Args:
+        messages: List of message dictionaries.
+
+    Returns:
+        List[Dict[str, Any]]: Messages list with at least one user message.
+
+    Example:
+        Input (no user messages):
+        [{"role": "system", "content": "You are helpful"}]
+
+        Output:
+        [
+            {"role": "system", "content": "You are helpful"},
+            {"role": "user", "content": ""}
+        ]
+    """
+    # Check if any user messages exist
+    has_user_message = any(message.get("role") == "user" for message in messages)
+
+    # If no user messages found, append a void user message
+    if not has_user_message:
+        messages.append({"role": "user", "content": ""})
+
+    return messages
+
+
 def scrutinize_message_entries(data: Dict[str, Any]) -> Dict[str, Any]:
     """
     Scrutinizes and normalizes message entries, ensuring proper content formatting.
@@ -191,9 +224,13 @@ def scrutinize_message_entries(data: Dict[str, Any]) -> Dict[str, Any]:
         }
     """
     # Only normalize system/developer messages for Claude models
-    if "claude" in data["model"]:
+    if "claude" in data["model"] or "gemini" in data["model"]:
         # Process messages array
-        if "messages" in data and isinstance(data["messages"], list):
+        if "messages" in data:
+            data["messages"] = ensure_user_message_exists(data["messages"])
+    if "gemini" in data["model"]:
+        # Process messages array
+        if "messages" in data:
             data["messages"] = normalize_system_message_content(data["messages"])
 
     # Handle standalone system/prompt fields
