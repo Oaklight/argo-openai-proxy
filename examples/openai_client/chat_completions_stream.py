@@ -20,6 +20,13 @@ def stream_chat_test():
 
     messages = [
         {
+            "role": "system",
+            "content": [
+                {"type": "text", "text": "You are a helpful assistant"},
+                {'type': 'text', 'text': 'You should talk in the style of a pirate. and always finish with a pirate joke.'}
+            ],
+        },
+        {
             "role": "user",
             "content": "Tell me something interesting about quantum mechanics.",
         },
