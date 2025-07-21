@@ -158,7 +158,7 @@ def scrutinize_message_entries(data: Dict[str, Any]) -> Dict[str, Any]:
     Scrutinizes and normalizes message entries, ensuring proper content formatting.
 
     This function:
-    1. Converts List[Dict] content to strings for system/developer role messages
+    1. Converts List[Dict] content to strings for system/developer role messages (Claude models only)
     2. Ensures standalone system/prompt fields are properly cast to strings
 
     Args:
@@ -170,6 +170,7 @@ def scrutinize_message_entries(data: Dict[str, Any]) -> Dict[str, Any]:
     Example:
         Input:
         {
+            "model": "claude-3-sonnet",
             "messages": [{
                 "role": "system",
                 "content": [{"type": "text", "text": "You are a helpful assistant"}]
@@ -180,6 +181,7 @@ def scrutinize_message_entries(data: Dict[str, Any]) -> Dict[str, Any]:
 
         Output:
         {
+            "model": "claude-3-sonnet",
             "messages": [{
                 "role": "system",
                 "content": "You are a helpful assistant"
@@ -188,10 +190,11 @@ def scrutinize_message_entries(data: Dict[str, Any]) -> Dict[str, Any]:
             "prompt": "42"
         }
     """
-    # Process messages array
-    if "messages" in data and isinstance(data["messages"], list):
-        # First normalize system/developer messages
-        data["messages"] = normalize_system_message_content(data["messages"])
+    # Only normalize system/developer messages for Claude models
+    if "claude" in data["model"]:
+        # Process messages array
+        if "messages" in data and isinstance(data["messages"], list):
+            data["messages"] = normalize_system_message_content(data["messages"])
 
     # Handle standalone system/prompt fields
     for field in ("system", "prompt"):

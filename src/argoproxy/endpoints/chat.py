@@ -173,7 +173,6 @@ def prepare_chat_request_data(
         The modified request data.
     """
     # Scrutinize and normalize message entries (includes system/developer content normalization)
-    data = scrutinize_message_entries(data)
 
     # Automatically replace or insert user information
     data["user"] = config.user
@@ -182,6 +181,8 @@ def prepare_chat_request_data(
     if "model" not in data:
         data["model"] = DEFAULT_MODEL
     data["model"] = model_registry.resolve_model_name(data["model"], model_type="chat")
+
+    data = scrutinize_message_entries(data)
 
     # Convert prompt to list if necessary
     if "prompt" in data and not isinstance(data["prompt"], list):
