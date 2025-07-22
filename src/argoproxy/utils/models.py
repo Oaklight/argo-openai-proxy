@@ -21,6 +21,22 @@ def determine_model_family(
         return "unknown"
 
 
+def resemble_type(obj: object, cls: type) -> bool:
+    """Check if the object's class matches the given class type.
+
+    Args:
+        obj (object): The object to check.
+        cls (type): The class type to compare against.
+
+    Returns:
+        bool: True if the object's class name matches the given class type name, False otherwise.
+    """
+    class_name = obj.__class__.__name__
+
+    if class_name == cls.__name__:
+        return True
+    return False
+
 def validate_tool_choice(tool_choice: Union[str, Dict[str, Any]]) -> None:
     """Helper function to validate tool_choice parameter.
 
