@@ -23,8 +23,8 @@ from ..types.function_call import (
     Function,
     ResponseFunctionToolCall,
 )
-from ..utils.models import generate_id, resemble_type
-from .converters import ClaudeToOpenAIConverter
+from ..utils.models import generate_id
+from .handler import ToolCall
 
 
 class ToolInterceptor:
@@ -43,7 +43,7 @@ class ToolInterceptor:
         self,
         response_content: Union[str, Dict[str, Any]],
         model_family: Literal["openai", "anthropic", "google"] = "openai",
-    ) -> Tuple[Optional[List[dict]], str]:
+    ) -> Tuple[Optional[List[ToolCall]], str]:
         """
         Process response content and extract tool calls.
 
@@ -66,7 +66,7 @@ class ToolInterceptor:
             )
             return None, str(response_content)
 
-    def _process_prompt_based(self, text: str) -> Tuple[Optional[List[dict]], str]:
+    def _process_prompt_based(self, text: str) -> Tuple[Optional[List[ToolCall]], str]:
         """
         Process prompt-based responses with <tool_call> tags.
 
@@ -74,7 +74,7 @@ class ToolInterceptor:
             text: Text content containing potential <tool_call> tags
 
         Returns:
-            Tuple of (list of tool calls or None, concatenated text from outside tool calls)
+            Tuple of (list of ToolCall objects or None, concatenated text from outside tool calls)
         """
         tool_calls = []
         text_parts = []
@@ -87,7 +87,15 @@ class ToolInterceptor:
 
             # Process the tool call
             try:
-                tool_calls.append(json.loads(match.group(1).strip()))
+                tool_call_dict = json.loads(match.group(1).strip())
+                # Convert dict to ToolCall object
+                tool_call = ToolCall(
+                    name=tool_call_dict.get("name", ""),
+                    arguments=json.dumps(tool_call_dict.get("arguments", {}))
+                    if isinstance(tool_call_dict.get("arguments"), dict)
+                    else str(tool_call_dict.get("arguments", "")),
+                )
+                tool_calls.append(tool_call)
             except json.JSONDecodeError:
                 # On JSON error, include the raw content as text
                 text_parts.append(f"<invalid>{match.group(1)}</invalid>")
@@ -109,7 +117,7 @@ class ToolInterceptor:
         self,
         response_data: Dict[str, Any],
         model_family: Literal["openai", "anthropic", "google"] = "openai",
-    ) -> Tuple[Optional[List[Dict[str, Any]]], str]:
+    ) -> Tuple[Optional[List[ToolCall]], str]:
         """
         Process native tool calling responses from different model providers.
 
@@ -125,13 +133,15 @@ class ToolInterceptor:
         logger.warning(" ")
 
         if model_family == "openai":
-            logger.warning('[Output Handle] Using [OpenAI] native tool calling format')
+            logger.warning("[Output Handle] Using [OpenAI] native tool calling format")
             return self._process_openai_native(response_data)
         elif model_family == "anthropic":
-            logger.warning('[Output Handle] Using [Anthropic] native tool calling format')
+            logger.warning(
+                "[Output Handle] Using [Anthropic] native tool calling format"
+            )
             return self._process_anthropic_native(response_data)
         elif model_family == "google":
-            logger.warning('[Output Handle] Using [Google] native tool calling format')
+            logger.warning("[Output Handle] Using [Google] native tool calling format")
             return self._process_google_native(response_data)
         else:
             logger.warning(
@@ -141,7 +151,7 @@ class ToolInterceptor:
 
     def _process_openai_native(
         self, response_data: Dict[str, Any]
-    ) -> Tuple[Optional[List[Dict[str, Any]]], str]:
+    ) -> Tuple[Optional[List[ToolCall]], str]:
         """
         Process OpenAI native tool calling response format.
 
@@ -157,16 +167,27 @@ class ToolInterceptor:
             response_data: OpenAI format response data
 
         Returns:
-            Tuple of (list of tool calls or None, text content)
+            Tuple of (list of ToolCall objects or None, text content)
         """
         content = response_data.get("content", "")
-        tool_calls = response_data.get("tool_calls", [])
+        tool_calls_data = response_data.get("tool_calls", [])
+
+        # Convert tool calls to ToolCall objects
+        tool_calls = None
+        if tool_calls_data:
+            tool_calls = []
+            for tool_call_dict in tool_calls_data:
+                # Use ToolCall.from_entry to convert from OpenAI format
+                tool_call = ToolCall.from_entry(
+                    tool_call_dict, api_format="openai-chatcompletion"
+                )
+                tool_calls.append(tool_call)
 
         return tool_calls, content
 
     def _process_anthropic_native(
         self, response_data: Dict[str, Any]
-    ) -> Tuple[Optional[List[dict]], str]:
+    ) -> Tuple[Optional[List[ToolCall]], str]:
         """
         Process Anthropic native tool calling response format.
 
@@ -189,7 +210,7 @@ class ToolInterceptor:
             response_data: Anthropic format response data
 
         Returns:
-            Tuple of (list of tool calls or None, text content)
+            Tuple of (list of ToolCall objects or None, text content)
         """
         # Extract response object if present
         response = response_data.get("response", response_data)
@@ -203,18 +224,23 @@ class ToolInterceptor:
         logger.warning(f"[Output Handle] Claude tool calls: {claude_tool_calls}")
         logger.warning(f"[Output Handle] Claude text content: {text_content}")
 
-        # Convert Claude tool calls to OpenAI format
-        openai_tool_calls = None
+        # Convert Claude tool calls to ToolCall objects
+        tool_calls = None
         if claude_tool_calls:
-            converter = ClaudeToOpenAIConverter()
-            openai_tool_calls = converter.convert_tool_calls(claude_tool_calls)
-            logger.warning(f"[Output Handle] Converted OpenAI tool calls: {openai_tool_calls}")
+            tool_calls = []
+            for claude_tool_call in claude_tool_calls:
+                # Use ToolCall.from_entry to convert from Anthropic format
+                tool_call = ToolCall.from_entry(
+                    claude_tool_call, api_format="anthropic"
+                )
+                tool_calls.append(tool_call)
+            logger.warning(f"[Output Handle] Converted ToolCall objects: {tool_calls}")
 
-        return openai_tool_calls, text_content
+        return tool_calls, text_content
 
     def _process_google_native(
         self, response_data: Dict[str, Any]
-    ) -> Tuple[Optional[List[dict]], str]:
+    ) -> Tuple[Optional[List[ToolCall]], str]:
         """
         Process Google native tool calling response format.
 
@@ -224,7 +250,7 @@ class ToolInterceptor:
             response_data: Google format response data
 
         Returns:
-            Tuple of (list of tool calls or None, text content)
+            Tuple of (list of ToolCall objects or None, text content)
         """
         # Placeholder implementation - to be implemented later
         logger.warning(
@@ -255,7 +281,7 @@ def chat_completion_to_response_tool_call(
 
 @overload
 def tool_calls_to_openai(
-    tool_calls: List[Dict[str, Any]],
+    tool_calls: List[Union[Dict[str, Any], ChatCompletionMessageToolCall, ToolCall]],
     *,
     api_format: Literal["chat_completion"] = "chat_completion",
 ) -> List[ChatCompletionMessageToolCall]: ...
@@ -263,22 +289,22 @@ def tool_calls_to_openai(
 
 @overload
 def tool_calls_to_openai(
-    tool_calls: List[Dict[str, Any]],
+    tool_calls: List[Union[Dict[str, Any], ChatCompletionMessageToolCall, ToolCall]],
     *,
     api_format: Literal["response"],
 ) -> List[ResponseFunctionToolCall]: ...
 
 
 def tool_calls_to_openai(
-    tool_calls: List[Union[Dict[str, Any], ChatCompletionMessageToolCall]],
+    tool_calls: List[Union[Dict[str, Any], ChatCompletionMessageToolCall, ToolCall]],
     *,
     api_format: Literal["chat_completion", "response"] = "chat_completion",
 ) -> List[Union[ChatCompletionMessageToolCall, ResponseFunctionToolCall]]:
     """Converts parsed tool calls to OpenAI API format.
 
     Args:
-        tool_calls: List of parsed tool calls. Can be either dictionaries or
-            ChatCompletionMessageToolCall objects.
+        tool_calls: List of parsed tool calls. Can be either dictionaries,
+            ChatCompletionMessageToolCall objects, or ToolCall objects.
         api_format: Output format type, either "chat_completion" or "response".
             Defaults to "chat_completion".
 
@@ -291,9 +317,12 @@ def tool_calls_to_openai(
     openai_tool_calls = []
 
     for call in tool_calls:
-        # Handle both dict and ChatCompletionMessageToolCall inputs
+        # Handle ToolCall, dict and ChatCompletionMessageToolCall inputs
         if isinstance(call, ChatCompletionMessageToolCall):
             chat_tool_call = call
+        elif isinstance(call, ToolCall):
+            # Convert ToolCall to ChatCompletionMessageToolCall
+            chat_tool_call = call.to_tool_call("openai-chatcompletion")
         elif isinstance(call, dict):
             # Check if it's already in ChatCompletionMessageToolCall format
             try:
@@ -321,7 +350,7 @@ def tool_calls_to_openai(
 
 
 def tool_calls_to_openai_stream(
-    tool_call: Union[Dict[str, Any], ChatCompletionMessageToolCall],
+    tool_call: Union[Dict[str, Any], ChatCompletionMessageToolCall, ToolCall],
     *,
     tc_index: int = 0,
     api_format: Literal["chat_completion", "response"] = "chat_completion",
@@ -330,8 +359,8 @@ def tool_calls_to_openai_stream(
     Converts a tool call to OpenAI-compatible tool call objects for streaming.
 
     Args:
-        tool_call: Single tool call to convert. Can be either a dictionary or
-            ChatCompletionMessageToolCall object.
+        tool_call: Single tool call to convert. Can be either a dictionary,
+            ChatCompletionMessageToolCall object, or ToolCall object.
         tc_index: The index of the tool call.
         api_format: The format to convert the tool calls to. Can be "chat_completion" or "response".
 
@@ -339,9 +368,12 @@ def tool_calls_to_openai_stream(
         An OpenAI-compatible stream tool call object.
     """
 
-    # Handle both dict and ChatCompletionMessageToolCall inputs
+    # Handle ToolCall, dict and ChatCompletionMessageToolCall inputs
     if isinstance(tool_call, ChatCompletionMessageToolCall):
         chat_tool_call = tool_call
+    elif isinstance(tool_call, ToolCall):
+        # Convert ToolCall to ChatCompletionMessageToolCall
+        chat_tool_call = tool_call.to_tool_call("openai-chatcompletion")
     elif isinstance(tool_call, dict):
         # Check if it's already in ChatCompletionMessageToolCall format
         try:
