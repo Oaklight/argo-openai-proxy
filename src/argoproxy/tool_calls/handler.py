@@ -19,10 +19,10 @@ Main classes:
 Usage example:
     # Create tool call from OpenAI format
     tool_call = ToolCall.from_entry(openai_data, api_format="openai-chatcompletion")
-    
+
     # Convert to Anthropic format
     anthropic_data = tool_call.to_tool_call("anthropic")
-    
+
     # Serialize to dictionary
     serialized = tool_call.serialize("anthropic")
 """
@@ -35,6 +35,7 @@ from pydantic import BaseModel
 from ..types.function_call import (
     ChatCompletionMessageToolCall,
     ChatCompletionNamedToolChoiceParam,
+    ChatCompletionToolParam,
     Function,
     FunctionDefinition,
     FunctionDefinitionCore,
@@ -48,21 +49,22 @@ from ..types.function_call import (
     ToolParam,
     ToolUseBlock,
 )
-from ..utils.models import API_FORMATS, generate_id, resemble_type
+from ..utils.models import API_FORMATS, generate_id
 
 
 class ToolCall(BaseModel):
     """
     Universal tool call middleware class supporting conversion between multiple API formats.
-    
+
     This class serves as a bridge between different API formats (OpenAI, Anthropic, Google, etc.),
     allowing loading tool call data from any supported format and converting to other formats.
-    
+
     Attributes:
         id: Unique identifier for the tool call
         name: Name of the function to be called
         arguments: Function arguments stored as JSON string format
     """
+
     id: str = generate_id(mode="general")
     """Unique identifier for the tool call"""
     name: str
@@ -79,14 +81,14 @@ class ToolCall(BaseModel):
     ) -> "ToolCall":
         """
         Create a ToolCall instance from dictionary data in the specified API format.
-        
+
         Args:
             tool_call: Dictionary containing tool call information
             api_format: API format type, supports openai, openai-response, anthropic, etc.
-            
+
         Returns:
             ToolCall: Created tool call instance
-            
+
         Raises:
             ValueError: When API format is not supported
             NotImplementedError: When API format is not yet implemented
@@ -151,10 +153,14 @@ class ToolCall(BaseModel):
 
         elif api_format == "anthropic":
             try:
-                input_data = json.loads(self.arguments) if isinstance(self.arguments, str) else self.arguments
+                input_data = (
+                    json.loads(self.arguments)
+                    if isinstance(self.arguments, str)
+                    else self.arguments
+                )
             except json.JSONDecodeError:
                 input_data = self.arguments
-            
+
             tool_call = ToolUseBlock(
                 id=self.id,
                 name=self.name,
@@ -186,15 +192,16 @@ class ToolCall(BaseModel):
 class Tool(BaseModel):
     """
     Universal tool definition middleware class supporting conversion between multiple API formats.
-    
+
     This class represents tool/function definition information, including name, description, and parameter schema.
     It can load tool definitions from different API formats and convert to other formats.
-    
+
     Attributes:
         name: Name of the tool/function
         description: Description of the tool/function
         parameters: Parameter schema of the tool/function, usually in JSON Schema format
     """
+
     name: str
     """Name of the tool/function"""
     description: str
@@ -207,11 +214,12 @@ class Tool(BaseModel):
         cls, tool: Dict[str, Any], *, api_format: API_FORMATS = "openai-chatcompletion"
     ) -> "Tool":
         if api_format in ["openai", "openai-chatcompletion"]:
-            origin_tool = FunctionDefinition.model_validate(tool)
+            # For OpenAI format, tool should be ChatCompletionToolParam format
+            origin_tool = ChatCompletionToolParam.model_validate(tool)
             return Tool(
-                name=origin_tool.name,
-                description=origin_tool.description,
-                parameters=origin_tool.parameters,
+                name=origin_tool.function.name,
+                description=origin_tool.function.description,
+                parameters=origin_tool.function.parameters,
             )
         elif api_format == "openai-response":
             origin_tool = FunctionTool.model_validate(tool)
@@ -223,13 +231,13 @@ class Tool(BaseModel):
         elif api_format == "anthropic":
             origin_tool = ToolParam.model_validate(tool)
             # Ensure input_schema is in dictionary format
-            if hasattr(origin_tool.input_schema, 'model_dump'):
+            if hasattr(origin_tool.input_schema, "model_dump"):
                 parameters = origin_tool.input_schema.model_dump()
             elif isinstance(origin_tool.input_schema, dict):
                 parameters = origin_tool.input_schema
             else:
                 parameters = dict(origin_tool.input_schema)
-            
+
             return Tool(
                 name=origin_tool.name,
                 description=origin_tool.description,
@@ -247,15 +255,17 @@ class Tool(BaseModel):
         self, api_format: Union[API_FORMATS, Literal["general"]] = "general"
     ) -> Union[
         "Tool",
-        FunctionDefinition,
+        ChatCompletionToolParam,
         FunctionTool,
         ToolParam,
     ]:
         if api_format in ["openai", "openai-chatcompletion"]:
-            tool = FunctionDefinition(
-                name=self.name,
-                description=self.description,
-                parameters=self.parameters,
+            tool = ChatCompletionToolParam(
+                function=FunctionDefinition(
+                    name=self.name,
+                    description=self.description,
+                    parameters=self.parameters,
+                )
             )
         elif api_format == "openai-response":
             tool = FunctionTool(
@@ -307,19 +317,20 @@ class NamedTool(BaseModel):
 class ToolChoice(BaseModel):
     """
     Universal tool choice middleware class supporting conversion between multiple API formats.
-    
+
     This class represents tool choice strategy, which can be string-type choices (like auto, required, none)
     or specify a specific tool name. Supports conversion between different API formats.
-    
+
     Attributes:
         choice: Tool choice strategy, can be "optional" (auto), "none" (don't use),
                "any" (must use) or NamedTool instance (specific tool)
     """
+
     choice: Union[Literal["optional", "none", "any"], NamedTool]
     """Tool choice strategy"""
 
     @staticmethod
-    def _str_triage(data: str) -> 'ToolChoice':
+    def _str_triage(data: str) -> "ToolChoice":
         if data == "auto":
             return ToolChoice(choice="optional")
         elif data == "required":
@@ -338,14 +349,14 @@ class ToolChoice(BaseModel):
     ) -> "ToolChoice":
         """
         Create a ToolChoice instance from data in the specified API format.
-        
+
         Args:
             data: Tool choice data, can be string or dictionary
             api_format: API format type
-            
+
         Returns:
             ToolChoice: Created tool choice instance
-            
+
         Raises:
             ValueError: When data format is invalid or API format is not supported
             NotImplementedError: When API format is not yet implemented
@@ -362,7 +373,9 @@ class ToolChoice(BaseModel):
             raise ValueError(f"Unsupported API format: {api_format}")
 
     @classmethod
-    def _handle_openai_chatcompletion(cls, data: Union[str, Dict[str, Any]]) -> "ToolChoice":
+    def _handle_openai_chatcompletion(
+        cls, data: Union[str, Dict[str, Any]]
+    ) -> "ToolChoice":
         """Handle OpenAI Chat Completions API format tool_choice"""
         if isinstance(data, str):
             return cls._str_triage(data)
@@ -371,7 +384,9 @@ class ToolChoice(BaseModel):
             if "function" in data and "name" in data["function"]:
                 return cls(choice=NamedTool(name=data["function"]["name"]))
             else:
-                raise ValueError(f"Invalid OpenAI chat completion tool choice format: {data}")
+                raise ValueError(
+                    f"Invalid OpenAI chat completion tool choice format: {data}"
+                )
         else:
             raise ValueError(f"Invalid tool choice data type: {type(data)}")
 
@@ -404,11 +419,15 @@ class ToolChoice(BaseModel):
                 if "name" in data:
                     return cls(choice=NamedTool(name=data["name"]))
                 else:
-                    raise ValueError("Anthropic tool choice with type 'tool' must have 'name' field")
+                    raise ValueError(
+                        "Anthropic tool choice with type 'tool' must have 'name' field"
+                    )
             else:
                 raise ValueError(f"Invalid Anthropic tool choice type: {tool_type}")
         else:
-            raise ValueError(f"Anthropic tool choice must be a dictionary, got: {type(data)}")
+            raise ValueError(
+                f"Anthropic tool choice must be a dictionary, got: {type(data)}"
+            )
 
     def to_tool_choice(
         self,
@@ -416,13 +435,13 @@ class ToolChoice(BaseModel):
     ) -> Union[str, Dict[str, Any], BaseModel, "ToolChoice"]:
         """
         Convert ToolChoice instance to data in the specified API format.
-        
+
         Args:
             api_format: Target API format
-            
+
         Returns:
             Converted tool choice data
-            
+
         Raises:
             ValueError: When tool choice is invalid or API format is not supported
             NotImplementedError: When API format is not yet implemented
@@ -440,7 +459,9 @@ class ToolChoice(BaseModel):
         else:
             raise ValueError(f"Invalid API format: {api_format}")
 
-    def _to_openai_chatcompletion(self) -> Union[str, ChatCompletionNamedToolChoiceParam]:
+    def _to_openai_chatcompletion(
+        self,
+    ) -> Union[str, ChatCompletionNamedToolChoiceParam]:
         """Convert to OpenAI Chat Completions API format"""
         if isinstance(self.choice, str):
             if self.choice == "optional":
@@ -474,7 +495,14 @@ class ToolChoice(BaseModel):
         else:
             raise ValueError(f"Invalid tool choice type: {type(self.choice)}")
 
-    def _to_anthropic(self) -> Union[ToolChoiceAutoParam, ToolChoiceAnyParam, ToolChoiceNoneParam, ToolChoiceToolParam]:
+    def _to_anthropic(
+        self,
+    ) -> Union[
+        ToolChoiceAutoParam,
+        ToolChoiceAnyParam,
+        ToolChoiceNoneParam,
+        ToolChoiceToolParam,
+    ]:
         """Convert to Anthropic API format"""
         if isinstance(self.choice, str):
             if self.choice == "optional":
