@@ -4,11 +4,11 @@ converters.py
 
 Type conversion module for tool calls between different LLM provider formats.
 
-This module provides conversion functions between OpenAI, Anthropic (Claude), 
+This module provides conversion functions between OpenAI, Anthropic (Claude),
 and Google (Gemini) tool call formats. It handles:
 
 1. Tool definitions (tools parameter)
-2. Tool choice specifications (tool_choice parameter)  
+2. Tool choice specifications (tool_choice parameter)
 3. Tool call results (tool_calls in responses)
 
 Usage
@@ -22,9 +22,26 @@ Usage
 
 import json
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Literal, Optional, Tuple, Union
 
 from ..types.function_call import (
+    # openai types
+    ChatCompletionToolParam,  # OpenAITool,
+    ChatCompletionToolChoiceOptionParam, # OpenAIToolChoice, 
+    ChatCompletionNamedToolChoiceParam,  # OpenAIToolChoiceFunction,
+    ChatCompletionMessageToolCall,  # OpenAIToolCall,
+    # anthropic types
+    ToolParam,  # AnthropicTool,
+    ToolChoiceParam,  # AnthropicToolChoice,
+    ToolChoiceAutoParam,  # AnthropicToolChoiceAuto,
+    ToolChoiceAnyParam,  # AnthropicToolChoiceAny,
+    ToolChoiceToolParam,  # AnthropicToolChoiceTool,
+    ToolChoiceNoneParam,  # AnthropicToolChoiceNone,
+    ToolUseBlock,  # AnthropicToolCall,
+    # claude types
+    ToolParam,  # ClaudeTool,
+    ToolChoiceParam,  # ClaudeToolChoice,
+    ToolUseBlock,  # ClaudeToolCall,
     ToolParam as ClaudeTool,
     ToolChoiceParam as ClaudeToolChoice,
     ToolUseBlock as ClaudeToolCall,
@@ -60,8 +77,71 @@ class ToolConverter(ABC):
 
 
 # ======================================================================
-# OPENAI TO CLAUDE CONVERTER
+# OPENAI TO Any CONVERTER
 # ======================================================================
+
+
+class OpenAIConverter(ToolConverter):
+    def _read_tools(self, tools: List[Dict[str, Any]]) -> List[ChatCompletionToolParam]:
+        # assume tools are valid in OpenAI format
+        return [ChatCompletionToolParam.model_validate(tool) for tool in tools]
+
+    def _read_tool_choice(
+        self, tool_choice: Union[str, Dict[str, Any]]
+    ) -> ChatCompletionToolChoiceOptionParam:
+        if isinstance(tool_choice, str):
+            return tool_choice
+        else:
+            return ChatCompletionNamedToolChoiceParam.model_validate(tool_choice)
+
+    def _read_tool_calls(
+        self, tool_calls: List[Dict[str, Any]]
+    ) -> List[ChatCompletionMessageToolCall]:
+        return [ChatCompletionMessageToolCall.model_validate(tool_call) for tool_call in tool_calls]
+
+    def convert_tools(
+        self,
+        tools: List[Dict[str, Any]],
+        target_format: Literal["anthropic", "google"],
+    ) -> List[Dict[str, Any]]:
+        openai_tools = self._read_tools(tools)
+
+        if target_format == "anthropic":
+            anthropic_tools = []
+
+            for tool in openai_tools:
+                new_tool = ToolParam(
+                    name=tool.function.name,
+                    description=tool.function.description,
+                    input_schema=tool.function.parameters,
+                )
+                anthropic_tools.append(new_tool.model_dump())
+
+            return anthropic_tools
+
+        elif target_format == "google":
+            # TODO: implement Google tool conversion
+            pass
+        else:
+            raise ValueError(f"Unsupported target format: {target_format}")
+
+    def convert_tool_choice(
+        self,
+        tool_choice: Union[str, Dict[str, Any]],
+        *,
+        target_format: Literal["anthropic", "google"],
+    ) -> Optional[Dict[str, Any]]:
+        openai_tool_choice = self._read_tool_choice(tool_choice)
+
+        if target_format == "anthropic":
+            if openai_tool_choice == "auto":
+                return ToolChoiceAutoParam().model_dump()
+            elif openai_tool_choice == "none":
+                return ToolChoiceNoneParam().model_dump()
+            elif openai_tool_choice == "required":
+                return ToolChoiceAnyParam().model_dump()
+            elif isinstance(openai_tool_choice, dict):
+                return ToolChoiceToolParam(name=openai_tool_choice["function"]["name"]).model_dump()
 
 
 class OpenAIToClaudeConverter(ToolConverter):
@@ -247,7 +327,7 @@ class ClaudeToOpenAIConverter(ToolConverter):
         # Handle dict values (Claude format)
         if isinstance(claude_tool_choice, dict):
             choice_type = claude_tool_choice.get("type")
-            
+
             if choice_type == "auto":
                 return "auto"
             elif choice_type == "none":
@@ -257,10 +337,7 @@ class ClaudeToOpenAIConverter(ToolConverter):
             elif choice_type == "tool":
                 tool_name = claude_tool_choice.get("name")
                 if tool_name:
-                    return {
-                        "type": "function",
-                        "function": {"name": tool_name}
-                    }
+                    return {"type": "function", "function": {"name": tool_name}}
 
         # Handle string values (fallback)
         elif isinstance(claude_tool_choice, str):
@@ -439,7 +516,7 @@ class ConverterFactory:
             ValueError: If conversion path is not supported
         """
         converter_key = (source_family, target_family)
-        
+
         if converter_key not in cls._converters:
             supported = ", ".join([f"{s}->{t}" for s, t in cls._converters.keys()])
             raise ValueError(
@@ -468,7 +545,10 @@ class ConverterFactory:
 
     @classmethod
     def register_converter(
-        cls, source_family: str, target_family: str, converter_class: type[ToolConverter]
+        cls,
+        source_family: str,
+        target_family: str,
+        converter_class: type[ToolConverter],
     ) -> None:
         """
         Register a new converter for a conversion path.
