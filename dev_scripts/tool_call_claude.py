@@ -6,42 +6,71 @@ import httpx
 url = "https://apps-dev.inside.anl.gov/argoapi/api/v1/resource/chat/"
 
 # Data to be sent as a POST in JSON format
+claude_styled_messages = [
+    {
+        "role": "user",
+        "content": "Could you check the current stock price of Apple for me?",
+    },
+    {
+        "role": "assistant",
+        "content": "Let me check Apple's current stock price for you:",
+    },
+    {  # fake tool call from the assistant
+        "role": "assistant",
+        "content": [
+            {
+                # "id": "toolu_vrtx_01LiZkD1myhnDz7gcoEe4Y5A",
+                "id": "tu_vrtx_01LiZkD1my",
+                "input": {"ticker": "AAPL"},
+                "name": "get_stock_price",
+                "type": "tool_use",
+            }
+        ],
+    },
+    {  # fake tool response from the user
+        "role": "user",
+        "content": [
+            {
+                "type": "tool_result",
+                # "tool_use_id": "toolu_vrtx_01LiZkD1myhnDz7gcoEe4Y5A",
+                "tool_use_id": "tu_vrtx_01LiZkD1my",
+                "content": "182.45",
+            }
+        ],
+    },
+]
+
+openai_styled_messages = [
+    {
+        "role": "user",
+        "content": "Could you check the current stock price of Apple for me?",
+    },
+    {  # assistant tool call
+        "role": "assistant",
+        "content": "Let me check Apple's current stock price for you:",
+        "tool_calls": [
+            {
+                "id": "call_abc123",
+                "type": "function",
+                "function": {
+                    "name": "get_stock_price",
+                    "arguments": '{"ticker": "AAPL"}'
+                }
+            }
+        ]
+    },
+    {  # tool response
+        "role": "tool",
+        "tool_call_id": "call_abc123",
+        "content": "182.45"
+    },
+]
+
 data = {
     "user": "pding",
     "model": "claudesonnet4",
-    "messages": [
-        {
-            "role": "user",
-            "content": "Could you check the current stock price of Apple for me?",
-        },
-        # {
-        #     "role": "assistant",
-        #     "content": "I can see a tool called `get_stock_price` that retrieves the current stock price for a given ticker symbol from major US stock exchanges.\n\nLet me check Apple's current stock price for you:",
-        # },
-        {  # fake tool call from the assistant
-            "role": "assistant",
-            "content": [
-                {
-                    # "id": "toolu_vrtx_01LiZkD1myhnDz7gcoEe4Y5A",
-                    "id": "tu_vrtx_01LiZkD1my",
-                    "input": {"ticker": "AAPL"},
-                    "name": "get_stock_price",
-                    "type": "tool_use",
-                }
-            ],
-        },
-        {  # fake tool response from the user
-            "role": "user",
-            "content": [
-                {
-                    "type": "tool_result",
-                    # "tool_use_id": "toolu_vrtx_01LiZkD1myhnDz7gcoEe4Y5A",
-                    "tool_use_id": "tu_vrtx_01LiZkD1my",
-                    "content": "182.45",
-                }
-            ],
-        },
-    ],
+    # "messages": claude_styled_messages,
+    "messages": openai_styled_messages,
     "stop": [],
     "temperature": 0,
     "tools": [
