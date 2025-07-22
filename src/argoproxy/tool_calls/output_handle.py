@@ -23,6 +23,7 @@ from ..types.function_call import (
     Function,
     ResponseFunctionToolCall,
 )
+from ..utils.models import generate_id, resemble_type
 from .converters import ClaudeToOpenAIConverter
 
 
@@ -232,40 +233,6 @@ class ToolInterceptor:
         raise NotImplementedError
 
 
-def generate_id(
-    *,
-    mode: Literal["chat_completion", "response"] = "chat_completion",
-) -> str:
-    """
-    Return a random identifier.
-
-    Parameters
-    ----------
-    mode : {'chat_completion', 'response'}
-        'chat_completion' →  call_<22-char base62 string>   (default)
-        'response'        →  fc_<48-char hex string>
-    chat_len : int
-        Length of the suffix for the chat-completion variant.
-
-    Examples
-    --------
-    >>> generate_id()
-    'call_b9krJaIcuBM4lej3IyI5heVc'
-
-    >>> generate_id(mode='response')
-    'fc_68600a8868248199a436492a47a75e440766032408f75a09'
-    """
-    ALPHANUM = string.ascii_letters + string.digits
-    if mode == "chat_completion":
-        suffix = "".join(secrets.choice(ALPHANUM) for _ in range(22))
-        return f"call_{suffix}"
-    elif mode == "response":
-        # 24 bytes → 48 hex chars (matches your example)
-        return f"fc_{secrets.token_hex(24)}"
-    else:
-        raise ValueError(f"Unknown mode: {mode!r}")
-
-
 def chat_completion_to_response_tool_call(
     chat_tool_call: ChatCompletionMessageToolCall,
 ) -> ResponseFunctionToolCall:
@@ -281,7 +248,7 @@ def chat_completion_to_response_tool_call(
         arguments=chat_tool_call.function.arguments,
         call_id=chat_tool_call.id,
         name=chat_tool_call.function.name,
-        id=generate_id(mode="response"),
+        id=generate_id(mode="openai-response"),
         status="completed",
     )
 
@@ -337,7 +304,7 @@ def tool_calls_to_openai(
                 arguments = json.dumps(call.get("arguments", ""))
                 name = call.get("name", "")
                 chat_tool_call = ChatCompletionMessageToolCall(
-                    id=generate_id(mode="chat_completion"),
+                    id=generate_id(mode="openai-chatcompletion"),
                     function=Function(name=name, arguments=arguments),
                 )
         else:
@@ -385,7 +352,7 @@ def tool_calls_to_openai_stream(
             arguments = json.dumps(tool_call.get("arguments", ""))
             name = tool_call.get("name", "")
             chat_tool_call = ChatCompletionMessageToolCall(
-                id=generate_id(mode="chat_completion"),
+                id=generate_id(mode="openai-chatcompletion"),
                 function=Function(
                     name=name,
                     arguments=arguments,
