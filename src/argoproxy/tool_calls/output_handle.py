@@ -119,12 +119,18 @@ class ToolInterceptor:
         Returns:
             Tuple of (list of tool calls or None, text content)
         """
+        logger.warning(" ")
+        logger.warning(f"Received response data: {response_data}")
+        logger.warning(" ")
 
         if model_family == "openai":
+            logger.warning('[Output Handle] Using [OpenAI] native tool calling format')
             return self._process_openai_native(response_data)
         elif model_family == "anthropic":
+            logger.warning('[Output Handle] Using [Anthropic] native tool calling format')
             return self._process_anthropic_native(response_data)
         elif model_family == "google":
+            logger.warning('[Output Handle] Using [Google] native tool calling format')
             return self._process_google_native(response_data)
         else:
             logger.warning(
@@ -193,11 +199,15 @@ class ToolInterceptor:
         # Get tool calls array
         claude_tool_calls = response.get("tool_calls", [])
 
+        logger.warning(f"[Output Handle] Claude tool calls: {claude_tool_calls}")
+        logger.warning(f"[Output Handle] Claude text content: {text_content}")
+
         # Convert Claude tool calls to OpenAI format
         openai_tool_calls = None
         if claude_tool_calls:
             converter = ClaudeToOpenAIConverter()
             openai_tool_calls = converter.convert_tool_calls(claude_tool_calls)
+            logger.warning(f"[Output Handle] Converted OpenAI tool calls: {openai_tool_calls}")
 
         return openai_tool_calls, text_content
 

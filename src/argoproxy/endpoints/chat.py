@@ -629,6 +629,8 @@ async def proxy_request(
         # Use the shared HTTP session from app context for connection pooling
         session = request.app["http_session"]
 
+        logger.warning(f"[chat] data: {json.dumps(data, indent=4)}")
+
         if stream:
             return await send_streaming_request(
                 session,
