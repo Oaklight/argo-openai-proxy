@@ -1,8 +1,18 @@
+import secrets
+import string
 from typing import Any, Dict, Literal, Union
 
 from pydantic import ValidationError
 
 from ..types.function_call import ChatCompletionNamedToolChoiceParam
+
+API_FORMATS = Literal[
+    "openai",  # old default, alias to openai-chatcompletion
+    "openai-chatcompletion",  # chat completion
+    "openai-response",
+    "anthropic",
+    "google",
+]
 
 
 def determine_model_family(
@@ -36,6 +46,65 @@ def resemble_type(obj: object, cls: type) -> bool:
     if class_name == cls.__name__:
         return True
     return False
+
+
+def generate_id(
+    *,
+    mode: Union[API_FORMATS, Literal["general"]] = "general",
+) -> str:
+    """
+    Return a random identifier.
+
+    Parameters
+    ----------
+    mode :
+        'general'                →  <22-char base62 string> (default)
+        'openai'/'openai-chatcompletion' →  call_<22-char base62 string>
+        'openai-response'        →  fc_<48-char hex string>
+        'anthropic'              →  toolu_<24-char base62 string>
+
+    chat_len : int
+        Length of the suffix for the chat-completion variant.
+
+    Examples
+    --------
+    >>> generate_id()
+    'b9krJaIcuBM4lej3IyI5heVc'
+
+    >>> generate_id(mode='openai')
+    'call_b9krJaIcuBM4lej3IyI5heVc'
+
+    >>> generate_id(mode='openai-response')
+    'fc_68600a8868248199a436492a47a75e440766032408f75a09'
+
+    >>> generate_id(mode='anthropic')
+    'toolu_vrtx_01LiZkD1myhnDz7gcoEe4Y5A'
+    """
+    ALPHANUM = string.ascii_letters + string.digits
+    if mode == "general":
+        # Generate 22-char base62 string for general use
+        return "".join(secrets.choice(ALPHANUM) for _ in range(22))
+
+    elif mode in ["openai", "openai-chatcompletion"]:
+        suffix = "".join(secrets.choice(ALPHANUM) for _ in range(22))
+        return f"call_{suffix}"
+
+    elif mode == "openai-response":
+        # 24 bytes → 48 hex chars (matches your example)
+        return f"fc_{secrets.token_hex(24)}"
+
+    elif mode == "anthropic":
+        # Generate 24-char base62 string to match the pattern
+        suffix = "".join(secrets.choice(ALPHANUM) for _ in range(24))
+        return f"toolu_{suffix}"
+
+    elif mode == "google":
+        # TODO: Implement Google-specific ID generation if needed
+        raise NotImplementedError("Google-specific ID generation not implemented")
+
+    else:
+        raise ValueError(f"Unknown mode: {mode!r}")
+
 
 def validate_tool_choice(tool_choice: Union[str, Dict[str, Any]]) -> None:
     """Helper function to validate tool_choice parameter.
