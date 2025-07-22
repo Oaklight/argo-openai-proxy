@@ -240,7 +240,7 @@ class ToolParam(BaseModel):
 
 # used in `tool_choice`
 class ToolChoiceShared(BaseModel):
-    disable_parallel_tool_use: bool = True
+    disable_parallel_tool_use: bool = False
     """Whether to disable parallel tool use.
 
     Defaults to `false`. If set to `true`, the model will output exactly one tool use.
