@@ -371,13 +371,22 @@ def handle_tools_native(data: Dict[str, Any]) -> Dict[str, Any]:
     # Validate tools and tool_choice
     # If format is invalid, raise ValueError from openai_tools_validator
     tools, tool_choice = openai_tools_validator(tools, tool_choice)
+    logger.warning(f"[Input Handle] Validated tools: {tools}")
+    logger.warning(f"[Input Handle] Validated tool_choice: {tool_choice}")
 
     if model_type == "openai":
+        logger.warning("[Input Handle] OpenAI model detected, passing through tools")
         pass
     elif model_type == "anthropic":
+        logger.warning("[Input Handle] Anthropic model detected, converting tools")
         tools, tool_choice = openai_tools_to_anthropic_tools(tools, tool_choice)
+        logger.warning(f"[Input Handle] Converted tools: {tools}")
+        logger.warning(f"[Input Handle] Converted tool_choice: {tool_choice}")
     elif model_type == "google":
+        logger.warning("[Input Handle] Google model detected, converting tools")
         tools, tool_choice = openai_tools_to_google_tools(tools, tool_choice)
+        logger.warning(f"[Input Handle] Converted tools: {tools}")
+        logger.warning(f"[Input Handle] Converted tool_choice: {tool_choice}")
 
     data["tools"] = tools
     data["tool_choice"] = tool_choice
