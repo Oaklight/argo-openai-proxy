@@ -17,16 +17,19 @@ def test_openai_chatcompletion_format():
     print("=== Testing OpenAI Chat Completions Tool Format ===")
 
     openai_tool = {
-        "name": "get_weather",
-        "description": "Get current weather information",
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "location": {"type": "string", "description": "City name"},
-                "unit": {"type": "string", "enum": ["celsius", "fahrenheit"]},
+        "type": "function",
+        "function": {
+            "name": "get_weather",
+            "description": "Get current weather information",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "location": {"type": "string", "description": "City name"},
+                    "unit": {"type": "string", "enum": ["celsius", "fahrenheit"]},
+                },
+                "required": ["location"],
             },
-            "required": ["location"],
-        },
+        }
     }
 
     tool = Tool.from_entry(openai_tool, api_format="openai-chatcompletion")
@@ -37,8 +40,8 @@ def test_openai_chatcompletion_format():
 
     # Convert back to OpenAI format
     back_to_openai = tool.to_tool("openai-chatcompletion")
-    assert back_to_openai.name == "get_weather"
-    assert back_to_openai.description == "Get current weather information"
+    assert back_to_openai.function.name == "get_weather"
+    assert back_to_openai.function.description == "Get current weather information"
 
     print("✅ OpenAI Chat Completions tool format test passed")
 
@@ -110,16 +113,19 @@ def test_cross_format_conversion():
 
     # Create from OpenAI, convert to Anthropic
     openai_tool = {
-        "name": "send_email",
-        "description": "Send an email message",
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "to": {"type": "string"},
-                "subject": {"type": "string"},
-                "body": {"type": "string"},
+        "type": "function",
+        "function": {
+            "name": "send_email",
+            "description": "Send an email message",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "to": {"type": "string"},
+                    "subject": {"type": "string"},
+                    "body": {"type": "string"},
+                },
             },
-        },
+        }
     }
 
     tool = Tool.from_entry(openai_tool, api_format="openai")
@@ -163,8 +169,8 @@ def test_serialization():
 
     # Test serialization to different formats
     openai_serialized = tool.serialize("openai-chatcompletion")
-    assert openai_serialized["name"] == "example_tool"
-    assert openai_serialized["description"] == "An example tool for testing"
+    assert openai_serialized["function"]["name"] == "example_tool"
+    assert openai_serialized["function"]["description"] == "An example tool for testing"
 
     anthropic_serialized = tool.serialize("anthropic")
     assert anthropic_serialized["name"] == "example_tool"
