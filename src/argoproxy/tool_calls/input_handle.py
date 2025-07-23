@@ -21,9 +21,7 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 from loguru import logger
 from pydantic import ValidationError
 
-from ..types.function_call import ChatCompletionToolParam
-from ..utils.models import determine_model_family, validate_tool_choice
-from .converters import ConverterFactory
+from ..utils.models import determine_model_family
 
 # ======================================================================
 # TYPE ALIASES
@@ -220,122 +218,12 @@ def handle_tools_prompt(data: Dict[str, Any]) -> Dict[str, Any]:
 # ======================================================================
 
 
-def openai_tools_validator(
-    tools: List[Dict[str, Any]],
-    tool_choice: Union[str, Dict[str, Any]] = "auto",
-) -> Tuple[List[Dict[str, Any]], Union[str, Dict[str, Any]]]:
-    """Validates tools and tool_choice parameters for OpenAI API compatibility.
-
-    Validates each tool in the tools list against OpenAI's ChatCompletionToolParam
-    schema and validates the tool_choice parameter against ChatCompletionToolChoiceOptionParam
-    schema. Collects all validation errors and raises a single ValueError if any
-    validation failures occur.
-
-    Args:
-        tools: List of tool definitions to validate. Each tool should be a dictionary
-            containing the tool specification (function name, description, parameters, etc.).
-        tool_choice: Optional tool choice parameter. Can be "none", "auto", "required",
-            or a dictionary specifying a particular tool to use.
-
-    Returns:
-        A tuple containing the validated tools list and tool_choice parameter.
-
-    Raises:
-        ValueError: If any tool or the tool_choice parameter fails validation.
-            The error message contains details about all validation failures.
-
-    Note:
-        TODO: Response API needs special handling for future implementation.
-    """
-    errors = []
-
-    # Validate tools
-    for i, tool in enumerate(tools):
-        try:
-            ChatCompletionToolParam.model_validate(tool, strict=False)
-        except ValidationError as e:
-            error_msg = f"Tool {i} validation failed: {e}"
-            logger.error(error_msg, extra={"tool_index": i, "tool_data": tool})
-            errors.append(error_msg)
-
-    # Validate tool_choice
-    if tool_choice is not None:
-        try:
-            validate_tool_choice(tool_choice)
-        except ValueError as e:
-            error_msg = f"Tool choice validation failed: {e}"
-            logger.error(error_msg, extra={"tool_choice": tool_choice})
-            errors.append(error_msg)
-
-    # Raise collected errors
-    if errors:
-        error_summary = f"Found {len(errors)} validation error(s)"
-        logger.error(
-            error_summary, extra={"error_count": len(errors), "errors": errors}
-        )
-        raise ValueError(
-            f"{error_summary}:\n" + "\n".join(f"  - {error}" for error in errors)
-        )
-
-    logger.info(f"Successfully validated {len(tools)} tools and tool_choice")
-    return tools, tool_choice
-
-
-# ======================================================================
-# NATIVE TOOL CONVERSION FUNCTIONS
-# ======================================================================
-
-
-def openai_tools_to_anthropic_tools(
-    tools: List[Dict[str, Any]],
-    tool_choice: Union[str, Dict[str, Any]] = "auto",
-) -> Tuple[List[Dict[str, Any]], Union[str, Dict[str, Any]]]:
-    """
-    Convert OpenAI tools parameters to Anthropic ones.
-
-    Args:
-        tools: List of OpenAI tool definitions
-        tool_choice: OpenAI tool choice specification
-
-    Returns:
-        Tuple of (claude_tools_dict, claude_tool_choice_dict)
-    """
-    converter = ConverterFactory.get_converter("openai", "anthropic")
-    return converter.convert_tools_and_choice(tools, tool_choice)
-
-
-def openai_tools_to_google_tools(
-    tools: List[Dict[str, Any]],
-    tool_choice: Union[str, Dict[str, Any]] = "auto",
-) -> Tuple[List[Dict[str, Any]], Union[str, Dict[str, Any]]]:
-    """
-    Convert OpenAI tools parameters to Google ones.
-
-    Args:
-        tools: List of OpenAI tool definitions
-        tool_choice: OpenAI tool choice specification
-
-    Returns:
-        Tuple of (google_tools_dict, google_tool_choice_dict)
-
-    Note:
-        TODO: Implement Google/Gemini tool conversion
-    """
-    converter = ConverterFactory.get_converter("openai", "google")
-    return converter.convert_tools_and_choice(tools, tool_choice)
-
-
-# ======================================================================
-# NATIVE TOOL HANDLING
-# ======================================================================
-
-
 def handle_tools_native(data: Dict[str, Any]) -> Dict[str, Any]:
     """Handles tool calls by converting them to the appropriate format for the target model.
 
-    Processes tool-related parameters in the request data and converts them from OpenAI
-    format to the native format required by the target model (OpenAI, Anthropic, or Google).
-    Validates tool definitions and tool_choice parameters before conversion.
+    Uses middleware classes from handler.py to process tool-related parameters in the request data
+    and converts them from OpenAI format to the native format required by the target model
+    (OpenAI, Anthropic, or Google). Also handles tool_calls in messages for different model families.
 
     Args:
         data: Request data dictionary containing model parameters. May include:
@@ -343,53 +231,216 @@ def handle_tools_native(data: Dict[str, Any]) -> Dict[str, Any]:
             - tool_choice: Tool choice parameter ("auto", "none", "required", or dict)
             - parallel_tool_calls: Whether to enable parallel tool calls (removed for now)
             - model: Model identifier used to determine the target format
+            - messages: List of messages that may contain tool_calls
 
     Returns:
-        Modified request data with tools converted to the appropriate format for the
+        Modified request data with tools and tool_calls converted to the appropriate format for the
         target model. If no tools are present, returns the original data unchanged.
 
     Note:
+        - Uses middleware classes Tool, ToolChoice, and ToolCall from handler.py
         - parallel_tool_calls parameter is currently removed and not implemented
         - Tool conversion is performed based on the model family detected from the model name
         - OpenAI format tools are passed through unchanged for OpenAI models
+        - Converts tool_calls in messages between different API formats
     """
+    from .handler import Tool, ToolCall, ToolChoice
+
     # Check if there are tool-related fields
     tools = data.get("tools")
-    if not tools:
-        return data
+    messages = data.get("messages", [])
 
-    # Get tool call related parameters
-    tool_choice = data.get("tool_choice", "auto")
-
-    # Remove parallel_tool_calls from data for now
-    # TODO: Implement parallel tool calls handling later
-    parallel_tool_calls = data.pop("parallel_tool_calls", False)
-
-    # use model to determine the data structure
+    # Determine target model family
     model_type = determine_model_family(data.get("model", "gpt4o"))
 
-    # Validate tools and tool_choice
-    # If format is invalid, raise ValueError from openai_tools_validator
-    tools, tool_choice = openai_tools_validator(tools, tool_choice)
-    logger.warning(f"[Input Handle] Validated tools: {tools}")
-    logger.warning(f"[Input Handle] Validated tool_choice: {tool_choice}")
+    # Process tools if present
+    if tools:
+        # Get tool call related parameters
+        tool_choice = data.get("tool_choice", "auto")
 
-    if model_type == "openai":
-        logger.warning("[Input Handle] OpenAI model detected, passing through tools")
-        pass
-    elif model_type == "anthropic":
-        logger.warning("[Input Handle] Anthropic model detected, converting tools")
-        tools, tool_choice = openai_tools_to_anthropic_tools(tools, tool_choice)
-        logger.warning(f"[Input Handle] Converted tools: {tools}")
-        logger.warning(f"[Input Handle] Converted tool_choice: {tool_choice}")
-    elif model_type == "google":
-        logger.warning("[Input Handle] Google model detected, converting tools")
-        tools, tool_choice = openai_tools_to_google_tools(tools, tool_choice)
-        logger.warning(f"[Input Handle] Converted tools: {tools}")
-        logger.warning(f"[Input Handle] Converted tool_choice: {tool_choice}")
+        # Remove parallel_tool_calls from data for now
+        # TODO: Implement parallel tool calls handling later
+        parallel_tool_calls = data.pop("parallel_tool_calls", False)
 
-    data["tools"] = tools
-    data["tool_choice"] = tool_choice
+        try:
+            # Convert tools using middleware classes
+            converted_tools = []
+            for tool_dict in tools:
+                # Validate and convert each tool using Tool middleware
+                tool_obj = Tool.from_entry(
+                    tool_dict, api_format="openai-chatcompletion"
+                )
+
+                if model_type == "openai":
+                    # Keep OpenAI format
+                    converted_tools.append(tool_obj.serialize("openai-chatcompletion"))
+                elif model_type == "anthropic":
+                    # Convert to Anthropic format
+                    converted_tools.append(tool_obj.serialize("anthropic"))
+                elif model_type == "google":
+                    # Convert to Google format (when implemented)
+                    converted_tools.append(tool_obj.serialize("google"))
+                else:
+                    # Default to OpenAI format
+                    converted_tools.append(tool_obj.serialize("openai-chatcompletion"))
+
+            # Convert tool_choice using ToolChoice middleware
+            if tool_choice is not None:
+                tool_choice_obj = ToolChoice.from_entry(
+                    tool_choice, api_format="openai-chatcompletion"
+                )
+
+                if model_type == "openai":
+                    converted_tool_choice = tool_choice_obj.serialize(
+                        "openai-chatcompletion"
+                    )
+                elif model_type == "anthropic":
+                    converted_tool_choice = tool_choice_obj.serialize("anthropic")
+                elif model_type == "google":
+                    converted_tool_choice = tool_choice_obj.serialize("google")
+                else:
+                    converted_tool_choice = tool_choice_obj.serialize(
+                        "openai-chatcompletion"
+                    )
+            else:
+                converted_tool_choice = None
+
+            data["tools"] = converted_tools
+            data["tool_choice"] = converted_tool_choice
+
+            logger.warning(
+                f"[Input Handle] {model_type.title()} model detected, converted tools"
+            )
+            logger.warning(f"[Input Handle] Converted tools: {converted_tools}")
+            logger.warning(
+                f"[Input Handle] Converted tool_choice: {converted_tool_choice}"
+            )
+
+        except (ValueError, ValidationError) as e:
+            logger.error(f"[Input Handle] Tool validation/conversion failed: {e}")
+            raise ValueError(f"Tool validation/conversion failed: {e}")
+
+    # Process tool_calls and tool messages if present
+    if messages:
+        converted_messages = []
+        for message in messages:
+            converted_message = message.copy()
+
+            # Check if message contains tool_calls (assistant messages)
+            if "tool_calls" in message and message["tool_calls"]:
+                try:
+                    if model_type == "openai":
+                        # Keep OpenAI format with tool_calls field
+                        converted_tool_calls = []
+                        for tool_call_dict in message["tool_calls"]:
+                            tool_call_obj = ToolCall.from_entry(
+                                tool_call_dict, api_format="openai-chatcompletion"
+                            )
+                            converted_tool_calls.append(
+                                tool_call_obj.serialize("openai-chatcompletion")
+                            )
+                        converted_message["tool_calls"] = converted_tool_calls
+                        logger.warning(
+                            f"[Input Handle] Converted tool_calls in message: {converted_tool_calls}"
+                        )
+
+                    elif model_type == "anthropic":
+                        # For Anthropic, convert tool_calls to content array format
+                        content_blocks = []
+
+                        # Add text content if present
+                        if message.get("content", ""):
+                            content_blocks.append(
+                                {"type": "text", "text": message["content"]}
+                            )
+
+                        # Convert tool_calls to tool_use blocks in content
+                        for tool_call_dict in message["tool_calls"]:
+                            tool_call_obj = ToolCall.from_entry(
+                                tool_call_dict, api_format="openai-chatcompletion"
+                            )
+                            anthropic_tool_call = tool_call_obj.serialize("anthropic")
+                            content_blocks.append(anthropic_tool_call)
+
+                        # Replace tool_calls with content array
+                        converted_message["content"] = content_blocks
+                        converted_message.pop(
+                            "tool_calls", None
+                        )  # Remove tool_calls field
+                        logger.warning(
+                            f"[Input Handle] Converted tool_calls to Anthropic content format: {content_blocks}"
+                        )
+
+                    elif model_type == "google":
+                        # TODO: Implement Google format conversion
+                        converted_tool_calls = []
+                        for tool_call_dict in message["tool_calls"]:
+                            tool_call_obj = ToolCall.from_entry(
+                                tool_call_dict, api_format="openai-chatcompletion"
+                            )
+                            converted_tool_calls.append(
+                                tool_call_obj.serialize("google")
+                            )
+                        converted_message["tool_calls"] = converted_tool_calls
+                        logger.warning(
+                            f"[Input Handle] Converted tool_calls in message: {converted_tool_calls}"
+                        )
+
+                    else:
+                        # Default to OpenAI format
+                        converted_tool_calls = []
+                        for tool_call_dict in message["tool_calls"]:
+                            tool_call_obj = ToolCall.from_entry(
+                                tool_call_dict, api_format="openai-chatcompletion"
+                            )
+                            converted_tool_calls.append(
+                                tool_call_obj.serialize("openai-chatcompletion")
+                            )
+                        converted_message["tool_calls"] = converted_tool_calls
+                        logger.warning(
+                            f"[Input Handle] Converted tool_calls in message: {converted_tool_calls}"
+                        )
+
+                except (ValueError, ValidationError) as e:
+                    logger.error(
+                        f"[Input Handle] Tool call conversion failed in message: {e}"
+                    )
+                    # Keep original tool_calls if conversion fails
+                    pass
+
+            # Check if message is a tool result message (role: tool)
+            elif message.get("role") == "tool":
+                if model_type == "anthropic":
+                    # For Anthropic, tool results should be in user messages with tool_result content
+                    # Convert OpenAI tool message format to Anthropic format
+                    tool_call_id = message.get("tool_call_id")
+                    content = message.get("content", "")
+
+                    # Create Anthropic-style tool result message
+                    converted_message = {
+                        "role": "user",
+                        "content": [
+                            {
+                                "type": "tool_result",
+                                "tool_use_id": tool_call_id,
+                                "content": content,
+                            }
+                        ],
+                    }
+                    logger.warning(
+                        f"[Input Handle] Converted tool message to Anthropic format: {converted_message}"
+                    )
+                elif model_type == "google":
+                    # TODO: Implement Google tool result format conversion
+                    logger.warning(
+                        "[Input Handle] Google tool result conversion not implemented yet"
+                    )
+                # For OpenAI, keep the original format
+
+            converted_messages.append(converted_message)
+
+        data["messages"] = converted_messages
+
     return data
 
 
