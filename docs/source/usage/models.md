@@ -33,8 +33,8 @@ Google's Gemini models offer advanced multimodal capabilities.
 
 | Original ARGO Model Name | Argo Proxy Name         | Description      | Thinking |
 | ------------------------ | ----------------------- | ---------------- | -------- |
-| `gemini25pro`            | `argo:gemini-2.5-pro`   | Gemini 2.5 Pro   | No       |
-| `gemini25flash`          | `argo:gemini-2.5-flash` | Gemini 2.5 Flash | No       |
+| `gemini25pro`            | `argo:gemini-2.5-pro`   | Gemini 2.5 Pro   | **Yes**  |
+| `gemini25flash`          | `argo:gemini-2.5-flash` | Gemini 2.5 Flash | **Yes**  |
 
 ### Anthropic Claude Series
 
@@ -42,9 +42,9 @@ Anthropic's Claude models are known for their safety and reasoning capabilities.
 
 | Original ARGO Model Name | Argo Proxy Name                                    | Description       | Thinking |
 | ------------------------ | -------------------------------------------------- | ----------------- | -------- |
-| `claudeopus4`            | `argo:claude-opus-4`, `argo:claude-4-opus`         | Claude Opus 4     | No       |
-| `claudesonnet4`          | `argo:claude-sonnet-4`, `argo:claude-4-sonnet`     | Claude Sonnet 4   | No       |
-| `claudesonnet37`         | `argo:claude-sonnet-3.7`, `argo:claude-3.7-sonnet` | Claude Sonnet 3.7 | No       |
+| `claudeopus4`            | `argo:claude-opus-4`, `argo:claude-4-opus`         | Claude Opus 4     | **Yes**  |
+| `claudesonnet4`          | `argo:claude-sonnet-4`, `argo:claude-4-sonnet`     | Claude Sonnet 4   | **Yes**  |
+| `claudesonnet37`         | `argo:claude-sonnet-3.7`, `argo:claude-3.7-sonnet` | Claude Sonnet 3.7 | **Yes**  |
 | `claudesonnet35v2`       | `argo:claude-sonnet-3.5`, `argo:claude-3.5-sonnet` | Claude Sonnet 3.5 | No       |
 
 ## Embedding Models
