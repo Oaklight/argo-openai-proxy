@@ -105,7 +105,7 @@ async def root_endpoint(request: web.Request):
     """Root endpoint mimicking OpenAI's welcome message"""
     return web.json_response(
         {
-            "message": "Welcome to the Argo-Proxy API! Documentation is available at https://oaklight.github.io/argo-openai-proxy"
+            "message": "Welcome to the Argo-Proxy API! Documentation is available at https://argo-proxy.readthedocs.io/en/latest/"
         }
     )
 
@@ -123,7 +123,7 @@ async def v1_endpoint(request: web.Request):
 
 
 async def docs(request: web.Request):
-    msg = "<html><body>Documentation access: Please visit <a href='https://oaklight.github.io/argo-openai-proxy'>https://oaklight.github.io/argo-openai-proxy</a> for full documentation.</body></html>"
+    msg = "<html><body>Documentation access: Please visit <a href='https://argo-proxy.readthedocs.io/en/latest/'>https://argo-proxy.readthedocs.io/en/latest/</a> for full documentation.</body></html>"
     return web.Response(text=msg, status=200, content_type="text/html")
 
 
