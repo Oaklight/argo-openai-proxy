@@ -11,7 +11,7 @@ from ..config import ArgoConfig
 from ..models import ModelRegistry
 from ..types import Completion, CompletionChoice, CompletionUsage
 from ..types.completions import FINISH_REASONS
-from ..utils.misc import make_bar
+from ..utils.misc import apply_username_passthrough, make_bar
 from ..utils.tokens import count_tokens, count_tokens_async
 from .chat import (
     prepare_chat_request_data,
@@ -174,6 +174,9 @@ async def proxy_request(
 
         # Prepare the request data (includes message scrutinization and normalization)
         data = prepare_chat_request_data(data, config, model_registry)
+
+        # Apply username passthrough if enabled
+        apply_username_passthrough(data, request, config.user)
 
         # Use the shared HTTP session from app context for connection pooling
         session = request.app["http_session"]

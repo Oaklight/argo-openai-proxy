@@ -33,7 +33,7 @@ from ..utils.input_handle import (
     handle_option_2_input,
     scrutinize_message_entries,
 )
-from ..utils.misc import make_bar
+from ..utils.misc import apply_username_passthrough, make_bar
 from ..utils.models import determine_model_family
 from ..utils.tokens import (
     calculate_prompt_tokens_async,
@@ -184,7 +184,6 @@ def prepare_chat_request_data(
         config: The ArgoConfig object containing configuration settings.
         model_registry: The ModelRegistry object containing model mappings.
         enable_tools: Determines whether we enables tool calls related fields - tools, tool_choice, parallel_tool_calls.
-        native_tools: Determines whether we use native tools or prompting-based tools.
 
     Returns:
         The modified request data.
@@ -649,6 +648,9 @@ async def proxy_request(
         data = prepare_chat_request_data(
             data, config, model_registry, enable_tools=True
         )
+
+        # Apply username passthrough if enabled
+        apply_username_passthrough(data, request, config.user)
         # Use the shared HTTP session from app context for connection pooling
         session = request.app["http_session"]
 
