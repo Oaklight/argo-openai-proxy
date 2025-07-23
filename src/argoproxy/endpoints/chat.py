@@ -202,8 +202,13 @@ def prepare_chat_request_data(
         data["prompt"] = [data["prompt"]]
 
     if enable_tools:
-        # convert tools related fields to a single system prompt
-        data = handle_tools(data, config.native_tools)
+        model_family = determine_model_family(data["model"])
+        if model_family in ["anthropic", "google", "unknown"]:
+            data = handle_tools(
+                data, native_tools=False
+            )  # use prompting based tool handling for now
+        else:  # openai
+            data = handle_tools(data, native_tools=config.native_tools)
     else:
         # remove incompatible fields for direct ARGO API calls
         data.pop("tools", None)
@@ -359,6 +364,8 @@ async def _handle_pseudo_stream(
         convert_to_openai: If True, converts the response to OpenAI format.
         openai_compat_fn: Function for conversion to OpenAI-compatible format.
     """
+    logger.warning("Pseudo streaming!")
+
     try:
         response_data = await upstream_resp.json()
         response_content = response_data.get("response", "")
