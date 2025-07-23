@@ -534,9 +534,6 @@ async def send_streaming_request(
     else:
         response_headers = {"Content-Type": "text/plain; charset=utf-8"}
 
-    # enable fake stream in case tools shows up in request
-    if "tools" in data:
-        pseudo_stream = True
     if pseudo_stream:
         data["stream"] = False  # disable streaming in upstream request
         api_url = config.argo_url
@@ -633,6 +630,9 @@ async def proxy_request(
 
         data = await request.json()
         stream = data.get("stream", False)
+        # use pseudo_stream to handle tools
+        if "tools" in data:
+            pseudo_stream_override = True
 
         if not data:
             raise ValueError("Invalid input. Expected JSON data.")
@@ -661,7 +661,7 @@ async def proxy_request(
                 request,
                 convert_to_openai=convert_to_openai,
                 openai_compat_fn=transform_chat_completions_streaming_async,
-                pseudo_stream=config.pseudo_stream,
+                pseudo_stream=config.pseudo_stream or pseudo_stream_override,
             )
         else:
             return await send_non_streaming_request(
