@@ -449,7 +449,7 @@ def handle_tools_native(data: Dict[str, Any]) -> Dict[str, Any]:
 # ======================================================================
 
 
-def handle_tools(data: Dict[str, Any], native_tools: bool = True) -> Dict[str, Any]:
+def handle_tools(data: Dict[str, Any], *, native_tools: bool = True) -> Dict[str, Any]:
     """
     Process input data containing tool calls with fallback strategy.
 
