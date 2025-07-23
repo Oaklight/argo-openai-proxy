@@ -634,6 +634,7 @@ async def proxy_request(
         data = await request.json()
         stream = data.get("stream", False)
         # use pseudo_stream to handle tools
+        pseudo_stream_override = False
         if "tools" in data:
             pseudo_stream_override = True
 
