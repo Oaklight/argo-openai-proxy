@@ -79,7 +79,20 @@ def transform_non_streaming_response(
     try:
         completion_tokens = count_tokens(content, model_name)
         if tool_calls:
-            tool_tokens = count_tokens(json.dumps(tool_calls), model_name)
+            # Convert ToolCall objects to serializable format for token counting
+            if (
+                tool_calls
+                and len(tool_calls) > 0
+                and hasattr(tool_calls[0], "serialize")
+            ):
+                # tool_calls is a list of ToolCall objects
+                serializable_tool_calls = [
+                    tc.serialize("openai-response") for tc in tool_calls
+                ]
+            else:
+                # tool_calls is already a list of dicts
+                serializable_tool_calls = tool_calls
+            tool_tokens = count_tokens(json.dumps(serializable_tool_calls), model_name)
             completion_tokens += tool_tokens
         total_tokens = prompt_tokens + completion_tokens
         usage = ResponseUsage(
@@ -146,7 +159,22 @@ async def transform_non_streaming_response_async(
     try:
         completion_tokens = await count_tokens_async(content, model_name)
         if tool_calls:
-            tool_tokens = await count_tokens_async(json.dumps(tool_calls), model_name)
+            # Convert ToolCall objects to serializable format for token counting
+            if (
+                tool_calls
+                and len(tool_calls) > 0
+                and hasattr(tool_calls[0], "serialize")
+            ):
+                # tool_calls is a list of ToolCall objects
+                serializable_tool_calls = [
+                    tc.serialize("openai-response") for tc in tool_calls
+                ]
+            else:
+                # tool_calls is already a list of dicts
+                serializable_tool_calls = tool_calls
+            tool_tokens = await count_tokens_async(
+                json.dumps(serializable_tool_calls), model_name
+            )
             completion_tokens += tool_tokens
         total_tokens = prompt_tokens + completion_tokens
         usage = ResponseUsage(
