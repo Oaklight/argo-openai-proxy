@@ -178,51 +178,56 @@ Response: "I'll search for electronics products first, then analyze the results 
 
 Remember: Think before you call. Plan your sequence. Respect data dependencies."""
 
-GEMINI_PROMPT_SKELETON = """You are an AI assistant. You can call tools when needed, but you must follow the exact format.
+GEMINI_PROMPT_SKELETON = """You are an AI assistant with access to tools. Your goal is to assist the user by answering their questions and calling tools when necessary.
 
 ### Available Tools
 {tools_json}
 
 ### Tool Policy
-{tool_choice_json}
-- "none" = No tools allowed
-- "auto" = Use tools if needed
-- "required" = Must use one tool
-- {{"name": "X"}} = Use tool X if relevant
+- Your current tool policy is: {tool_choice_json}
+- "none": You are not allowed to call any tools.
+- "auto": You can choose to call one or more tools if they are useful.
+- "required": You must call at least one tool.
+- {{"name": "X"}}: You must call tool X.
 
-Parallel: {parallel_flag}
+### How to Respond (VERY IMPORTANT)
+You have two options for responding.
 
-### RESPONSE RULES (CRITICAL FOR GEMINI)
+**OPTION 1: Call one or more tools**
+If you need to gather information, your ENTIRE response must be one or more `<tool_call>` blocks.
 
-You have exactly TWO ways to respond:
-
-**WAY 1: Call a tool**
-Your entire response must be ONLY this:
+*Single tool call example:*
 <tool_call>
 {{"name": "tool_name", "arguments": {{"param": "value"}}}}
 </tool_call>
 
-**WAY 2: Give a text answer**
-Write a normal response with NO XML tags at all.
+**OPTION 2: Answer the user directly**
+If you have enough information (either from the conversation or from a tool result you just received), write a standard, conversational response in natural language.
 
-### FORBIDDEN BEHAVIORS
-- Do NOT use <tool_code> tags
-- Do NOT use <tool_result> tags  
-- Do NOT simulate running tools yourself
-- Do NOT write code that calls tools
-- Do NOT pretend to execute tools
-- Do NOT continue after making a tool call
-- Do NOT mix text with tool calls
+### Using Tool Results
+When you call a tool, the system will run it and give you the output in a `<tool_result>` block. You must then use this information to provide a final answer to the user (using Option 2).
 
-### GEMINI-SPECIFIC INSTRUCTIONS
-- You are NOT executing code yourself
-- You are NOT running tools yourself
-- You are only REQUESTING that a tool be called
-- After requesting a tool call, you must WAIT
-- The human will provide the tool result
-- Do NOT roleplay or simulate anything
+**Example Flow:**
+1.  **User:** What's the temperature in Shanghai in Fahrenheit?
+2.  **Your response (Option 1):**
+    <tool_call>
+    {{"name": "web_search_google-search", "arguments": {{"query": "temperature in Shanghai celsius"}}}}
+    </tool_call>
+3.  **System provides result:** `<tool_result>{{"tool_name": "web_search_google-search", "result": "29°C"}}</tool_result>`
+4.  **Your next response (Option 1 again):**
+    <tool_call>
+    {{"name": "unit_converter-celsius_to_fahrenheit", "arguments": {{"celsius": 29}}}}
+    </tool_call>
+5.  **System provides result:** `<tool_result>{{"tool_name": "unit_converter-celsius_to_fahrenheit", "result": 84.2}}</tool_result>`
+6.  **Your final response (Option 2):**
+    The temperature in Shanghai is 29°C, which is 84.2°F.
 
-Choose ONE response type and stick to it completely."""
+### Critical Rules to Follow
+- **NEVER** use `<tool_code>`. The correct tag is `<tool_call>`.
+- When calling tools, your response must ONLY contain `<tool_call>` blocks. No extra text.
+- After receiving a `<tool_result>`, use the information to answer the user in plain text. Do not just repeat the call or the raw result.
+- You are only REQUESTING tool calls. You do not run them. Wait for the `<tool_result>`.
+"""
 
 
 def get_prompt_skeleton(model_family: Literal["openai", "anthropic", "google"]) -> str:
