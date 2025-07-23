@@ -13,7 +13,7 @@ project = "Argo Proxy"
 # copyright = "2025, Thomas Brettin, Peng Ding" # we will figure out the copyright later
 author = "Peng Ding"
 html_title = "Argo Proxy"
-release = "2.7.6"
+release = "2.7.7"
 
 
 sys.path.insert(0, os.path.abspath("../../src"))
