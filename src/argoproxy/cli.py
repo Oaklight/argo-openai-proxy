@@ -126,6 +126,9 @@ def parsing_args() -> argparse.Namespace:
 
 
 def set_config_envs(args: argparse.Namespace):
+    if args.config:
+        os.environ["CONFIG_PATH"] = args.config
+
     if args.port:
         os.environ["PORT"] = str(args.port)
     if args.verbose:
