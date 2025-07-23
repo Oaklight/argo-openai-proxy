@@ -203,11 +203,11 @@ def prepare_chat_request_data(
 
     if enable_tools:
         model_family = determine_model_family(data["model"])
-        if model_family in ["anthropic", "google", "unknown"]:
+        if model_family in ["google", "unknown"]:
             data = handle_tools(
                 data, native_tools=False
             )  # use prompting based tool handling for now
-        else:  # openai
+        else:  # openai, anthropic. Note anthropic is unstable
             data = handle_tools(data, native_tools=config.native_tools)
     else:
         # remove incompatible fields for direct ARGO API calls
