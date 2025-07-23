@@ -16,12 +16,13 @@ Usage
 """
 
 import json
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Literal, Optional, Union
 
 from loguru import logger
 from pydantic import ValidationError
 
 from ..utils.models import determine_model_family
+from .tool_prompts import get_prompt_skeleton
 
 # ======================================================================
 # TYPE ALIASES
@@ -34,64 +35,6 @@ ToolChoice = Union[str, Dict[str, Any], None]
 # PROMPT-BASED TOOL HANDLING
 # ======================================================================
 
-PROMPT_SKELETON = """You are an AI assistant that can optionally call pre-defined tools.
-Follow every rule below.
-
-### 1. Available tools
-```json
-{tools_json}
-```
-
-### 2. Caller preference (tool_choice)
-```json
-{tool_choice_json}
-```
-• "none" → answer normally or pick a tool yourself.  
-• "auto" → decide freely.  
-• Object with "name" → call that tool if relevant.
-
-### 3. Parallel calls flag
-parallel_tool_calls = {parallel_flag}  
-• true  → you MAY return multiple tool calls in one response.  
-• false → return at most **one** tool call.
-
-### 4. Response format  (CRITICAL RULES - DO NOT DEVIATE)
-
-**DECISION POINT: Before writing ANY text, decide:**
-- Am I calling a tool? → Start with `<tool_call>` IMMEDIATELY
-- Am I not calling a tool? → Write natural language with NO tags
-
-**IF CALLING TOOLS:**
-1. Your response MUST start with `<tool_call>` as the **VERY FIRST characters** (no text before it!)
-2. Write ONLY valid JSON inside the tag
-3. Close with `</tool_call>`
-4. After **two newlines** (`\\n\\n`) you MAY add natural language
-
-**IF NOT CALLING TOOLS:**
-- Write natural language ONLY
-- DO NOT use any `<tool_call>` tags anywhere
-
-**INVALID (will be rejected):**
-- "Let me help you... <tool_call>"
-- "I'll search for that. <tool_call>"
-- Any text before <tool_call>
-
-**VALID formats:**
-
-- Single call (or parallel_tool_calls = false):
-<tool_call> {{ "name": "<tool-name>", "arguments": {{ ... }} }} </tool_call>
-
-Optional natural language here...
-
-- Multiple calls (only if parallel_tool_calls == true):
-<tool_call> {{ "name": "<tool-1>", "arguments": {{ ... }} }} </tool_call>
-<tool_call> {{ "name": "<tool-2>", "arguments": {{ ... }} }} </tool_call>
-
-Optional natural language here...
-
-Remember: The FIRST character of your response determines everything. If it's not "<", you cannot use tools in that response.
-"""
-
 
 def build_tool_prompt(
     tools: Tools,
@@ -99,6 +42,7 @@ def build_tool_prompt(
     *,
     parallel_tool_calls: bool = False,
     json_indent: Optional[int] = None,
+    model_family: Literal["openai", "anthropic", "google"] = "openai",
 ) -> str:
     """
     Return a system-prompt string embedding `tools`, `tool_choice`
@@ -129,6 +73,7 @@ def build_tool_prompt(
     )
     parallel_flag = "true" if parallel_tool_calls else "false"
 
+    PROMPT_SKELETON = get_prompt_skeleton(model_family)
     return PROMPT_SKELETON.format(
         tools_json=tools_json,
         tool_choice_json=tool_choice_json,
