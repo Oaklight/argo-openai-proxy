@@ -27,7 +27,7 @@ from ..types import (
     ResponseTextDoneEvent,
     ResponseUsage,
 )
-from ..utils.misc import make_bar
+from ..utils.misc import apply_username_passthrough, make_bar
 from ..utils.tokens import (
     calculate_prompt_tokens_async,
     count_tokens,
@@ -269,6 +269,7 @@ def prepare_request_data(
     Args:
         data: The original request data.
         config: Application configuration.
+        model_registry: The ModelRegistry object containing model mappings.
 
     Returns:
         The modified and prepared request data.
@@ -609,6 +610,9 @@ async def proxy_request(
 
         # Prepare the request data (includes message scrutinization and normalization)
         data = prepare_request_data(data, config, model_registry)
+
+        # Apply username passthrough if enabled
+        apply_username_passthrough(data, request, config.user)
 
         # Use the shared HTTP session from app context for connection pooling
         session = request.app["http_session"]
