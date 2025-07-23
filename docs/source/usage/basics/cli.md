@@ -5,7 +5,8 @@ The Argo Proxy command-line interface provides comprehensive options for configu
 ## Command Syntax
 
 ```bash
-argo-proxy [-h] [--host HOST] [--port PORT] [--verbose | --quiet] [--real-stream]
+argo-proxy [-h] [--host HOST] [--port PORT] [--verbose | --quiet]
+           [--real-stream | --pseudo-stream] [--tool-prompting]
            [--edit] [--validate] [--show] [--version]
            [config]
 ```
@@ -37,11 +38,14 @@ argo-proxy --help
 
 #### `--version, -V`
 
-Show the version and exit.
+Show the version and check for updates.
 
 ```bash
 argo-proxy --version
 ```
+
+- **Enhanced**: Also checks for available updates from PyPI
+- **Information**: Displays current version and update instructions if newer version available
 
 ### Server Configuration
 
@@ -99,15 +103,39 @@ argo-proxy -q
 
 #### `--real-stream, -rs`
 
-Enable real streaming mode.
+Enable real streaming mode (default since v2.7.7).
 
 ```bash
 argo-proxy --real-stream
 argo-proxy -rs
 ```
 
-- **Override**: Enables real streaming even if `real_stream: false` or omitted in config
-- **Experimental**: This feature is currently in testing phase
+- **Override**: Explicitly enables real streaming even if `real_stream: false` in config
+- **Default**: Real streaming is the default behavior since v2.7.7
+
+#### `--pseudo-stream, -ps`
+
+Enable pseudo streaming mode.
+
+```bash
+argo-proxy --pseudo-stream
+argo-proxy -ps
+```
+
+- **Override**: Enables pseudo streaming even if `real_stream: true` or omitted in config
+- **Mutually exclusive**: Cannot be used with `--real-stream`
+
+### Tool Calling Configuration
+
+#### `--tool-prompting`
+
+Enable prompting-based tool calls/function calling.
+
+```bash
+argo-proxy --tool-prompting
+```
+
+- **Behavior**: Uses prompting-based approach instead of native tool calls
 
 ### Configuration Management
 
@@ -154,7 +182,7 @@ argo-proxy -s
 ### Basic Usage
 
 ```bash
-# Start with default configuration
+# Start with default configuration (real streaming since v2.7.7)
 argo-proxy
 
 # Start with specific config file
@@ -162,4 +190,16 @@ argo-proxy /path/to/config.yaml
 
 # Start with custom host and port
 argo-proxy --host 127.0.0.1 --port 8080
+
+# Use legacy pseudo streaming
+argo-proxy --pseudo-stream
+
+# Enable tool prompting mode
+argo-proxy --tool-prompting
+
+# Combine multiple options
+argo-proxy --pseudo-stream --tool-prompting --verbose
+
+# Validate configuration without starting server
+argo-proxy --validate --show
 ```

@@ -5,18 +5,52 @@ Argo Proxy supports two streaming modes for Chat Completions, Legacy Completions
 Why use stream mode?
 Some applications - llm clients, IDE extensions (like cline, continue.dev) and many chat-based tools—require stream mode to function correctly. Stream mode also allows you to create apps that provide a "flowing" feeling, letting users see responses generated word-by-word or line-by-line in real time, rather than waiting for the full output. This can greatly improve the responsiveness and perceived performance of your application.
 
-## Pseudo Stream (Default, Recommended)
+## Real Stream (Default since v2.7.7)
 
-- **Default behavior**: Enabled by default (omitted or `real_stream: false` in config)
+- **Default behavior**: Enabled by default starting from v2.7.7 (omitted or `real_stream: true` in config)
+- **How it works**: Directly streams chunks from the upstream API as they arrive
+- **Status**: Production-ready and stable since v2.7.7
+
+### Advantages
+
+- True real-time streaming behavior
+- Lower latency for streaming responses
+- More responsive user experience
+
+### Configuration
+
+**Via config file:**
+
+```yaml
+# Use default real streaming (since v2.7.7)
+# Simply omit the setting (defaults to true)
+
+# Or explicitly enable real streaming
+real_stream: true
+```
+
+**Via CLI:**
+
+```bash
+# Use default real streaming (since v2.7.7)
+argo-proxy
+```
+
+## Pseudo Stream
+
+- **Enable via**: Set `real_stream: false` in config file
 - **How it works**: Receives the complete response from upstream, then simulates streaming by sending chunks to the client
-- **Status**: Production-ready and stable
+- **Status**: available for compatibility and specific use cases
+
+### When to Use
+
+- When you find glitches or issues with real streaming
 
 ### Advantages
 
 - More stable and reliable experience
 - Better error handling and recovery
 - Consistent performance
-- **Recommended for production use**
 
 ### Disadvantages
 
@@ -27,58 +61,9 @@ Some applications - llm clients, IDE extensions (like cline, continue.dev) and m
 **Via config file:**
 
 ```yaml
-# Simply omit the setting (defaults to false)
-
-# Or explicitly use pseudo streaming (default)
+# Explicitly enable pseudo streaming (legacy)
 real_stream: false
 ```
-
-**Via CLI:**
-
-```bash
-# Use default pseudo streaming
-argo-proxy
-```
-
-## Real Stream (Experimental)
-
-- **Enable via**: Set `real_stream: true` in config file or use `--real-stream`/`-rs` CLI flag
-- **How it works**: Directly streams chunks from the upstream API as they arrive
-- **Status**: Currently in testing phase
-
-### When to Use
-
-- Testing streaming performance
-- Development environments
-- When you need true real-time streaming behavior
-
-### Known Issues
-
-- Time to first token may vary. Sometimes it can be longer than pseudo stream.
-- Ongoing stream may stall for a few seconds before resuming.
-
-### Configuration
-
-**Via config file:**
-
-```yaml
-# Explicitly enable real streaming (experimental)
-real_stream: true
-```
-
-**Via CLI flag:**
-
-```bash
-# Enable real streaming for this session
-argo-proxy --real-stream
-
-# Or use the shorthand
-argo-proxy -rs
-```
-
-### Feedback Welcome
-
-We welcome feedback on real streaming performance and stability. Please report any issues or observations to help improve this feature by emailing Matthew Dearing AND Peng Ding.
 
 ## Function Calling Behavior
 
@@ -91,18 +76,18 @@ When using function calling (tool calls):
 
 ## Choosing the Right Mode
 
-### Use Pseudo Stream When
+### Use Real Stream When (Default since v2.7.7)
 
 - Running in production environments
-- Reliability is more important than minimal latency
-- Using function calling features
-- Network conditions are variable
+- You want the best streaming performance
+- Most general use cases
+- When you need true real-time streaming behavior
 
-### Use Real Stream When
+### Use Pseudo Stream When
 
-- Testing streaming performance
-- Running in controlled development environments
-- Providing feedback on experimental features (Thank you!)
+- You experience issues with real streaming
+- Network conditions are highly variable
+- You prefer the previous behavior
 
 ## Troubleshooting
 

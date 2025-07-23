@@ -1,6 +1,6 @@
 # Getting Started with Tool Calls (Function Calling)
 
-Tool calls, also known as function calling, allow AI models to request the execution of external functions. This feature has been available since version v2.7.5.alpha1 and provides powerful capabilities for integrating AI models with external functions and APIs.
+Tool calls, also known as function calling, allow AI models to request the execution of external functions. This feature has been available since version v2.7.5.alpha1 and now includes **native function calling support** for OpenAI and Anthropic models, with Gemini support in development.
 
 ## What is Tool Calling?
 
@@ -139,8 +139,33 @@ if response.choices[0].message.tool_calls:
 - **Available on**: Both streaming and non-streaming **chat completion** endpoints
 - **Supported endpoints**: `/v1/chat/completions`
 - **Not supported**: Argo passthrough (`/v1/chat`) and legacy completion endpoints (`/v1/completions`)
-- **Status**: Experimental feature under active development
+- **Status**: Production-ready feature with native function calling support
+
+## Native Function Calling
+
+Argo Proxy now supports **native function calling** for supported models:
+
+### Supported Models
+
+- **OpenAI models**: ✅ Full native function calling support
+- **Anthropic models**: ✅ Full native function calling support
+- **Gemini models**: 🚧 Native function calling support in development
+
+### Key Benefits
+
+- **Better Performance**: Native function calling provides improved reliability and speed
+- **OpenAI Compatibility**: All input and output remains in standard OpenAI format
+- **Seamless Migration**: Existing OpenAI-compatible code works without changes
+
+### Legacy Support
+
+For compatibility, prompting-based function calling is still available:
+
+```bash
+# Use legacy prompting-based function calling
+argo-proxy --tool-prompting
+```
 
 ## Supported Models
 
-All chat models support tool calls.
+All chat models support tool calls, with varying levels of native function calling support as detailed above.

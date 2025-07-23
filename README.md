@@ -159,35 +159,34 @@ Current configuration:
 
 | Option               | Description                                                  | Default            |
 | -------------------- | ------------------------------------------------------------ | ------------------ |
+| `argo_embedding_url` | Argo Embedding API URL                                       | Prod URL           |
+| `argo_stream_url`    | Argo Stream API URL                                          | Dev URL (for now)  |
+| `argo_url`           | Argo Chat API URL                                            | Dev URL (for now)  |
 | `host`               | Host address to bind the server to                           | `0.0.0.0`          |
 | `port`               | Application port (random available port selected by default) | randomly assigned  |
-| `argo_url`           | Argo Chat API URL                                            | Dev URL (for now)  |
-| `argo_stream_url`    | Argo Stream API URL                                          | Dev URL (for now)  |
-| `argo_embedding_url` | Argo Embedding API URL                                       | Prod URL           |
 | `user`               | Your username                                                | (Set during setup) |
 | `verbose`            | Debug logging                                                | `true`             |
-| `real_stream`        | Enable real streaming mode (experimental)                    | `false`            |
+| `real_stream`        | Enable real streaming mode (default since v2.7.7)            | `true`             |
 
 ### Streaming Modes: Real Stream vs Pseudo Stream
 
 Argo Proxy supports two streaming modes for chat completions:
 
-#### Pseudo Stream (Default, Recommended)
+#### Real Stream (Default since v2.7.7)
 
-- **Default behavior**: Enabled by default (`real_stream: false` or omitted in config)
-- **How it works**: Receives the complete response from upstream, then simulates streaming by sending chunks to the client
+- **Default behavior**: Enabled by default since v2.7.7 (`real_stream: true` or omitted in config)
+- **How it works**: Directly streams chunks from the upstream API as they arrive
 - **Advantages**:
-  - More stable and reliable experience
-  - Better error handling and recovery
-  - Consistent performance
+  - True real-time streaming behavior
+  - Lower latency for streaming responses
+  - More responsive user experience
   - **Recommended for production use**
 
-#### Real Stream (Experimental)
+#### Pseudo Stream
 
-- **Enable via**: Set `real_stream: true` in config file or use `--real-stream` CLI flag
-- **How it works**: Directly streams chunks from the upstream API as they arrive
-- **Status**: Currently in testing phase
-- **Note**: We welcome feedback on real streaming performance and stability
+- **Enable via**: Set `real_stream: false` in config file or use `--pseudo-stream` CLI flag
+- **How it works**: Receives the complete response from upstream, then simulates streaming by sending chunks to the client
+- **Status**: Available for compatibility with previous behavior and function calling
 
 #### Configuration Examples
 
@@ -204,27 +203,28 @@ real_stream: false
 **Via CLI flag:**
 
 ```bash
-# Enable real streaming for this session
-argo-proxy --real-stream
-
-# Use default pseudo streaming
+# Use default real streaming (since v2.7.7)
 argo-proxy
+
+# Enable legacy pseudo streaming
+argo-proxy --pseudo-stream
 ```
 
 #### Function Calling Behavior
 
 When using function calling (tool calls):
 
-- **Pseudo stream is automatically enforced** regardless of your configuration
-- This ensures reliable function call processing with the current prompting-based implementation
-- Users will not notice this automatic switch as the experience remains smooth
-- Native function calling support is work in progress (WIP)
+- **Native function calling support**: Available for OpenAI and Anthropic models. Gemini models is in development
+- **Real streaming compatible**: Native function calling works with both streaming modes
+- **OpenAI format**: All input and output remains in OpenAI format regardless of underlying model
+- **Legacy support**: Prompting-based function calling available via `--tool-prompting` flag
 
 ### `argo-proxy` CLI Available Options
 
 ```bash
 $ argo-proxy -h
-usage: argo-proxy [-h] [--host HOST] [--port PORT] [--verbose | --quiet] [--real-stream]
+usage: argo-proxy [-h] [--host HOST] [--port PORT] [--verbose | --quiet]
+                  [--real-stream | --pseudo-stream] [--tool-prompting]
                   [--edit] [--validate] [--show] [--version]
                   [config]
 
@@ -239,12 +239,13 @@ options:
   --port PORT, -p PORT  Port number to bind the server to
   --verbose, -v         Enable verbose logging, override if `verbose` set False in config
   --quiet, -q           Disable verbose logging, override if `verbose` set True in config
-  --real-stream, -rs    Enable real streaming, override if `real_stream` set False or omitted in config
-  --edit, -e            Open the configuration file in the system's default editor for
-                        editing
+  --real-stream, -rs    Enable real streaming (default behavior), override if `real_stream` set False in config
+  --pseudo-stream, -ps  Enable pseudo streaming, override if `real_stream` set True or omitted in config
+  --tool-prompting      Enable prompting-based tool calls/function calling, otherwise use native tool calls/function calling
+  --edit, -e            Open the configuration file in the system's default editor for editing
   --validate, -vv       Validate the configuration file and exit
   --show, -s            Show the current configuration during launch
-  --version, -V         Show the version and exit.
+  --version, -V         Show the version and check for updates
 ```
 
 ### Management Utilities
@@ -354,11 +355,21 @@ Details of how to make such override in different query flavors: [Timeout Overri
 
 ### Tool Calls
 
-The experimental tool calls (function calling) interface has been available since version v2.7.5.alpha1.
+The tool calls (function calling) interface has been available since version v2.7.5.alpha1, now with **native function calling support**.
+
+#### Native Function Calling Support
+
+- **OpenAI models**: Full native function calling support
+- **Anthropic models**: Full native function calling support
+- **Gemini models**: Native function calling support in development
+- **OpenAI format**: All input and output remains in OpenAI format regardless of underlying model
+
+#### Availability
 
 - Available on both streaming and non-streaming **chat completion** endpoints
-- Responses support is under development
-- Argo passthrough and legacy completion endpoints do not support tool calling and will not be supported
+- Only supported on `/v1/chat/completions` endpoint
+- Argo passthrough endpoint (`/v1/chat`) and response endpoint (`/v1/chat/response`) not yet implemented due to limited development time
+- Legacy completion endpoints (`/v1/completions`) do not support tool calling
 
 #### Tool Call Examples
 

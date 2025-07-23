@@ -11,7 +11,6 @@ toolregistry
 
 Tool calls, also known as function calling, enable AI models to request the execution of external functions. This powerful feature allows you to extend AI capabilities by integrating with APIs, databases, file systems, and other external services.
 
-
 ## Overview
 
 The tool calling feature has been available since version v2.7.5.alpha1 and provides:
@@ -67,19 +66,42 @@ If you're new to tool calls, start with our [Getting Started Guide](getting-star
 - **Available on**: Both streaming and non-streaming chat completion endpoints
 - **Supported endpoints**: `/v1/chat/completions`
 - **Not supported**: Argo passthrough (`/v1/chat`) and legacy completion endpoints (`/v1/completions`)
-- **Status**: Experimental feature under active development
+- **Status**: Production-ready feature with native function calling support
+
+## Native Function Calling Support
+
+Starting from recent versions, Argo Proxy supports **native function calling** for supported models:
+
+### Supported Models for Native Function Calling
+
+- **OpenAI models**: Full native function calling support
+- **Anthropic models**: Full native function calling support
+- **Gemini models**: Native function calling support is in development. The current implementation uses prompting-based function calling.
+
+### Key Features
+
+- **OpenAI Format Compatibility**: All input and output remains in OpenAI format regardless of the underlying model
+- **Automatic Conversion**: Provider-specific function call formats are automatically converted to OpenAI format
+- **Seamless Integration**: No changes required to existing OpenAI-compatible code
+- **Enhanced Performance**: Native function calling provides better reliability and performance compared to prompting-based approaches
+
+### Implementation Notes
+
+- **Chat Completions Only**: Native function calling is only available on the `/v1/chat/completions` endpoint
+- **Argo Passthrough**: Native function calling for Argo passthrough mode (`/v1/chat`) is not implemented due to limited development time
+- **Backward Compatibility**: Legacy prompting-based function calling remains available via the `--tool-prompting` CLI flag
 
 ## Supported Models
 
-All chat models support tool calls.
+All chat models support tool calls, with varying levels of native function calling support as detailed above.
 
 ## Streaming Behavior
 
 When using function calling with streaming:
 
-- Pseudo stream is automatically enforced regardless of your configuration
-- This ensures reliable function call processing with the current implementation
-- The streaming mode switch is transparent and maintains a consistent user experience
+- **Streamlined Tool Integration**: Use tools directly within streaming responses.
+- **Automatic Fallback**: Switches to pseudo-streaming automatically when tools are active.
+- **Zero-Config**: The mode change is transparent and requires no developer intervention.
 
 ## Choose Your Path
 
