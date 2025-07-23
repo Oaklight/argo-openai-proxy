@@ -88,6 +88,7 @@ class ToolInterceptor:
                 tool_call_dict = json.loads(match.group(1).strip())
                 # Convert dict to ToolCall object
                 tool_call = ToolCall(
+                    id=generate_id(mode="general"),
                     name=tool_call_dict.get("name", ""),
                     arguments=json.dumps(tool_call_dict.get("arguments", {}))
                     if isinstance(tool_call_dict.get("arguments"), dict)

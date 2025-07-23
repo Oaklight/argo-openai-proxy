@@ -49,7 +49,7 @@ from ..types.function_call import (
     ToolParam,
     ToolUseBlock,
 )
-from ..utils.models import API_FORMATS, generate_id
+from ..utils.models import API_FORMATS
 
 
 class ToolCall(BaseModel):
@@ -65,7 +65,7 @@ class ToolCall(BaseModel):
         arguments: Function arguments stored as JSON string format
     """
 
-    id: str = generate_id(mode="general")
+    id: str
     """Unique identifier for the tool call"""
     name: str
     """Name of the function to be called"""
